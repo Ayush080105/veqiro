@@ -342,3 +342,23 @@ export const CampaignStatus = {
 } as const
 
 export type CampaignStatus = (typeof CampaignStatus)[keyof typeof CampaignStatus]
+
+
+export const ResearchStatus = {
+  BRIEF: 'BRIEF',
+  RESEARCHING: 'RESEARCHING',
+  READY: 'READY',
+  CLOSED: 'CLOSED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type ResearchStatus = (typeof ResearchStatus)[keyof typeof ResearchStatus]
+
+
+export const FindingConfidence = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH'
+} as const
+
+export type FindingConfidence = (typeof FindingConfidence)[keyof typeof FindingConfidence]

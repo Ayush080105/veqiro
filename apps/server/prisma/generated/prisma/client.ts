@@ -504,3 +504,29 @@ export type Handoff = Prisma.HandoffModel
  * scrolling back through a chat thread to find the images.
  */
 export type Campaign = Prisma.CampaignModel
+/**
+ * Model ResearchProject
+ * A research project: the durable object Scout has never had.
+ * 
+ * Scout's research is one-off chat today — an answer scrolls past and the
+ * sources with it, so the same question gets asked again next month. This
+ * keeps the question, what was read, and what was concluded, which is also
+ * what makes monitoring possible later: you cannot tell someone what changed
+ * if you never recorded what you found the first time.
+ */
+export type ResearchProject = Prisma.ResearchProjectModel
+/**
+ * Model ResearchSource
+ * One thing Scout read.
+ * 
+ * Sources are first-class rather than a JSON blob on the project because the
+ * PRD's evidence requirement is that a customer can inspect what a claim
+ * rests on — which means a source needs its own identity to be cited from a
+ * finding, and its own retrieval date to be judged stale.
+ */
+export type ResearchSource = Prisma.ResearchSourceModel
+/**
+ * Model ResearchFinding
+ * One evidence-backed conclusion.
+ */
+export type ResearchFinding = Prisma.ResearchFindingModel

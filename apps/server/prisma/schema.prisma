@@ -409,6 +409,8 @@ model Organization {
   handoffs             Handoff[]
   /// Marketing campaigns.
   campaigns            Campaign[]
+  /// Scout research projects.
+  researchProjects     ResearchProject[]
 
   @@unique([slug])
   @@index([subscriptionStatus])
@@ -2726,4 +2728,130 @@ model Campaign {
   @@index([organizationId, status, updatedAt])
   @@index([organizationId, createdAt])
   @@map("campaign")
+}
+
+/// Where a research project has got to.
+enum ResearchStatus {
+  /// Question captured, nothing gathered yet.
+  BRIEF
+  /// Actively gathering and reading sources.
+  RESEARCHING
+  /// Findings exist and are worth a human's time.
+  READY
+  /// The customer has taken what they needed from it.
+  CLOSED
+  ARCHIVED
+}
+
+/// How much weight a finding's evidence carries.
+enum FindingConfidence {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+/// A research project: the durable object Scout has never had.
+///
+/// Scout's research is one-off chat today — an answer scrolls past and the
+/// sources with it, so the same question gets asked again next month. This
+/// keeps the question, what was read, and what was concluded, which is also
+/// what makes monitoring possible later: you cannot tell someone what changed
+/// if you never recorded what you found the first time.
+model ResearchProject {
+  /// Project id.
+  id             String            @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// Owning organization relation.
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// User who started it.
+  userId         String
+  /// Short name, derived from the question when not given.
+  title          String
+  /// The question as asked. Kept verbatim: it is what the customer recognises
+  /// the project by, and tidying it up would lose their framing.
+  question       String            @db.Text
+  /// Optional free-text brief giving scope and constraints.
+  brief          String?           @db.Text
+  status         ResearchStatus    @default(BRIEF)
+  /// A company this project is about, when it is about one — the competitor
+  /// intelligence case, which is otherwise indistinguishable from a topic.
+  subjectCompany String?
+  /// Synthesised answer, once there is one.
+  summary        String?           @db.Text
+  /// Whether Scout should keep watching this subject for changes. The hook
+  /// the monitoring phase plugs into; nothing reads it yet.
+  monitored      Boolean           @default(false)
+  lastResearchedAt DateTime?
+  sources        ResearchSource[]
+  findings       ResearchFinding[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([organizationId, status, updatedAt])
+  @@index([organizationId, monitored])
+  @@map("research_project")
+}
+
+/// One thing Scout read.
+///
+/// Sources are first-class rather than a JSON blob on the project because the
+/// PRD's evidence requirement is that a customer can inspect what a claim
+/// rests on — which means a source needs its own identity to be cited from a
+/// finding, and its own retrieval date to be judged stale.
+model ResearchSource {
+  /// Source id.
+  id             String            @id @default(uuid())
+  /// Owning organization id, denormalised so sources can be listed org-wide
+  /// without joining through every project.
+  organizationId String
+  /// Owning project id.
+  projectId      String
+  /// Owning project relation.
+  project        ResearchProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Page title as published.
+  title          String
+  url            String
+  /// Publisher or site name.
+  publisher      String?
+  /// Publication date when the page states one.
+  publishedAt    DateTime?
+  /// The excerpt a finding was drawn from.
+  snippet        String            @default("") @db.Text
+  /// When Scout fetched it — which is what makes "this was true in March"
+  /// answerable.
+  retrievedAt    DateTime          @default(now())
+  findings       ResearchFinding[]
+
+  @@unique([projectId, url])
+  @@index([organizationId, retrievedAt])
+  @@map("research_source")
+}
+
+/// One evidence-backed conclusion.
+model ResearchFinding {
+  /// Finding id.
+  id             String            @id @default(uuid())
+  /// Owning organization id.
+  organizationId String
+  /// Owning project id.
+  projectId      String
+  /// Owning project relation.
+  project        ResearchProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// The source this rests on, when it rests on exactly one. Nullable because
+  /// a synthesis across several sources is still a finding.
+  sourceId       String?
+  /// Supporting source relation.
+  source         ResearchSource?   @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  /// The conclusion, in one sentence.
+  statement      String            @db.Text
+  /// Why it is believed, and how strongly.
+  confidence     FindingConfidence @default(MEDIUM)
+  /// Free-text grouping, e.g. "pricing", "positioning".
+  category       String            @default("")
+  createdAt      DateTime          @default(now())
+
+  @@index([projectId, createdAt])
+  @@index([organizationId, createdAt])
+  @@map("research_finding")
 }

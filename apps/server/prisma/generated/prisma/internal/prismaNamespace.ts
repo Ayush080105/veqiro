@@ -451,7 +451,10 @@ export const ModelName = {
   WorkObjectIndex: 'WorkObjectIndex',
   Insight: 'Insight',
   Handoff: 'Handoff',
-  Campaign: 'Campaign'
+  Campaign: 'Campaign',
+  ResearchProject: 'ResearchProject',
+  ResearchSource: 'ResearchSource',
+  ResearchFinding: 'ResearchFinding'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -467,7 +470,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign" | "researchProject" | "researchSource" | "researchFinding"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -5503,6 +5506,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ResearchProject: {
+      payload: Prisma.$ResearchProjectPayload<ExtArgs>
+      fields: Prisma.ResearchProjectFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ResearchProjectFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ResearchProjectFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>
+        }
+        findFirst: {
+          args: Prisma.ResearchProjectFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ResearchProjectFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>
+        }
+        findMany: {
+          args: Prisma.ResearchProjectFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>[]
+        }
+        create: {
+          args: Prisma.ResearchProjectCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>
+        }
+        createMany: {
+          args: Prisma.ResearchProjectCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ResearchProjectCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>[]
+        }
+        delete: {
+          args: Prisma.ResearchProjectDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>
+        }
+        update: {
+          args: Prisma.ResearchProjectUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>
+        }
+        deleteMany: {
+          args: Prisma.ResearchProjectDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ResearchProjectUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ResearchProjectUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>[]
+        }
+        upsert: {
+          args: Prisma.ResearchProjectUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchProjectPayload>
+        }
+        aggregate: {
+          args: Prisma.ResearchProjectAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateResearchProject>
+        }
+        groupBy: {
+          args: Prisma.ResearchProjectGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ResearchProjectGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ResearchProjectCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ResearchProjectCountAggregateOutputType> | number
+        }
+      }
+    }
+    ResearchSource: {
+      payload: Prisma.$ResearchSourcePayload<ExtArgs>
+      fields: Prisma.ResearchSourceFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ResearchSourceFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ResearchSourceFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>
+        }
+        findFirst: {
+          args: Prisma.ResearchSourceFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ResearchSourceFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>
+        }
+        findMany: {
+          args: Prisma.ResearchSourceFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>[]
+        }
+        create: {
+          args: Prisma.ResearchSourceCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>
+        }
+        createMany: {
+          args: Prisma.ResearchSourceCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ResearchSourceCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>[]
+        }
+        delete: {
+          args: Prisma.ResearchSourceDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>
+        }
+        update: {
+          args: Prisma.ResearchSourceUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>
+        }
+        deleteMany: {
+          args: Prisma.ResearchSourceDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ResearchSourceUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ResearchSourceUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>[]
+        }
+        upsert: {
+          args: Prisma.ResearchSourceUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchSourcePayload>
+        }
+        aggregate: {
+          args: Prisma.ResearchSourceAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateResearchSource>
+        }
+        groupBy: {
+          args: Prisma.ResearchSourceGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ResearchSourceGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ResearchSourceCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ResearchSourceCountAggregateOutputType> | number
+        }
+      }
+    }
+    ResearchFinding: {
+      payload: Prisma.$ResearchFindingPayload<ExtArgs>
+      fields: Prisma.ResearchFindingFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ResearchFindingFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ResearchFindingFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>
+        }
+        findFirst: {
+          args: Prisma.ResearchFindingFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ResearchFindingFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>
+        }
+        findMany: {
+          args: Prisma.ResearchFindingFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>[]
+        }
+        create: {
+          args: Prisma.ResearchFindingCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>
+        }
+        createMany: {
+          args: Prisma.ResearchFindingCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ResearchFindingCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>[]
+        }
+        delete: {
+          args: Prisma.ResearchFindingDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>
+        }
+        update: {
+          args: Prisma.ResearchFindingUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>
+        }
+        deleteMany: {
+          args: Prisma.ResearchFindingDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ResearchFindingUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ResearchFindingUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>[]
+        }
+        upsert: {
+          args: Prisma.ResearchFindingUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ResearchFindingPayload>
+        }
+        aggregate: {
+          args: Prisma.ResearchFindingAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateResearchFinding>
+        }
+        groupBy: {
+          args: Prisma.ResearchFindingGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ResearchFindingGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ResearchFindingCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ResearchFindingCountAggregateOutputType> | number
+        }
+      }
+    }
   }
 } & {
   other: {
@@ -6701,6 +6926,54 @@ export const CampaignScalarFieldEnum = {
 export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
 
 
+export const ResearchProjectScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  title: 'title',
+  question: 'question',
+  brief: 'brief',
+  status: 'status',
+  subjectCompany: 'subjectCompany',
+  summary: 'summary',
+  monitored: 'monitored',
+  lastResearchedAt: 'lastResearchedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ResearchProjectScalarFieldEnum = (typeof ResearchProjectScalarFieldEnum)[keyof typeof ResearchProjectScalarFieldEnum]
+
+
+export const ResearchSourceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  title: 'title',
+  url: 'url',
+  publisher: 'publisher',
+  publishedAt: 'publishedAt',
+  snippet: 'snippet',
+  retrievedAt: 'retrievedAt'
+} as const
+
+export type ResearchSourceScalarFieldEnum = (typeof ResearchSourceScalarFieldEnum)[keyof typeof ResearchSourceScalarFieldEnum]
+
+
+export const ResearchFindingScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  sourceId: 'sourceId',
+  statement: 'statement',
+  confidence: 'confidence',
+  category: 'category',
+  createdAt: 'createdAt'
+} as const
+
+export type ResearchFindingScalarFieldEnum = (typeof ResearchFindingScalarFieldEnum)[keyof typeof ResearchFindingScalarFieldEnum]
+
+
 export const SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -7279,6 +7552,34 @@ export type EnumCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$P
 export type ListEnumCampaignStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'CampaignStatus[]'>
     
 
+
+/**
+ * Reference to a field of type 'ResearchStatus'
+ */
+export type EnumResearchStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ResearchStatus'>
+    
+
+
+/**
+ * Reference to a field of type 'ResearchStatus[]'
+ */
+export type ListEnumResearchStatusFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'ResearchStatus[]'>
+    
+
+
+/**
+ * Reference to a field of type 'FindingConfidence'
+ */
+export type EnumFindingConfidenceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FindingConfidence'>
+    
+
+
+/**
+ * Reference to a field of type 'FindingConfidence[]'
+ */
+export type ListEnumFindingConfidenceFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'FindingConfidence[]'>
+    
+
 /**
  * Batch Payload for updateMany & deleteMany & createMany
  */
@@ -7442,6 +7743,9 @@ export type GlobalOmitConfig = {
   insight?: Prisma.InsightOmit
   handoff?: Prisma.HandoffOmit
   campaign?: Prisma.CampaignOmit
+  researchProject?: Prisma.ResearchProjectOmit
+  researchSource?: Prisma.ResearchSourceOmit
+  researchFinding?: Prisma.ResearchFindingOmit
 }
 
 /* Types for Logging */

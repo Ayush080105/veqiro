@@ -956,6 +956,40 @@ export type EnumCampaignStatusWithAggregatesFilter<$PrismaModel = never> = {
   _max?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel>
 }
 
+export type EnumResearchStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ResearchStatus | Prisma.EnumResearchStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumResearchStatusFilter<$PrismaModel> | $Enums.ResearchStatus
+}
+
+export type EnumResearchStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ResearchStatus | Prisma.EnumResearchStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumResearchStatusWithAggregatesFilter<$PrismaModel> | $Enums.ResearchStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumResearchStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumResearchStatusFilter<$PrismaModel>
+}
+
+export type EnumFindingConfidenceFilter<$PrismaModel = never> = {
+  equals?: $Enums.FindingConfidence | Prisma.EnumFindingConfidenceFieldRefInput<$PrismaModel>
+  in?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel> | $Enums.FindingConfidence
+}
+
+export type EnumFindingConfidenceWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FindingConfidence | Prisma.EnumFindingConfidenceFieldRefInput<$PrismaModel>
+  in?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFindingConfidenceWithAggregatesFilter<$PrismaModel> | $Enums.FindingConfidence
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel>
+}
+
 export type NestedStringFilter<$PrismaModel = never> = {
   equals?: string | Prisma.StringFieldRefInput<$PrismaModel>
   in?: string[] | Prisma.ListStringFieldRefInput<$PrismaModel>
@@ -1844,6 +1878,40 @@ export type NestedEnumCampaignStatusWithAggregatesFilter<$PrismaModel = never> =
   _count?: Prisma.NestedIntFilter<$PrismaModel>
   _min?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel>
   _max?: Prisma.NestedEnumCampaignStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumResearchStatusFilter<$PrismaModel = never> = {
+  equals?: $Enums.ResearchStatus | Prisma.EnumResearchStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumResearchStatusFilter<$PrismaModel> | $Enums.ResearchStatus
+}
+
+export type NestedEnumResearchStatusWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.ResearchStatus | Prisma.EnumResearchStatusFieldRefInput<$PrismaModel>
+  in?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  notIn?: $Enums.ResearchStatus[] | Prisma.ListEnumResearchStatusFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumResearchStatusWithAggregatesFilter<$PrismaModel> | $Enums.ResearchStatus
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumResearchStatusFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumResearchStatusFilter<$PrismaModel>
+}
+
+export type NestedEnumFindingConfidenceFilter<$PrismaModel = never> = {
+  equals?: $Enums.FindingConfidence | Prisma.EnumFindingConfidenceFieldRefInput<$PrismaModel>
+  in?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel> | $Enums.FindingConfidence
+}
+
+export type NestedEnumFindingConfidenceWithAggregatesFilter<$PrismaModel = never> = {
+  equals?: $Enums.FindingConfidence | Prisma.EnumFindingConfidenceFieldRefInput<$PrismaModel>
+  in?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  notIn?: $Enums.FindingConfidence[] | Prisma.ListEnumFindingConfidenceFieldRefInput<$PrismaModel>
+  not?: Prisma.NestedEnumFindingConfidenceWithAggregatesFilter<$PrismaModel> | $Enums.FindingConfidence
+  _count?: Prisma.NestedIntFilter<$PrismaModel>
+  _min?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel>
+  _max?: Prisma.NestedEnumFindingConfidenceFilter<$PrismaModel>
 }
 
 

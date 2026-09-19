@@ -241,3 +241,85 @@ export function useCampaignAction(organizationId: string) {
     },
   })
 }
+
+// ─── Scout research projects ─────────────────────────────────────────────────
+
+export type ResearchStatus = "BRIEF" | "RESEARCHING" | "READY" | "CLOSED" | "ARCHIVED"
+
+export interface ResearchProjectSummary {
+  id: string
+  title: string
+  question: string
+  status: ResearchStatus
+  subjectCompany: string | null
+  summary: string | null
+  monitored: boolean
+  sourceCount: number
+  findingCount: number
+  lastResearchedAt: string | null
+  updatedAt: string
+}
+
+export interface ResearchSource {
+  id: string
+  title: string
+  url: string
+  publisher: string | null
+  publishedAt: string | null
+  snippet: string
+  retrievedAt: string
+}
+
+export interface ResearchFinding {
+  id: string
+  statement: string
+  confidence: "LOW" | "MEDIUM" | "HIGH"
+  category: string
+  sourceId: string | null
+}
+
+export interface ResearchProjectDetail extends Omit<ResearchProjectSummary, "sourceCount" | "findingCount"> {
+  brief: string | null
+  createdAt: string
+  sources: ResearchSource[]
+  findings: ResearchFinding[]
+}
+
+export function useResearchProjects() {
+  return useQuery({
+    queryKey: qk.scoutProjects(),
+    queryFn: () => apiFetch<ResearchProjectSummary[]>("/agents/scout/projects"),
+  })
+}
+
+export function useResearchProject(id: string | undefined) {
+  return useQuery({
+    queryKey: qk.scoutProject(id ?? ""),
+    queryFn: () => apiFetch<ResearchProjectDetail>(`/agents/scout/projects/${id}`),
+    enabled: Boolean(id),
+  })
+}
+
+export function useUpdateResearchProject(organizationId: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      id,
+      ...body
+    }: {
+      id: string
+      status?: ResearchStatus
+      monitored?: boolean
+    }) =>
+      apiFetch<{ id: string; status: ResearchStatus; monitored: boolean }>(
+        `/agents/scout/projects/${id}`,
+        { method: "PATCH", body },
+      ),
+    onSuccess: (_result, variables) => {
+      void qc.invalidateQueries({ queryKey: qk.scoutProjects() })
+      void qc.invalidateQueries({ queryKey: qk.scoutProject(variables.id) })
+      void qc.invalidateQueries({ queryKey: qk.workspaceOverview("scout", organizationId) })
+      void qc.invalidateQueries({ queryKey: ["workspace", "work", "scout"] })
+    },
+  })
+}

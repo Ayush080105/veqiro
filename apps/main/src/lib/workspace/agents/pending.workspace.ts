@@ -1,38 +1,25 @@
-import type { AgentActionId } from "@/lib/types/agents"
 import type { AgentWorkspaceSpec } from "../types"
 
 /**
- * Agents whose workspace has an Overview, Actions and Chat but no Work yet.
+ * Vega — registered, but with no work of its own yet.
  *
- * Registered rather than omitted so their routes resolve to something real:
- * the action catalog and the chat thread already exist for them, so three
- * modules work today from framework defaults alone. What they lack is durable
- * domain objects, which is a schema question rather than a UI one.
+ * Its route resolves and Overview, Approvals, Activity, Memory, Integrations
+ * and Chat all work from framework defaults. Two things are honestly missing
+ * rather than accidentally so:
  *
- * Scout is the clearest case — it has four actions and nothing to show for
- * them, because research is still one-off chat. Giving it ResearchProject /
- * Source / Finding is what turns those answers into work, and that is the next
- * piece of real schema after Campaign.
+ *  - Vega has zero entries in the action catalog, so its Actions module is
+ *    empty. That is a content gap, not a bug, and it is worth seeing.
+ *  - Its work objects are Initiatives, Decisions and Delegations, which are
+ *    cross-agent by definition. Vega coordinates the other five, so it wants
+ *    them migrated first and it wants the Handoff protocol live — which is
+ *    exactly what the workforce phase is for. Building it earlier would mean
+ *    inventing a coordination layer with nothing to coordinate.
  *
- * Vega is deliberately last: it owns cross-agent coordination, and the handoff
- * primitives it needs only become useful once there are other workspaces to
- * coordinate. It also has zero entries in the action catalog, so its Actions
- * module is honestly empty rather than accidentally so.
+ * VegaFollowUp, VIPContact and VegaLabel already exist as tables and will
+ * become its first work types.
  */
-const pending = (
-  agent: AgentWorkspaceSpec["agent"],
-  quickActions: AgentActionId[] = [],
-): AgentWorkspaceSpec => ({
-  agent,
+export const vegaWorkspace: AgentWorkspaceSpec = {
+  agent: "vega",
   workTypes: [],
-  overview: { widgets: [], quickActions },
-})
-
-export const scoutWorkspace = pending("scout", [
-  "scout:research-topic" as AgentActionId,
-  "scout:research-company" as AgentActionId,
-  "scout:discover-competitors" as AgentActionId,
-  "scout:trending-topics" as AgentActionId,
-])
-
-export const vegaWorkspace = pending("vega")
+  overview: { widgets: [] },
+}

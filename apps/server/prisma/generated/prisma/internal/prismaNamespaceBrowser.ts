@@ -118,7 +118,10 @@ export const ModelName = {
   WorkObjectIndex: 'WorkObjectIndex',
   Insight: 'Insight',
   Handoff: 'Handoff',
-  Campaign: 'Campaign'
+  Campaign: 'Campaign',
+  ResearchProject: 'ResearchProject',
+  ResearchSource: 'ResearchSource',
+  ResearchFinding: 'ResearchFinding'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -1294,6 +1297,54 @@ export const CampaignScalarFieldEnum = {
 } as const
 
 export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
+
+
+export const ResearchProjectScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  title: 'title',
+  question: 'question',
+  brief: 'brief',
+  status: 'status',
+  subjectCompany: 'subjectCompany',
+  summary: 'summary',
+  monitored: 'monitored',
+  lastResearchedAt: 'lastResearchedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ResearchProjectScalarFieldEnum = (typeof ResearchProjectScalarFieldEnum)[keyof typeof ResearchProjectScalarFieldEnum]
+
+
+export const ResearchSourceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  title: 'title',
+  url: 'url',
+  publisher: 'publisher',
+  publishedAt: 'publishedAt',
+  snippet: 'snippet',
+  retrievedAt: 'retrievedAt'
+} as const
+
+export type ResearchSourceScalarFieldEnum = (typeof ResearchSourceScalarFieldEnum)[keyof typeof ResearchSourceScalarFieldEnum]
+
+
+export const ResearchFindingScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  sourceId: 'sourceId',
+  statement: 'statement',
+  confidence: 'confidence',
+  category: 'category',
+  createdAt: 'createdAt'
+} as const
+
+export type ResearchFindingScalarFieldEnum = (typeof ResearchFindingScalarFieldEnum)[keyof typeof ResearchFindingScalarFieldEnum]
 
 
 export const SortOrder = {

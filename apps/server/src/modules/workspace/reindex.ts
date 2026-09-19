@@ -3,6 +3,7 @@ import {
   reindexMayaCampaigns,
   reindexMayaPosts,
 } from "../agents/maya/maya.workspace.js";
+import { SCOUT_KINDS, reindexResearchProjects } from "../agents/scout/scout.workspace.js";
 import {
   SIMPLE_KINDS,
   reindexRexDatasets,
@@ -31,6 +32,7 @@ const REINDEXERS: Record<
   [WORK_OBJECT_KINDS.mayaCampaign]: reindexMayaCampaigns,
   [SIMPLE_KINDS.rexDataset]: reindexRexDatasets,
   [SIMPLE_KINDS.sageKeyword]: reindexSageKeywords,
+  [SCOUT_KINDS.project]: reindexResearchProjects,
 };
 
 export const REINDEXABLE_KINDS = Object.keys(REINDEXERS);

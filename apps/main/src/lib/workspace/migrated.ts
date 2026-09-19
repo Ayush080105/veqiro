@@ -19,4 +19,5 @@ export const WORKSPACE_MIGRATED: ReadonlySet<AgentSlug> = new Set<AgentSlug>([
   "maya",
   "rex",
   "sage",
+  "scout",
 ])

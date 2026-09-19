@@ -368,6 +368,12 @@ describe("Scout routes", () => {
       { path: "/research-company", methods: ["post"] },
       { path: "/trending-topics", methods: ["post"] },
       { path: "/discover-competitors", methods: ["post"] },
+      // Research projects: the durable objects behind the workspace's Work
+      // module. Reads plus the two state changes a human makes (closing one,
+      // asking Scout to keep watching a subject).
+      { path: "/projects", methods: ["get"] },
+      { path: "/projects/:id", methods: ["get"] },
+      { path: "/projects/:id", methods: ["patch"] },
     ]);
     assert.equal(stack.some((route) => route.path === "/competitors"), false);
     assert.equal(stack.some((route) => route.path === "/competitors/:id"), false);
