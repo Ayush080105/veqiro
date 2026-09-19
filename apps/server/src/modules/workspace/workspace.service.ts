@@ -1,6 +1,7 @@
 import { prisma } from "../../config/prisma.js";
 import {
   Agent,
+  HandoffStatus,
   InsightStatus,
   McpPendingActionStatus,
   WorkObjectStatus,
@@ -150,5 +151,94 @@ export async function getOverview(params: {
       // stay quiet about — a silently broken automation is worse than none.
       failing: plays.filter((p) => p.lastError !== null).length,
     },
+  };
+}
+
+export interface AgentPulse {
+  agent: Agent;
+  openInsights: number;
+  criticalInsights: number;
+  pendingApprovals: number;
+  needsReview: number;
+  lastActivityAt: string | null;
+}
+
+export interface CompanyPulse {
+  agents: AgentPulse[];
+  totals: { openInsights: number; pendingApprovals: number; needsReview: number };
+  topInsights: InsightEntry[];
+  recentActivity: ActivityEventEntry[];
+  handoffsInFlight: number;
+}
+
+/**
+ * The company-wide view: what every employee is sitting on, in one call.
+ *
+ * This is the thing the four org-scoped framework tables were for. Because
+ * ActivityEvent, Insight and WorkObjectIndex all carry an `agent` column
+ * rather than living in per-agent tables, "how is the company doing" is a
+ * group-by instead of six round-trips and a merge — which is what makes
+ * Vega's acceptance criterion (summarise the workforce without opening every
+ * workspace) achievable at all.
+ */
+export async function getCompanyPulse(organizationId: string): Promise<CompanyPulse> {
+  const [insightGroups, approvalGroups, workGroups, lastActivity, topInsights, activity, handoffs] =
+    await Promise.all([
+      prisma.insight.groupBy({
+        by: ["agent", "severity"],
+        where: { organizationId, status: InsightStatus.OPEN },
+        _count: { _all: true },
+      }),
+      prisma.mcpPendingAction.groupBy({
+        by: ["agent"],
+        where: { organizationId, status: McpPendingActionStatus.PENDING },
+        _count: { _all: true },
+      }),
+      prisma.workObjectIndex.groupBy({
+        by: ["agent"],
+        where: { organizationId, status: WorkObjectStatus.NEEDS_REVIEW },
+        _count: { _all: true },
+      }),
+      prisma.activityEvent.groupBy({
+        by: ["agent"],
+        where: { organizationId, agent: { not: null } },
+        _max: { createdAt: true },
+      }),
+      listInsights({ organizationId, status: InsightStatus.OPEN, limit: 8 }),
+      listActivityEvents({ organizationId, limit: 20 }),
+      prisma.handoff.count({
+        where: {
+          organizationId,
+          status: { in: [HandoffStatus.PENDING, HandoffStatus.ACCEPTED] },
+        },
+      }),
+    ]);
+
+  const agents = Object.values(Agent).map((agent) => {
+    const insights = insightGroups.filter((g) => g.agent === agent);
+    return {
+      agent,
+      openInsights: insights.reduce((sum, g) => sum + g._count._all, 0),
+      criticalInsights: insights
+        .filter((g) => g.severity === "CRITICAL" || g.severity === "HIGH")
+        .reduce((sum, g) => sum + g._count._all, 0),
+      pendingApprovals:
+        approvalGroups.find((g) => g.agent === agent)?._count._all ?? 0,
+      needsReview: workGroups.find((g) => g.agent === agent)?._count._all ?? 0,
+      lastActivityAt:
+        lastActivity.find((g) => g.agent === agent)?._max.createdAt?.toISOString() ?? null,
+    };
+  });
+
+  return {
+    agents,
+    totals: {
+      openInsights: agents.reduce((sum, a) => sum + a.openInsights, 0),
+      pendingApprovals: agents.reduce((sum, a) => sum + a.pendingApprovals, 0),
+      needsReview: agents.reduce((sum, a) => sum + a.needsReview, 0),
+    },
+    topInsights,
+    recentActivity: activity.events,
+    handoffsInFlight: handoffs,
   };
 }

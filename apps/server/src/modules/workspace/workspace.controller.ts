@@ -46,6 +46,17 @@ export const getOverview = async (req: Request, res: Response) => {
   res.status(StatusCodes.OK).json(overview);
 };
 
+/**
+ * The company-wide pulse. Not agent-scoped: it is the one read that spans
+ * every employee, which is the whole point of it.
+ */
+export const getPulse = async (req: Request, res: Response) => {
+  const { organizationId } = requireAuth(req);
+  const pulse = await workspaceService.getCompanyPulse(organizationId);
+  res.set("Cache-Control", "no-store");
+  res.status(StatusCodes.OK).json(pulse);
+};
+
 export const getActivity = async (req: Request, res: Response) => {
   const { organizationId } = requireAuth(req);
   const query = activityQuerySchema.parse(req.query);
