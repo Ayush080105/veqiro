@@ -55,7 +55,22 @@ function refreshLocalPlaceholderTimestamps(messages: Message[]): Message[] {
  * and agent-action-specific message patching stay in the caller — this hook
  * only owns what's needed to load, page, and send into `msgWindow`.
  */
-export function useAgentChat(agentId: string, organizationId: string, agentName?: string) {
+/**
+ * @param options.active Whether the thread is actually being shown. The
+ *   workspace mounts this hook in the agent layout so chat state survives
+ *   module navigation, which means it would otherwise fetch history on entering
+ *   any module even with the dock collapsed. Gating only the initial load keeps
+ *   that cost proportional to what the customer is looking at; everything else
+ *   (drafts, the window, scroll position) stays alive either way. Defaults to
+ *   true so the existing chat page is unaffected.
+ */
+export function useAgentChat(
+  agentId: string,
+  organizationId: string,
+  agentName?: string,
+  options?: { active?: boolean },
+) {
+  const active = options?.active ?? true
   const [msgWindow, setMsgWindow] = useState<Message[]>([])
   const [hasPreviousPage, setHasPreviousPage] = useState(false)
   const [isLoadingPrev, setIsLoadingPrev] = useState(false)
@@ -88,7 +103,7 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   isAtBottomRef.current = isAtBottom
 
   useEffect(() => {
-    if (!agentId || !organizationId) return
+    if (!agentId || !organizationId || !active) return
     const requestKey = `${organizationId}:${agentId}`
     const controller = new AbortController()
     setFetchError(null)
@@ -139,7 +154,9 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       })
 
     return () => controller.abort()
-  }, [agentId, organizationId])
+    // `active` participates: flipping it false→true is what triggers the first
+    // load for a dock the customer opened after landing on another module.
+  }, [agentId, organizationId, active])
 
   // Persist window to localStorage after every settled update
   useEffect(() => {
@@ -483,6 +500,10 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       isLoading,
       handleSend,
       handleRestoreDraft,
+      // The id itself, not only the ref. It is fixed for the life of the hook,
+      // so consumers that just need the value should not have to read .current
+      // during render and trip the refs lint rule for nothing.
+      conversationId: conversationIdRef.current,
       conversationIdRef,
       chatScrollRef,
       scrollAnchorRef,

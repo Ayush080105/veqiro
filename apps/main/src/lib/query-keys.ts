@@ -70,4 +70,18 @@ export const qk = {
     ["vega", "reschedule-draft", eventId, newStart, newEnd] as const,
   vegaLabels: (organizationId: string) =>
     ["vega", "labels", organizationId] as const,
+
+  // Agent workspaces. Keyed by agent rather than org where the endpoint is
+  // already org-scoped by the session, except the overview, which is cached
+  // per org so switching organizations cannot show the previous one's numbers.
+  workspaceOverview: (agent: string, organizationId: string) =>
+    ["workspace", "overview", agent, organizationId] as const,
+  workspaceWork: (agent: string, filters: string) =>
+    ["workspace", "work", agent, filters] as const,
+  workspaceActivity: (agent: string, filters: string) =>
+    ["workspace", "activity", agent, filters] as const,
+  workspaceInsights: (agent: string, status: string) =>
+    ["workspace", "insights", agent, status] as const,
+  workspaceApprovals: (agent: string) => ["workspace", "approvals", agent] as const,
+  workspaceMemory: (agent: string) => ["workspace", "memory", agent] as const,
 }
