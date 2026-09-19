@@ -3,6 +3,11 @@ import {
   reindexMayaCampaigns,
   reindexMayaPosts,
 } from "../agents/maya/maya.workspace.js";
+import {
+  SIMPLE_KINDS,
+  reindexRexDatasets,
+  reindexSageKeywords,
+} from "./simple-agents.workspace.js";
 import { WORK_OBJECT_KINDS } from "./work-objects.projector.js";
 
 /**
@@ -24,6 +29,8 @@ const REINDEXERS: Record<
   [WORK_OBJECT_KINDS.lexContract]: reindexLexContracts,
   [WORK_OBJECT_KINDS.mayaPost]: reindexMayaPosts,
   [WORK_OBJECT_KINDS.mayaCampaign]: reindexMayaCampaigns,
+  [SIMPLE_KINDS.rexDataset]: reindexRexDatasets,
+  [SIMPLE_KINDS.sageKeyword]: reindexSageKeywords,
 };
 
 export const REINDEXABLE_KINDS = Object.keys(REINDEXERS);
