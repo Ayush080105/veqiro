@@ -11,7 +11,6 @@ import {
 import type { AgentActionId } from "@/lib/types/agents"
 import { findAction } from "@/lib/agents/actions"
 import { Button } from "@/components/ui/button"
-import { EmptyState } from "@/components/ui/empty-state"
 import { Skeleton } from "@/components/ui/skeleton"
 import { StatusPill } from "@/components/ui/status-pill"
 import { useWorkspaceChat } from "../WorkspaceChatProvider"
@@ -59,13 +58,14 @@ export function InsightList({
   }
 
   if (!insights || insights.length === 0) {
+    // A one-liner, not a full empty state. On an overview this sits between
+    // other panels, and a 200px illustrated void for "nothing is wrong" gives
+    // the least important thing on the page the most room.
     return (
-      <EmptyState
-        tone="plain"
-        icon={<Sparkles />}
-        title="Nothing needs your attention"
-        description="Findings, risks and opportunities will appear here as they're spotted."
-      />
+      <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+        <Sparkles className="size-3.5 shrink-0" />
+        Nothing needs your attention. Findings will appear here as they&apos;re spotted.
+      </p>
     )
   }
 

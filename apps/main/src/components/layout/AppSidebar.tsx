@@ -47,7 +47,9 @@ import { useHydrated } from "@/lib/hooks/use-hydrated"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/assistants", label: "Assistants", icon: Users },
+  // "Employees", not "Assistants": the product model is people you have hired,
+  // and the directory this points at is the workforce rather than a chat list.
+  { href: "/assistants", label: "Employees", icon: Users },
   { href: "/tasks", label: "Tasks", icon: CalendarClock },
 ]
 

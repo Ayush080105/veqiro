@@ -14,7 +14,15 @@ import { TrialBanner } from "@/components/billing/TrialBanner"
 import { AppTour } from "@/components/tour/AppTour"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
 
-const isAssistantsPath = (p: string) => p.startsWith("/assistants")
+/**
+ * Only the two-pane chat view wants the sidebar out of the way — it has its own
+ * 340px agent list and the two together left no room for the conversation.
+ * The employee directory at /assistants is an ordinary console page and keeps
+ * the sidebar; workspaces are full-screen and no longer render in this shell
+ * at all.
+ */
+const wantsCollapsedSidebar = (p: string) =>
+  p.startsWith("/assistants/") || p === "/assistants/team"
 
 export default function DashboardSidebarShell({
   children,
@@ -22,14 +30,14 @@ export default function DashboardSidebarShell({
   children: React.ReactNode
 }) {
   const pathname = usePathname()
-  const [open, setOpen] = useState(() => !isAssistantsPath(pathname))
+  const [open, setOpen] = useState(() => !wantsCollapsedSidebar(pathname))
   const prevPathRef = useRef(pathname)
 
   useEffect(() => {
-    const wasAssistants = isAssistantsPath(prevPathRef.current)
-    const nowAssistants = isAssistantsPath(pathname)
-    if (!wasAssistants && nowAssistants) queueMicrotask(() => setOpen(false))
-    else if (wasAssistants && !nowAssistants) queueMicrotask(() => setOpen(true))
+    const wasCollapsed = wantsCollapsedSidebar(prevPathRef.current)
+    const nowCollapsed = wantsCollapsedSidebar(pathname)
+    if (!wasCollapsed && nowCollapsed) queueMicrotask(() => setOpen(false))
+    else if (wasCollapsed && !nowCollapsed) queueMicrotask(() => setOpen(true))
     prevPathRef.current = pathname
   }, [pathname])
 

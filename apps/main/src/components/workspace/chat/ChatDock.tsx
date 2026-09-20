@@ -9,6 +9,7 @@ import type { AgentActionId } from "@/lib/types/agents"
 import { cn } from "@/lib/utils"
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
+import { ChatDockEmptyState } from "./ChatDockEmptyState"
 import { useAgentWorkspace } from "../AgentWorkspaceContext"
 import { useWorkspaceChat } from "../WorkspaceChatProvider"
 
@@ -60,7 +61,7 @@ export function ChatDock({ fullBleed }: { fullBleed?: boolean }) {
   return (
     <div className={cn("flex min-h-0 w-full flex-col", fullBleed && "h-full")}>
       <div className="flex shrink-0 items-center gap-2 border-b border-(--vq-line-2) px-3 py-2">
-        <span className="truncate font-head text-sm">{config.name}</span>
+        <span className="truncate text-xs font-medium text-muted-foreground">Chat</span>
         <span className="flex-1" />
         {spec.chatHeaderExtras?.map((Extra, i) => (
           <Suspense key={i} fallback={null}>
@@ -94,6 +95,10 @@ export function ChatDock({ fullBleed }: { fullBleed?: boolean }) {
                 {isLoadingPrev ? "loading…" : "↑ load older messages"}
               </button>
             </div>
+          )}
+
+          {messages.length === 0 && !isBusy && (
+            <ChatDockEmptyState agent={config} onPrompt={setContent} />
           )}
 
           {messages.map((msg, i) => (

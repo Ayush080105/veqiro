@@ -40,12 +40,10 @@ export const lexWorkspace: AgentWorkspaceSpec = {
         ),
       },
     ],
-    quickActions: [
-      "lex:upload-source" as AgentActionId,
-      "lex:analyze-contract" as AgentActionId,
-      "lex:draft-document" as AgentActionId,
-      "lex:legal-research" as AgentActionId,
-    ],
+    // No quickActions: LexHome already leads with "Review a contract",
+    // "Create a document" and "Ask about your documents", so the framework
+    // row underneath would be the same three offers a second time. An agent
+    // whose widget owns its calls to action does not need it.
   },
 
   composer: { attachments: "lex-sources" },

@@ -16,7 +16,7 @@ import { Fragment } from "react"
 
 const LABELS: Record<string, string> = {
   "/dashboard": "Dashboard",
-  "/assistants": "Assistants",
+  "/assistants": "Employees",
   "/brain": "Brain",
   "/settings": "Settings",
   "/settings/billing": "Billing",

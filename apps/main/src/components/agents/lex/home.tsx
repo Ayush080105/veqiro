@@ -40,35 +40,54 @@ export function LexHome({
   onPrompt,
   onOpenDocument,
   onViewAll,
+  embedded = false,
 }: {
   photo?: string
   onAction: (actionId: AgentActionId) => void
   onPrompt: (prompt: string) => void
   onOpenDocument: (sourceRowId: string) => void
   onViewAll: () => void
+  /**
+   * Rendered inside the workspace overview rather than standing in for an
+   * empty chat page. Drops the portrait header and the "Ask Lex" prompts,
+   * because the workspace shell already names the employee and the chat dock
+   * already offers those prompts — shown together they read as the same thing
+   * said three times.
+   */
+  embedded?: boolean
 }) {
   const { data: watch, isLoading } = useLexWatch()
   const hasDocuments = (watch?.documents ?? 0) > 0
   const attention = (watch?.items ?? []).filter((i) => i.severity !== "info")
 
   return (
-    <div className="flex flex-1 justify-center overflow-y-auto bg-background px-4 py-8 sm:px-6">
-      <div className="flex w-full max-w-160 flex-col gap-6">
-        <header className="flex items-center gap-4">
-          {photo && (
-            <div className="relative size-14 shrink-0 overflow-hidden rounded-[var(--vq-r)] border border-border shadow-(--vq-shadow-sm)">
-              <Image src={photo} alt="Lex" fill sizes="56px" className="object-cover" />
+    <div
+      className={
+        embedded
+          ? "flex flex-col"
+          : "flex flex-1 justify-center overflow-y-auto bg-background px-4 py-8 sm:px-6"
+      }
+    >
+      <div className={embedded ? "flex w-full flex-col gap-6" : "flex w-full max-w-160 flex-col gap-6"}>
+        {/* The workspace header already says who this is and what they do;
+            repeating it here made three introductions on one screen. */}
+        {!embedded && (
+          <header className="flex items-center gap-4">
+            {photo && (
+              <div className="relative size-14 shrink-0 overflow-hidden rounded-[var(--vq-r)] border border-border shadow-(--vq-shadow-sm)">
+                <Image src={photo} alt="Lex" fill sizes="56px" className="object-cover" />
+              </div>
+            )}
+            <div>
+              <h2 className="font-head text-3xl leading-tight">{hasDocuments || isLoading ? "Your legal work, watched." : "Meet Lex"}</h2>
+              <p className="text-sm text-muted-foreground">
+                {hasDocuments || isLoading
+                  ? "Review. Remember. Warn. Act."
+                  : "Give me a contract, legal document, or question. I'll tell you what matters and what you can do next."}
+              </p>
             </div>
-          )}
-          <div>
-            <h2 className="font-head text-3xl leading-tight">{hasDocuments || isLoading ? "Your legal work, watched." : "Meet Lex"}</h2>
-            <p className="text-sm text-muted-foreground">
-              {hasDocuments || isLoading
-                ? "Review. Remember. Warn. Act."
-                : "Give me a contract, legal document, or question. I'll tell you what matters and what you can do next."}
-            </p>
-          </div>
-        </header>
+          </header>
+        )}
 
         <section aria-label="What can I help with?" className="grid gap-2 sm:grid-cols-3">
           {ACTIONS.map((a) => (
@@ -172,26 +191,33 @@ export function LexHome({
         )}
 
         <section aria-label="Ask Lex" className="flex flex-col gap-2">
-          <Kicker size="sm" tone="default">Ask Lex</Kicker>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => onAction("lex:upload-source")}
-              className="rounded-[var(--vq-r-sm)] border border-border bg-card px-3 py-2 text-[13px] shadow-(--vq-shadow-sm) hover:bg-muted"
-            >
-              Can I sign this?
-            </button>
-            {PROMPTS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => onPrompt(p)}
-                className="rounded-[var(--vq-r-sm)] border border-border bg-card px-3 py-2 text-[13px] shadow-(--vq-shadow-sm) hover:bg-muted"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
+          {/* The chat dock offers these same prompts, so in the workspace they
+              would be the second copy on screen. The disclaimer below is not
+              conditional — it has to show wherever Lex's output does. */}
+          {!embedded && (
+            <>
+              <Kicker size="sm" tone="default">Ask Lex</Kicker>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => onAction("lex:upload-source")}
+                  className="rounded-[var(--vq-r-sm)] border border-border bg-card px-3 py-2 text-[13px] shadow-(--vq-shadow-sm) hover:bg-muted"
+                >
+                  Can I sign this?
+                </button>
+                {PROMPTS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => onPrompt(p)}
+                    className="rounded-[var(--vq-r-sm)] border border-border bg-card px-3 py-2 text-[13px] shadow-(--vq-shadow-sm) hover:bg-muted"
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
           <p className="text-[11px] text-muted-foreground">
             Lex provides AI-generated legal information and document analysis. It does not replace advice from a qualified lawyer.
           </p>

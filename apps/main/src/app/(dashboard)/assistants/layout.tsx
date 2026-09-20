@@ -45,6 +45,12 @@ export default function AssistantsLayout({
     }
   }
 
+  // The directory owns the whole page. The chat-list split only exists for an
+  // agent that has NOT been migrated to a workspace — with the flag on, every
+  // /assistants/<agent> redirects out before this renders, so this is the
+  // rollback path rather than the normal one.
+  if (!chatOpen) return <>{children}</>
+
   return (
     <div
       className="-m-4 flex overflow-hidden bg-background"

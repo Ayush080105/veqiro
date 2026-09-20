@@ -53,7 +53,15 @@ export function ActivityFeed({
   }
 
   if (!events || events.length === 0) {
-    return (
+    // On the overview this is one panel among several, so it gets a line.
+    // On the Activity module it is the whole page, and an empty page deserves
+    // to say so properly.
+    return compact ? (
+      <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+        <Activity className="size-3.5 shrink-0" />
+        Nothing yet. Reviews, drafts and scheduled runs will be recorded here.
+      </p>
+    ) : (
       <EmptyState
         tone="plain"
         icon={<Activity />}

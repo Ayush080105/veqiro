@@ -32,6 +32,7 @@ export function LexOverviewWidget({ agent }: OverviewWidgetProps) {
         router.push(hrefFor("work", `documents/${sourceRowId}`))
       }
       onViewAll={() => router.push(hrefFor("work", "documents"))}
+      embedded
     />
   )
 }
