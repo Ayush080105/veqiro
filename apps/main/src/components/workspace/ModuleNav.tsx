@@ -15,6 +15,22 @@ import { useAgentWorkspace } from "./AgentWorkspaceContext"
  * directory of disappointments.
  */
 export function ModuleNav() {
+  return (
+    <nav
+      aria-label="Workspace modules"
+      className="hidden w-52 shrink-0 overflow-y-auto border-r border-(--vq-line-2) bg-card px-2 py-3 md:block"
+    >
+      <ModuleNavList />
+    </nav>
+  )
+}
+
+/**
+ * The module list itself, shared between the desktop rail and the mobile
+ * sheet (`WorkspaceMobileNav`) so the two can never drift — same modules,
+ * same order, same "coming soon" grouping.
+ */
+export function ModuleNavList({ onNavigate }: { onNavigate?: () => void }) {
   const { modules, activeModule, hrefFor } = useAgentWorkspace()
 
   const visible = modules.filter((m) => !m.hiddenInNav)
@@ -22,10 +38,7 @@ export function ModuleNav() {
   const soon = visible.filter((m) => m.status !== "ready")
 
   return (
-    <nav
-      aria-label="Workspace modules"
-      className="hidden w-52 shrink-0 overflow-y-auto border-r border-(--vq-line-2) bg-card px-2 py-3 md:block"
-    >
+    <>
       <ul className="flex flex-col gap-0.5">
         {ready.map((module) => (
           <NavItem
@@ -34,6 +47,7 @@ export function ModuleNav() {
             label={module.label ?? MODULE_META[module.id].label}
             icon={MODULE_META[module.id].icon}
             active={activeModule === module.id}
+            onNavigate={onNavigate}
           />
         ))}
       </ul>
@@ -52,12 +66,13 @@ export function ModuleNav() {
                 icon={MODULE_META[module.id].icon}
                 active={activeModule === module.id}
                 muted
+                onNavigate={onNavigate}
               />
             ))}
           </ul>
         </>
       )}
-    </nav>
+    </>
   )
 }
 
@@ -67,18 +82,21 @@ function NavItem({
   icon: Icon,
   active,
   muted,
+  onNavigate,
 }: {
   href: string
   label: string
   icon: React.ComponentType<{ className?: string }>
   active: boolean
   muted?: boolean
+  onNavigate?: () => void
 }) {
   return (
     <li>
       <Link
         href={href}
         aria-current={active ? "page" : undefined}
+        onClick={onNavigate}
         className={cn(
           "flex items-center gap-2.5 rounded-[var(--vq-r-sm)] px-2 py-1.5 text-sm no-underline transition-colors",
           active

@@ -58,11 +58,15 @@ export const mayaWorkspace: AgentWorkspaceSpec = {
 
   overview: {
     widgets: [],
+    // "maya:content-plan" used to be listed here, but it isn't a real action
+    // — not in AgentActionId, AGENT_ACTIONS, or RunActionDialog's SPECS — so
+    // findAction() always returned undefined and the button silently never
+    // rendered. Content Plan lives in the "plan" Work tab (MayaPlansWork);
+    // it was never meant to open an action dialog.
     quickActions: [
       "maya:generate-ideas" as AgentActionId,
       "maya:draft-content" as AgentActionId,
       "maya:campaign" as AgentActionId,
-      "maya:content-plan" as AgentActionId,
     ],
   },
 

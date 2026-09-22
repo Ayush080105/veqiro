@@ -403,11 +403,23 @@ export function FinancialHealthCard({
             <FollowUpBtn
               label="Calculate runway"
               icon={Hourglass}
-              onClick={() => onFollowUpAction("rex:runway", {
-                monthly_burn: Math.max(1, Math.abs(m.net_burn ?? m.burn_rate ?? 0)),
-                monthly_revenue: m.mrr ?? 0,
-                growth_rate_pct: m.growth_rate_pct ?? 0,
-              })}
+              onClick={() => {
+                const burn = Math.max(1, Math.abs(m.net_burn ?? m.burn_rate ?? 0))
+                onFollowUpAction("rex:runway", {
+                  // rex:runway's validator requires a positive cash_on_hand before
+                  // the form can submit, and financial-analysis never asks about or
+                  // returns a cash balance — so this is derived from what it does
+                  // return: cash ≈ runway months × monthly burn. Left at 0 (still
+                  // blocked, same as before) only when runway_months is unknown.
+                  cash_on_hand:
+                    m.runway_months != null && m.runway_months > 0
+                      ? Math.round(m.runway_months * burn)
+                      : 0,
+                  monthly_burn: burn,
+                  monthly_revenue: m.mrr ?? 0,
+                  growth_rate_pct: m.growth_rate_pct ?? 0,
+                })
+              }}
             />
           </div>
         )}

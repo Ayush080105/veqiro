@@ -73,8 +73,8 @@ export function WorkspaceChatProvider({ children }: { children: ReactNode }) {
     selfHref: pathname,
   })
 
-  const { openAction } = dialogs
-  const { setContent } = chat
+  const { openAction: openActionDialog } = dialogs
+  const { setContent, setAttachedSourceIds } = chat
 
   const sendPrompt = useCallback(
     (prompt: string) => {
@@ -82,6 +82,32 @@ export function WorkspaceChatProvider({ children }: { children: ReactNode }) {
       setDockOpen(true)
     },
     [setContent, setDockOpen],
+  )
+
+  /**
+   * "lex:ask-about" isn't a dialog — it attaches the document to the composer
+   * (so the chat answer is grounded in its full text) and pre-fills a
+   * question, then reveals the dock. Everything else opens its action dialog
+   * as normal. Ported from the old chat page's handleAgentFollowUp, which
+   * intercepted this the same way before RunActionDialog ever saw it;
+   * RunActionDialog still deliberately excludes "lex:ask-about" from its
+   * SPECS and renders nothing for it, so without this wrapper the button is
+   * silently dead.
+   */
+  const openAction = useCallback(
+    (actionId: AgentActionId, prefill?: Record<string, unknown>) => {
+      if (actionId === "lex:ask-about") {
+        const sourceId = typeof prefill?.sourceId === "string" ? prefill.sourceId : ""
+        if (sourceId) {
+          setAttachedSourceIds((prev) => (prev.includes(sourceId) ? prev : [...prev, sourceId]))
+        }
+        setContent(typeof prefill?.prompt === "string" ? prefill.prompt : "")
+        setDockOpen(true)
+        return
+      }
+      openActionDialog(actionId, prefill)
+    },
+    [openActionDialog, setAttachedSourceIds, setContent, setDockOpen],
   )
 
   // Dev-only guard for the failure mode above. A second mount for the same
@@ -97,7 +123,7 @@ export function WorkspaceChatProvider({ children }: { children: ReactNode }) {
       console.error(
         `[workspace] WorkspaceChatProvider mounted ${w[key]} times for "${agent}". ` +
           `Chat state is being lost on navigation. Check for a loading.tsx or ` +
-          `template.tsx under app/(dashboard)/workspace/[agent]/, or a changing key.`,
+          `template.tsx under app/(workspace)/workspace/[agent]/, or a changing key.`,
       )
     }
     mountedRef.current = true

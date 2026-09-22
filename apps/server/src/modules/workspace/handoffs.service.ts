@@ -12,11 +12,11 @@ import { recordActivityEvent } from "../activity/activity-event.service.js";
 /**
  * Cross-agent work requests.
  *
- * Shipped dormant in Phase 0: the table, the queries and the lifecycle exist so
- * that ActivityEvent and the workspace UI can already point at handoffs, but
- * nothing creates one until the workforce phase. Accepting a handoff will
- * dispatch an AgentRun — this module stays a request/result record and never
- * becomes a second executor.
+ * Live: `DelegateDialog` creates these from every insight's "Hand to another
+ * employee" button, and `IncomingHandoffs` reads them back on the receiving
+ * agent's overview. Accepting one does not run anything on its own — it just
+ * opens the requested action prefilled, and a human still submits it. This
+ * module stays a request/result record and never becomes a second executor.
  */
 
 export interface HandoffEntry {

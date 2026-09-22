@@ -50,13 +50,25 @@ router.get("/outcomes", authMiddleware, entitlementMiddleware, getOutcomes);
 
 // Single records are addressed by id: their owning agent is a property of the
 // row, and re-deriving it from the URL would only create a way for the two to
-// disagree.
-router.patch("/insights/:id", authMiddleware, patchInsight);
-router.patch("/memory-items/:id", authMiddleware, patchMemoryItem);
+// disagree. No agent slug in the URL to gate per-agent on, so these take the
+// same generic entitlement as /pulse and /outcomes — any active entitlement
+// passes, matching every other write in this router.
+router.patch("/insights/:id", authMiddleware, entitlementMiddleware, patchInsight);
+router.patch("/memory-items/:id", authMiddleware, entitlementMiddleware, patchMemoryItem);
 
-router.post("/handoffs", authMiddleware, postHandoff);
-router.post("/handoffs/:id/accept", authMiddleware, patchHandoffStatus(HandoffStatus.ACCEPTED));
-router.post("/handoffs/:id/decline", authMiddleware, patchHandoffStatus(HandoffStatus.DECLINED));
+router.post("/handoffs", authMiddleware, entitlementMiddleware, postHandoff);
+router.post(
+  "/handoffs/:id/accept",
+  authMiddleware,
+  entitlementMiddleware,
+  patchHandoffStatus(HandoffStatus.ACCEPTED),
+);
+router.post(
+  "/handoffs/:id/decline",
+  authMiddleware,
+  entitlementMiddleware,
+  patchHandoffStatus(HandoffStatus.DECLINED),
+);
 
 // ─── Agent-scoped ────────────────────────────────────────────────────────────
 const agentScoped = Router({ mergeParams: true });

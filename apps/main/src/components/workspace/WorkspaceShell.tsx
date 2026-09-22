@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/theme/ThemeToggle"
 import { useAgentWorkspace } from "./AgentWorkspaceContext"
 import { useWorkspaceChat } from "./WorkspaceChatProvider"
 import { ModuleNav } from "./ModuleNav"
+import { WorkspaceMobileNav } from "./WorkspaceMobileNav"
 import { AgentSwitcher } from "./AgentSwitcher"
 import { ChatDock } from "./chat/ChatDock"
 
@@ -31,6 +32,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-svh min-h-0 flex-col bg-background">
       <header className="flex shrink-0 items-center gap-2 border-b border-(--vq-line-2) bg-card px-3 py-2.5 sm:gap-3 sm:px-4">
+        {/* Below md, ModuleNav is hidden — this is the only way in to Work,
+            Approvals, Automations, Memory, Integrations and Settings there. */}
+        <WorkspaceMobileNav />
+
         {/* The way out. A full-screen surface needs one that is always visible. */}
         <Button
           asChild

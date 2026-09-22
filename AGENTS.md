@@ -93,10 +93,12 @@ Analyses business metrics, forecasts trends, models scenarios, and generates inv
 | "Share growth update" (financial) | `maya:draft-content` | milestone topic | Turn a green financial signal into a post |
 | "Share forecast" (forecast) | `maya:draft-content` | forecast summary | Share growth trajectory with your audience |
 | "Generate investor update" (various) | `rex:investor-update` | current metrics, period | One-click from analysis to investor email draft |
-| "Send via Vega" (investor update) | `vega:compose-email` | subject line + full email body | Send the drafted update without leaving the platform |
-| "Email board" (runway) | `vega:compose-email` | runway status + recommendation | Alert the board about cash position instantly |
+| "Send via Vega" (investor update) 🚧 | `vega:compose-email` | subject line + full email body | Send the drafted update without leaving the platform |
+| "Email board" (runway) 🚧 | `vega:compose-email` | runway status + recommendation | Alert the board about cash position instantly |
 | "Calculate runway" (financial) | `rex:runway` | burn and revenue figures | Drill from financial health into runway detail |
 | "Model a scenario" (forecast/runway) | `rex:scenario` | base metrics | Explore what-if without re-entering data |
+
+🚧 = designed, not yet built — `vega:compose-email` doesn't exist yet (see Vega's Key outputs below), so these two buttons aren't implemented. Don't add them to `rex/cards.tsx` until Vega's compose-email action ships.
 
 ---
 
@@ -116,8 +118,10 @@ Analyses contracts for risk, checks regulatory compliance, drafts legal document
 
 | Button | Target | Pre-filled with | User benefit |
 |--------|--------|-----------------|--------------|
-| "Email team about risks" (contract) | `vega:compose-email` | subject with risk level + high-risk clause summary | Alert stakeholders about contract risks in one click |
+| "Email team about risks" (contract) 🚧 | `vega:compose-email` | subject with risk level + high-risk clause summary | Alert stakeholders about contract risks in one click |
 | "Draft awareness post" (compliance) | `maya:draft-content` | compliance framework as topic | Communicate your compliance posture publicly |
+
+🚧 = designed, not yet built — see the note under Rex's table above; same blocker, same fix.
 
 ---
 
@@ -125,13 +129,17 @@ Analyses contracts for risk, checks regulatory compliance, drafts legal document
 
 Connects to Gmail and Google Calendar. Triages inboxes, drafts replies, composes emails, summarises calendars, creates events, and produces executive morning briefings.
 
+Vega is the least-built of the six today: the only shipped action is `daily-briefing` (`POST /briefing`), plus free-form chat (`POST /chat`). Everything else below is the intended surface, not yet implemented as a discrete action — there's no `AGENT_ACTIONS` entry, `RunActionDialog` form, or `ActionResultRenderer` card for any of them yet.
+
 **Key outputs**
-- `process-inbox` — prioritised email list (urgent/high/medium/low) with summaries and suggested actions
-- `draft-reply` — ready-to-send reply draft, optionally saved to Gmail
-- `compose-email` — full email drafted from instructions (tone, CTA, recipient)
-- `calendar-summary` — events, conflicts, free slots, daily summary
-- `create-event` — calendar event with Google Meet link
-- `executive-briefing` — morning summary: schedule, urgent actions, email digest, focus recommendation
+- `daily-briefing` — morning summary assembled from the workspace tables (schedule, urgent actions, email digest, focus recommendation). Shipped.
+- `process-inbox` 🚧 — prioritised email list (urgent/high/medium/low) with summaries and suggested actions
+- `draft-reply` 🚧 — ready-to-send reply draft, optionally saved to Gmail
+- `compose-email` 🚧 — full email drafted from instructions (tone, CTA, recipient)
+- `calendar-summary` 🚧 — events, conflicts, free slots, daily summary
+- `create-event` 🚧 — calendar event with Google Meet link
+
+🚧 = designed, not yet built.
 
 **Hands off to →**
 
