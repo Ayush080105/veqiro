@@ -362,9 +362,10 @@ model Organization {
   metadata             String?
   /// Whether onboarding/brand kit setup is complete.
   onboarded            Boolean               @default(false)
-  /// Opt-in to the planner + DAG run engine. Off means every turn takes the
-  /// existing single-pass path, so the feature can be rolled out per org.
-  plannedRunsEnabled   Boolean               @default(false)
+  /// The planner + DAG run engine. On by default; turning it off for one org
+  /// sends every turn down the existing single-pass path, so it can still be
+  /// switched off per org if something needs isolating.
+  plannedRunsEnabled   Boolean               @default(true)
   /// Opt-in to the agent workspace UI. Off means /assistants/:id keeps serving
   /// the chat page, so the migration rolls out per org and rolls back by
   /// flipping one boolean. Which agents have workspaces is a code-level

@@ -3923,8 +3923,9 @@ export type $OrganizationPayload<ExtArgs extends runtime.Types.Extensions.Intern
      */
     onboarded: boolean
     /**
-     * Opt-in to the planner + DAG run engine. Off means every turn takes the
-     * existing single-pass path, so the feature can be rolled out per org.
+     * The planner + DAG run engine. On by default; turning it off for one org
+     * sends every turn down the existing single-pass path, so it can still be
+     * switched off per org if something needs isolating.
      */
     plannedRunsEnabled: boolean
     /**
