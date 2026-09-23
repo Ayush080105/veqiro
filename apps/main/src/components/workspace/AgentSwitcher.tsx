@@ -2,7 +2,7 @@
 
 import Image from "next/image"
 import { useRouter } from "next/navigation"
-import { ChevronsUpDown } from "lucide-react"
+import { ChevronsUpDown, Users } from "lucide-react"
 
 import { AGENTS, AGENT_PHOTOS } from "@/lib/config/agents"
 import { useCompanyPulse } from "@/lib/api/workspace"
@@ -91,6 +91,18 @@ export function AgentSwitcher() {
             </DropdownMenuItem>
           )
         })}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => router.push("/assistants/team")} className="gap-2.5">
+          <span className="grid size-6 shrink-0 place-items-center rounded-full border border-border bg-muted text-muted-foreground">
+            <Users className="size-3.5" />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm">Team room</span>
+            <span className="block truncate text-xs text-muted-foreground">
+              One job, several employees
+            </span>
+          </span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )

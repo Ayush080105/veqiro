@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Send, Loader2, Users } from "lucide-react"
+import { ArrowLeft, Send, Loader2, Users } from "lucide-react"
 import { toast } from "sonner"
 
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
@@ -11,6 +11,8 @@ import { AGENT_PHOTOS, getAgent } from "@/lib/config/agents"
 import { useTeam, useTeamMessages, useSendTeamMessage } from "@/lib/api/team"
 import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { ThemeToggle } from "@/components/theme/ThemeToggle"
 import type { Message } from "@/lib/types"
 
 /**
@@ -19,6 +21,10 @@ import type { Message } from "@/lib/types"
  * One thread where every agent the org is entitled to can be assigned work by
  * the planner. Deliberately reuses ChatMessage, so a planned run renders the
  * same task graph here as it does in an individual chat.
+ *
+ * Lives in the full-screen (workspace) group at the same URL it always had, so
+ * it reads as a place you go to rather than a tab in the console — and so it no
+ * longer sits beside a chat list it has nothing to do with.
  */
 export default function TeamPage() {
   const { data: activeOrg } = authClient.useActiveOrganization()
@@ -70,9 +76,16 @@ export default function TeamPage() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-background">
+    <div className="flex h-svh min-h-0 flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-(--vq-line-2) bg-card px-5 py-3.5">
+      <div className="flex items-center gap-3 border-b border-(--vq-line-2) bg-card px-3 py-3 sm:px-5">
+        <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5 px-2 text-muted-foreground">
+          <Link href="/assistants" aria-label="Back to your employees">
+            <ArrowLeft className="size-4" />
+            <span className="hidden sm:inline">Employees</span>
+          </Link>
+        </Button>
+        <span className="hidden h-5 w-px shrink-0 bg-(--vq-line-2) sm:block" />
         <div className="flex shrink-0">
           {agents.slice(0, 6).map((slug, i) => (
             <span
@@ -108,6 +121,9 @@ export default function TeamPage() {
                 : "Not enough agents yet"}
           </div>
         </div>
+        <div className="ml-auto shrink-0">
+          <ThemeToggle />
+        </div>
       </div>
 
       {/* Thread */}
@@ -115,6 +131,7 @@ export default function TeamPage() {
         ref={scrollRef}
         className="vq-chat-bg min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5"
       >
+        <div className="mx-auto w-full max-w-3xl">
         {!enoughForATeam && !teamLoading ? (
           <EmptyTeam count={agents.length} />
         ) : historyLoading ? (
@@ -145,12 +162,14 @@ export default function TeamPage() {
             agentPhoto={AGENT_PHOTOS[(team?.lead ?? "vega").toLowerCase()]}
           />
         )}
+        </div>
       </div>
 
       {/* Composer */}
-      <div className="bg-background px-5 pt-3 pb-4">
+      <div className="bg-background px-3 pt-3 pb-4 sm:px-5">
         <div
           className={cn(
+            "mx-auto w-full max-w-3xl",
             "flex items-center gap-2.5 rounded-[var(--vq-r)] border border-border bg-card py-2 pr-2 pl-4",
             !enoughForATeam && "opacity-50"
           )}

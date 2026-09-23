@@ -2,11 +2,12 @@
 
 import Image from "next/image"
 import Link from "next/link"
-import { ArrowRight, Plug } from "lucide-react"
+import { ArrowRight, Plug, Users } from "lucide-react"
 
 import { authClient } from "@/lib/auth-client"
 import { AGENTS, AGENT_PHOTOS } from "@/lib/config/agents"
 import { useCompanyPulse, type AgentPulse } from "@/lib/api/workspace"
+import { useTeam } from "@/lib/api/team"
 import { WORKSPACE_MIGRATED } from "@/lib/workspace/migrated"
 import type { AgentConfig, AgentSlug } from "@/lib/types"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -61,6 +62,8 @@ export function EmployeeDirectory() {
         </p>
       </header>
 
+      <TeamRoomCard />
+
       {isLoading ? (
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
           {AGENTS.map((agent) => (
@@ -88,6 +91,59 @@ export function EmployeeDirectory() {
         Connect your tools so they can do more
       </Link>
     </div>
+  )
+}
+
+/**
+ * The door to the shared team room, where one request is planned across several
+ * employees and run once you approve it.
+ *
+ * It used to be pinned above the chat list; when the directory replaced that
+ * list it lost its entry point, so it gets pride of place here — it is the one
+ * thing on this page that is about the team rather than any one member.
+ */
+function TeamRoomCard() {
+  const { data } = useTeam()
+  const slugs = (data?.agents ?? []).map((a) => a.toLowerCase())
+  const shown = slugs.length ? slugs : AGENTS.map((a) => a.id)
+  const enough = slugs.length >= 2
+
+  return (
+    <Link
+      href="/assistants/team"
+      className="group flex items-center gap-4 rounded-[var(--vq-r)] border border-border bg-card p-4 no-underline transition-colors hover:bg-muted/40"
+    >
+      <span className="flex shrink-0">
+        {shown.slice(0, 5).map((slug, i) => {
+          const cfg = AGENTS.find((a) => a.id === slug)
+          return (
+            <span
+              key={slug}
+              className={cn(
+                "relative block size-9 overflow-hidden rounded-full border-2 border-card",
+                i !== 0 && "-ml-3",
+              )}
+              style={{ background: cfg?.color }}
+            >
+              {AGENT_PHOTOS[slug] && (
+                <Image src={AGENT_PHOTOS[slug]} alt="" fill sizes="36px" className="object-cover" />
+              )}
+            </span>
+          )
+        })}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1.5 font-head text-sm">
+          <Users className="size-3.5 text-muted-foreground" /> Team room
+        </span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">
+          {enough
+            ? "Give the whole team one job. They plan it as steps, you approve, then they run it."
+            : "Needs at least two employees — hire another to work a task together."}
+        </span>
+      </span>
+      <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+    </Link>
   )
 }
 
