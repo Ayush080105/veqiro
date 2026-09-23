@@ -59,6 +59,12 @@ export interface McpPendingActionSummary {
   integrationSlug: string;
   toolName: string;
   summary: string;
+  /**
+   * What the tool will be called with. Returned because confirming means
+   * agreeing to exactly this, and a one-line summary is not enough to agree
+   * to an email. Same organisation-scoped read as the rest of the record.
+   */
+  arguments: unknown;
   status: McpPendingActionStatus;
   resultJson: unknown;
   errorMessage: string | null;

@@ -34,6 +34,8 @@ export interface McpPendingActionSummary {
   integrationSlug: string
   toolName: string
   summary: string
+  /** What the tool will be called with; read it through lib/mcp/present-action. */
+  arguments: unknown
   status: McpPendingActionStatus
   resultJson: unknown
   errorMessage: string | null

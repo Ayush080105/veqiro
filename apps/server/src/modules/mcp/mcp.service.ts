@@ -844,6 +844,7 @@ const toPendingActionSummary = (row: {
   integrationSlug: string;
   toolName: string;
   summary: string;
+  arguments: unknown;
   status: McpPendingActionStatus;
   resultJson: unknown;
   errorMessage: string | null;
@@ -853,6 +854,7 @@ const toPendingActionSummary = (row: {
   integrationSlug: row.integrationSlug,
   toolName: row.toolName,
   summary: row.summary,
+  arguments: row.arguments,
   status: row.status,
   resultJson: row.resultJson,
   errorMessage: row.errorMessage,
