@@ -446,8 +446,9 @@ export function useAgentChat(
 
   const clearHighlight = useCallback(() => setHighlightedMessageId(null), [])
 
-  const handleSend = useCallback(async () => {
-    const trimmed = content.trim()
+  /** Send explicit text, bypassing the composer — for actions that build the request themselves. */
+  const sendText = useCallback(async (text: string) => {
+    const trimmed = text.trim()
     if (!trimmed || trimmed.length > 1000 || isLoading) return
 
     if (isAnchoredRef.current) await returnToLatest()
@@ -468,7 +469,9 @@ export function useAgentChat(
         toast.error("Failed to send message. Please try again.")
       }
     }
-  }, [content, isLoading, sendMutation, agentName, attachedSourceIds, returnToLatest])
+  }, [isLoading, sendMutation, agentName, attachedSourceIds, returnToLatest])
+
+  const handleSend = useCallback(() => sendText(content), [sendText, content])
 
   const contentRef = useRef(content)
   contentRef.current = content
@@ -499,6 +502,7 @@ export function useAgentChat(
       sendError,
       isLoading,
       handleSend,
+      sendText,
       handleRestoreDraft,
       // The id itself, not only the ref. It is fixed for the life of the hook,
       // so consumers that just need the value should not have to read .current
@@ -528,6 +532,7 @@ export function useAgentChat(
       sendError,
       isLoading,
       handleSend,
+      sendText,
       handleRestoreDraft,
       attachedSourceIds,
       isAnchored,

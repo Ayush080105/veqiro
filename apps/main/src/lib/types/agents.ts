@@ -1444,6 +1444,11 @@ export type AgentActionId =
   /** Not a dialog: attaches a document to the composer with a suggested question. */
   | "lex:ask-about"
   | "vega:daily-briefing"
+  | "vega:compose-email"
+  | "vega:draft-reply"
+  | "vega:process-inbox"
+  | "vega:calendar-summary"
+  | "vega:create-event"
 
 export interface ActionMessagePayload {
   actionId: AgentActionId

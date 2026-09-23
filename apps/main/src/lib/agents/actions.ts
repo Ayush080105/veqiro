@@ -443,6 +443,66 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       icon: "Sunrise",
       example: "Brief me on this morning",
     },
+    {
+      id: "vega:compose-email",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Compose an email",
+      description:
+        "Draft a new email from a few instructions. Saved as a Gmail draft, never sent.",
+      icon: "Mail",
+      example: "Email Priya about Thursday's launch",
+    },
+    {
+      id: "vega:draft-reply",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Draft a reply",
+      description:
+        "Reply in your voice to a specific email in your inbox.",
+      icon: "Reply",
+      example: "Reply to the investor intro from Monday",
+    },
+    {
+      id: "vega:process-inbox",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Triage inbox",
+      description:
+        "Sort unread email by urgency, with a summary and a suggested next step for each.",
+      icon: "Inbox",
+      example: "What needs me in my inbox?",
+    },
+    {
+      id: "vega:calendar-summary",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Calendar summary",
+      description:
+        "Your agenda, conflicts and free slots for a day or the coming week.",
+      icon: "CalendarDays",
+      example: "What does my week look like?",
+    },
+    {
+      id: "vega:create-event",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Schedule an event",
+      description:
+        "Describe an event in plain English; Vega checks conflicts and creates it once you confirm.",
+      icon: "CalendarPlus",
+      example: "30 min sync with Priya next Tuesday",
+    },
   ],
 }
 

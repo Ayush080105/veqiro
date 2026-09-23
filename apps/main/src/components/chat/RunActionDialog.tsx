@@ -9,6 +9,7 @@ import {
 } from "@/components/chat/ActionDialog"
 import { findAction } from "@/lib/agents/actions"
 import { runAgentAction, generateCampaignVideoPlan } from "@/lib/api/assistants"
+import { isPromptAction, type PromptActionId } from "@/lib/agents/prompt-actions"
 import type { AgentActionId, ContentPlatform } from "@/lib/types/agents"
 
 // Sage forms
@@ -214,7 +215,8 @@ async function runReview(
   )
 }
 
-type SpecId = Exclude<AgentActionId, "lex:ask-about">
+/** Not endpoints: PromptActionDialog handles the prompt actions (lib/agents/prompt-actions.ts). */
+type SpecId = Exclude<AgentActionId, "lex:ask-about" | PromptActionId>
 
 const SPECS: Record<SpecId, ActionSpec> = {
   "sage:keyword-research": {
@@ -773,7 +775,8 @@ export function RunActionDialog({
 }: RunActionDialogProps) {
   if (!actionId) return null
   const meta = findAction(actionId)
-  const spec = actionId === "lex:ask-about" ? undefined : SPECS[actionId]
+  const spec =
+    actionId === "lex:ask-about" || isPromptAction(actionId) ? undefined : SPECS[actionId as SpecId]
   if (!meta || !spec) return null
 
   const { Form, defaultValue, validate, customSubmit, resolveActionId, submitLabel } = spec

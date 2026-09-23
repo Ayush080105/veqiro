@@ -98,7 +98,7 @@ Analyses business metrics, forecasts trends, models scenarios, and generates inv
 | "Calculate runway" (financial) | `rex:runway` | burn and revenue figures | Drill from financial health into runway detail |
 | "Model a scenario" (forecast/runway) | `rex:scenario` | base metrics | Explore what-if without re-entering data |
 
-🚧 = designed, not yet built — `vega:compose-email` doesn't exist yet (see Vega's Key outputs below), so these two buttons aren't implemented. Don't add them to `rex/cards.tsx` until Vega's compose-email action ships.
+🚧 = designed, not yet built. The blocker is gone: `vega:compose-email` now exists (a prompt action; prefill fields `to`, `subject`, `instructions`), so these buttons can now be added to `rex/cards.tsx`.
 
 ---
 
@@ -121,7 +121,7 @@ Analyses contracts for risk, checks regulatory compliance, drafts legal document
 | "Email team about risks" (contract) 🚧 | `vega:compose-email` | subject with risk level + high-risk clause summary | Alert stakeholders about contract risks in one click |
 | "Draft awareness post" (compliance) | `maya:draft-content` | compliance framework as topic | Communicate your compliance posture publicly |
 
-🚧 = designed, not yet built — see the note under Rex's table above; same blocker, same fix.
+🚧 = not yet built — same note as under Rex's table; `vega:compose-email` now exists.
 
 ---
 
@@ -129,17 +129,15 @@ Analyses contracts for risk, checks regulatory compliance, drafts legal document
 
 Connects to Gmail and Google Calendar. Triages inboxes, drafts replies, composes emails, summarises calendars, creates events, and produces executive morning briefings.
 
-Vega is the least-built of the six today: the only shipped action is `daily-briefing` (`POST /briefing`), plus free-form chat (`POST /chat`). Everything else below is the intended surface, not yet implemented as a discrete action — there's no `AGENT_ACTIONS` entry, `RunActionDialog` form, or `ActionResultRenderer` card for any of them yet.
+Vega's Gmail and Calendar access is Composio MCP tools inside her chat loop, with writes staged for approval. Her actions are therefore *prompt actions* (`lib/agents/prompt-actions.ts`): a form assembles a request and sends it to her chat, rather than calling a bespoke endpoint. That keeps one approval path to the inbox. The exception is `daily-briefing`, a real endpoint (`POST /briefing`).
 
 **Key outputs**
 - `daily-briefing` — morning summary assembled from the workspace tables (schedule, urgent actions, email digest, focus recommendation). Shipped.
-- `process-inbox` 🚧 — prioritised email list (urgent/high/medium/low) with summaries and suggested actions
-- `draft-reply` 🚧 — ready-to-send reply draft, optionally saved to Gmail
-- `compose-email` 🚧 — full email drafted from instructions (tone, CTA, recipient)
-- `calendar-summary` 🚧 — events, conflicts, free slots, daily summary
-- `create-event` 🚧 — calendar event with Google Meet link
-
-🚧 = designed, not yet built.
+- `process-inbox` — prioritised email list (urgent/high/medium/low) with summaries and suggested actions
+- `draft-reply` — ready-to-send reply draft, optionally saved to Gmail
+- `compose-email` — full email drafted from instructions (tone, CTA, recipient)
+- `calendar-summary` — events, conflicts, free slots, daily summary
+- `create-event` — calendar event with Google Meet link
 
 **Hands off to →**
 

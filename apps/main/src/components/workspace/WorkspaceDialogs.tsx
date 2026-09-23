@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
 import { findAction } from "@/lib/agents/actions"
+import { isPromptAction } from "@/lib/agents/prompt-actions"
 import { WINDOW } from "@/lib/hooks/use-agent-chat"
 import { qk } from "@/lib/query-keys"
 import type { Message } from "@/lib/types"
@@ -16,6 +17,9 @@ import { useWorkspaceChat } from "./WorkspaceChatProvider"
 
 const RunActionDialog = dynamic(() =>
   import("@/components/chat/RunActionDialog").then((m) => m.RunActionDialog),
+)
+const PromptActionDialog = dynamic(() =>
+  import("./PromptActionDialog").then((m) => m.PromptActionDialog),
 )
 const ToolsMenu = dynamic(() =>
   import("@/components/chat/ToolsMenu").then((m) => m.ToolsMenu),
@@ -31,7 +35,7 @@ const ToolsMenu = dynamic(() =>
  */
 export function WorkspaceDialogs() {
   const { agent, config, organizationId } = useAgentWorkspace()
-  const { chat, dialogs, openAction } = useWorkspaceChat()
+  const { chat, dialogs, openAction, setDockOpen } = useWorkspaceChat()
   const queryClient = useQueryClient()
 
   const { setMsgWindow, scrollIntentRef, isAtBottomRef, conversationId } = chat
@@ -107,7 +111,23 @@ export function WorkspaceDialogs() {
         />
       )}
 
-      {activeActionId && (
+      {isPromptAction(activeActionId) && (
+        <PromptActionDialog
+          key={activeActionId}
+          actionId={activeActionId}
+          prefill={activePrefill}
+          onClose={closeAction}
+          onSubmit={(prompt) => {
+            closeAction()
+            // Reveal the thread first: the reply is the point, and a send into
+            // a closed dock looks like nothing happened.
+            setDockOpen(true)
+            void chat.sendText(prompt)
+          }}
+        />
+      )}
+
+      {activeActionId && !isPromptAction(activeActionId) && (
         <RunActionDialog
           open
           onOpenChange={(v) => {
