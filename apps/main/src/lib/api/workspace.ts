@@ -166,6 +166,21 @@ export interface WorkspaceMemory {
   items: MemoryItem[]
 }
 
+export type MemoryKind = "fact" | "preference" | "constraint" | "decision"
+export type MemoryScope = "agent" | "company"
+
+/** Tell an employee something to remember. Lands confirmed: it is the customer's own word. */
+export function useAddMemoryItem(agent: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: { content: string; kind: MemoryKind; scope: MemoryScope }) =>
+      apiFetch<MemoryItem>(`/workspace/${agent}/memory-items`, { method: "POST", body }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.workspaceMemory(agent) })
+    },
+  })
+}
+
 /** Confirm a remembered fact, or retire one the agent should stop believing. */
 export function useUpdateMemoryItem(agent: string) {
   const qc = useQueryClient()

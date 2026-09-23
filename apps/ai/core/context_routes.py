@@ -83,8 +83,9 @@ async def build_context(request: BuildContextRequest) -> BuildContextResponse:
     if request.org_shared_context:
         parts.append(f"## Organization Goals & Decisions\n{request.org_shared_context}")
     if request.long_term_facts:
-        # Show the 12 most recent facts (tail of array = most recently added)
-        recent_facts = request.long_term_facts[-12:]
+        # Show the last 20 (tail of array = highest priority: the server orders
+        # customer-stated and confirmed facts last, unconfirmed guesses first).
+        recent_facts = request.long_term_facts[-20:]
         facts_lines = "\n".join(f"• {f}" for f in recent_facts)
         parts.append(f"## Established Facts\n{facts_lines}")
     memory_block = "\n\n".join(parts)

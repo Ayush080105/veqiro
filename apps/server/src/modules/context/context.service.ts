@@ -1,6 +1,7 @@
 import { aiService } from "../../common/utils/aiService.js"
 import * as repo from "./context.repository.js"
 import { Agent } from "../../../prisma/generated/prisma/client.js"
+import { recordExtractedFacts } from "../workspace/memory-items.service.js"
 
 export const getAgentMemory = (organizationId: string, agent: Agent) =>
   repo.findAgentMemory(organizationId, agent)
@@ -77,6 +78,14 @@ export const triggerSummarize = async (
     longTermFacts: newFacts,
     messageCount: 0,
     lastSummarizedAt: new Date(),
+  })
+
+  // Mirror to the reviewable surface. Preferences included: they are filed
+  // company-wide below, and a customer should be able to see them too.
+  await recordExtractedFacts({
+    organizationId,
+    agent,
+    facts: [...trulyNewFacts, ...incomingPrefs],
   })
 
   // Write new preferences to OrgMemory.sharedMemory.userPreferences (deduped, capped at 20)

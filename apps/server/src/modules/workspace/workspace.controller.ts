@@ -2,12 +2,13 @@ import { Request, Response } from "express";
 import { StatusCodes } from "http-status-codes";
 import { NotFoundError } from "../../common/errors/notFound.js";
 import { UnauthenticatedError } from "../../common/errors/unauthenticated.js";
-import { McpPendingActionStatus } from "../../../prisma/generated/prisma/client.js";
+import { ActorKind, McpPendingActionStatus } from "../../../prisma/generated/prisma/client.js";
 import { prisma } from "../../config/prisma.js";
-import { listActivityEvents } from "../activity/activity-event.service.js";
+import { listActivityEvents, recordActivityEvent } from "../activity/activity-event.service.js";
 import * as insightsService from "./insights.service.js";
 import * as handoffsService from "./handoffs.service.js";
 import * as workspaceService from "./workspace.service.js";
+import { addMemoryItem, backfillFromLegacyMemory } from "./memory-items.service.js";
 import { getOutcomeMetrics } from "./outcomes.service.js";
 import { reindexAll, reindexKind } from "./reindex.js";
 import {
@@ -21,6 +22,7 @@ import {
   insightStatusBodySchema,
   insightsQuerySchema,
   memoryItemBodySchema,
+  memoryItemCreateSchema,
   memoryItemIdParamSchema,
   reindexBodySchema,
   workQuerySchema,
@@ -170,6 +172,8 @@ export const getApprovals = async (req: Request, res: Response) => {
 export const getMemory = async (req: Request, res: Response) => {
   const { organizationId } = requireAuth(req);
   const agent = requireAgent(req);
+  // Catches up organisations whose facts predate MemoryItem; a no-op after the first call.
+  await backfillFromLegacyMemory(organizationId, agent);
   const [memory, org, items] = await Promise.all([
     prisma.agentMemory.findUnique({
       where: { organizationId_agent: { organizationId, agent } },
@@ -221,6 +225,49 @@ export const postReindex = async (req: Request, res: Response) => {
       : await reindexKind(kind, organizationId);
   console.log("[work-objects] reindex", result);
   res.status(StatusCodes.OK).json(result);
+};
+
+/**
+ * Tell an employee something to remember.
+ *
+ * Lands confirmed and marked as the customer's own words, which is what makes
+ * it outrank an inference when the agent's prompt is assembled.
+ */
+export const postMemoryItem = async (req: Request, res: Response) => {
+  const { organizationId, userId } = requireAuth(req);
+  const agent = requireAgent(req);
+  const { content, kind, scope } = memoryItemCreateSchema.parse(req.body);
+
+  const row = await addMemoryItem({
+    organizationId,
+    userId,
+    agent: scope === "company" ? null : agent,
+    kind,
+    content,
+  });
+
+  await recordActivityEvent({
+    organizationId,
+    agent,
+    actorKind: ActorKind.USER,
+    actorUserId: userId,
+    verb: "workspace.memory.added",
+    summary: `Told ${agent} to remember: ${content.slice(0, 80)}`,
+    objectKind: "memory_item",
+    objectId: row.id,
+  });
+
+  res.status(StatusCodes.CREATED).json({
+    id: row.id,
+    agent: row.agent,
+    kind: row.kind,
+    content: row.content,
+    origin: row.origin,
+    confirmed: row.confirmed,
+    sourceKind: row.sourceKind,
+    sourceId: row.sourceId,
+    createdAt: row.createdAt.toISOString(),
+  });
 };
 
 /**

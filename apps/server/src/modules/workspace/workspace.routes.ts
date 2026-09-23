@@ -20,6 +20,7 @@ import {
   patchInsight,
   patchMemoryItem,
   postHandoff,
+  postMemoryItem,
   postReindex,
 } from "./workspace.controller.js";
 
@@ -79,6 +80,7 @@ agentScoped.get("/work", getWork);
 agentScoped.get("/handoffs", getHandoffs);
 agentScoped.get("/approvals", getApprovals);
 agentScoped.get("/memory", getMemory);
+agentScoped.post("/memory-items", postMemoryItem);
 
 router.use("/:agent", authMiddleware, entitlementForAgentParam(), agentScoped);
 

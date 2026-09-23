@@ -1,7 +1,9 @@
 "use client"
 
+import { useState } from "react"
+import dynamic from "next/dynamic"
 import Link from "next/link"
-import { Bot, Check, FileUp, User, X } from "lucide-react"
+import { Bot, Check, FileUp, List, Network, User, X } from "lucide-react"
 
 import {
   useUpdateMemoryItem,
@@ -12,7 +14,17 @@ import {
 import type { ModuleProps } from "@/lib/workspace/types"
 import { Button } from "@/components/ui/button"
 import { EmptyState } from "@/components/ui/empty-state"
+import { SegmentedGroup } from "@/components/ui/segmented-group"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useAgentWorkspace } from "../AgentWorkspaceContext"
+import { AddMemoryForm } from "./AddMemoryForm"
+
+// Pointer-driven and only useful once there is something to draw; not worth
+// shipping to everyone who opens Memory to read a list.
+const MemoryGraph = dynamic(() => import("./MemoryGraph").then((m) => m.MemoryGraph), {
+  ssr: false,
+  loading: () => <Skeleton className="h-[460px] rounded-[var(--vq-r)]" />,
+})
 import { StatusPill } from "@/components/ui/status-pill"
 
 const ORIGIN_ICON: Record<MemoryOrigin, typeof User> = {
@@ -38,6 +50,8 @@ const ORIGIN_LABEL: Record<MemoryOrigin, string> = {
 export function MemoryModule({ agent }: ModuleProps) {
   const { data, isLoading } = useWorkspaceMemory(agent)
   const update = useUpdateMemoryItem(agent)
+  const { config } = useAgentWorkspace()
+  const [view, setView] = useState<"graph" | "list">("graph")
 
   if (isLoading) return <Skeleton className="h-48 rounded-[var(--vq-r)]" />
 
@@ -54,12 +68,43 @@ export function MemoryModule({ agent }: ModuleProps) {
         </section>
       )}
 
+      <AddMemoryForm agent={agent} agentName={config.name} />
+
+      {items.length > 0 && (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground">
+            {items.length} thing{items.length === 1 ? "" : "s"} {config.name} remembers
+            {unconfirmed.length > 0 && ` · ${unconfirmed.length} to confirm`}
+          </p>
+          <SegmentedGroup
+            size="sm"
+            value={view}
+            onValueChange={setView}
+            options={[
+              { value: "graph", label: "Graph", icon: <Network className="size-3.5" /> },
+              { value: "list", label: "List", icon: <List className="size-3.5" /> },
+            ]}
+          />
+        </div>
+      )}
+
+      {items.length > 0 && view === "graph" && (
+        <MemoryGraph
+          agentName={config.name}
+          color={config.color}
+          items={items}
+          busy={update.isPending}
+          onConfirm={(id) => update.mutate({ id, confirmed: true })}
+          onRetire={(id) => update.mutate({ id, retired: true })}
+        />
+      )}
+
       {/*
         Unconfirmed first: these are the ones that want a decision, and burying
         them under things already agreed would defeat the point of tracking
         confirmation at all.
       */}
-      {unconfirmed.length > 0 && (
+      {view === "list" && unconfirmed.length > 0 && (
         <section className="rounded-[var(--vq-r)] border border-border bg-card p-4">
           <h2 className="font-head text-sm">Worth confirming</h2>
           <p className="mt-0.5 text-xs text-muted-foreground">
@@ -74,13 +119,14 @@ export function MemoryModule({ agent }: ModuleProps) {
         </section>
       )}
 
+      {(view === "list" || items.length === 0) && (
       <section className="rounded-[var(--vq-r)] border border-border bg-card p-4">
         <h2 className="font-head text-sm">What it knows</h2>
         {confirmed.length === 0 ? (
           <EmptyState
             tone="plain"
             title="Nothing confirmed yet"
-            description="Facts build up as you work together, and you decide which ones stick."
+            description="Facts build up as you work together, and you decide which ones stick. You can also add one yourself."
           />
         ) : (
           <MemoryList
@@ -90,6 +136,7 @@ export function MemoryModule({ agent }: ModuleProps) {
           />
         )}
       </section>
+      )}
 
       <section className="rounded-[var(--vq-r)] border border-border bg-card p-4">
         <div className="flex items-center justify-between gap-3">

@@ -94,3 +94,10 @@ export const memoryItemBodySchema = z
   .refine((body) => body.confirmed !== undefined || body.retired !== undefined, {
     message: "Provide confirmed or retired",
   });
+
+export const memoryItemCreateSchema = z.object({
+  content: z.string().trim().min(3, "Say a little more").max(500, "Keep it under 500 characters"),
+  kind: z.enum(["fact", "preference", "constraint", "decision"]).default("fact"),
+  /** "company" makes it visible to, and used by, every employee. */
+  scope: z.enum(["agent", "company"]).default("agent"),
+});

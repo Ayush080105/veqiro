@@ -1,5 +1,6 @@
 import { aiService } from "./aiService.js"
 import * as contextRepo from "../../modules/context/context.repository.js"
+import { loadPromptFacts } from "../../modules/workspace/memory-items.service.js"
 import { triggerSummarize } from "../../modules/context/context.service.js"
 import { Agent } from "../../../prisma/generated/prisma/client.js"
 import { CONTEXT_HISTORY_LIMIT, SUMMARIZE_THRESHOLD } from "../../config/constants.js"
@@ -274,12 +275,19 @@ export async function* streamAgentWithContext(
     ])
     const ascHistory = toAscHistory(rawHistory)
 
+    const promptFacts = await loadPromptFacts(
+      organizationId,
+      agentEnum,
+      (agentMem?.longTermFacts as string[]) ?? [],
+    )
     const sharedMem = (orgMem?.sharedMemory as Record<string, unknown>) ?? {}
     const sharedParts: string[] = []
     if (sharedMem.goals) sharedParts.push(`Goals: ${(sharedMem.goals as string[]).join(", ")}`)
     if (sharedMem.product) sharedParts.push(`Product: ${sharedMem.product as string}`)
     if (sharedMem.decisions) sharedParts.push(`Decisions: ${(sharedMem.decisions as string[]).slice(-3).join("; ")}`)
-    if (sharedMem.userPreferences && (sharedMem.userPreferences as string[]).length > 0)
+    // Preferences now come through promptFacts, so forgetting one in Memory
+    // actually stops the agent using it. The old list is only the fallback.
+    if (!promptFacts.fromItems && sharedMem.userPreferences && (sharedMem.userPreferences as string[]).length > 0)
       sharedParts.push(`Preferences I've learned: ${(sharedMem.userPreferences as string[]).join("; ")}`)
 
     const { data } = await aiService.post<BuildContextResponse>("/ai/context/build", {
@@ -287,10 +295,7 @@ export async function* streamAgentWithContext(
       hot_history: ascHistory,
       running_summary: agentMem?.runningSummary ?? "",
       org_summary: orgMem?.runningSummary ?? "",
-      long_term_facts: [
-        ...((agentMem?.longTermFacts as string[]) ?? []),
-        ...((orgMem?.longTermFacts as string[]) ?? []),
-      ],
+      long_term_facts: [...promptFacts.facts, ...((orgMem?.longTermFacts as string[]) ?? [])],
       org_shared_context: sharedParts.join(" | "),
       org_id: organizationId,
       agent: agentEnum.toLowerCase(),
@@ -415,12 +420,19 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
     const ascHistory = toAscHistory(rawHistory)
 
     // Surface structured sharedMemory (goals, product, decisions) for all agents
+    const promptFacts = await loadPromptFacts(
+      organizationId,
+      agentEnum,
+      (agentMem?.longTermFacts as string[]) ?? [],
+    )
     const sharedMem = (orgMem?.sharedMemory as Record<string, unknown>) ?? {}
     const sharedParts: string[] = []
     if (sharedMem.goals) sharedParts.push(`Goals: ${(sharedMem.goals as string[]).join(", ")}`)
     if (sharedMem.product) sharedParts.push(`Product: ${sharedMem.product as string}`)
     if (sharedMem.decisions) sharedParts.push(`Decisions: ${(sharedMem.decisions as string[]).slice(-3).join("; ")}`)
-    if (sharedMem.userPreferences && (sharedMem.userPreferences as string[]).length > 0)
+    // Preferences now come through promptFacts, so forgetting one in Memory
+    // actually stops the agent using it. The old list is only the fallback.
+    if (!promptFacts.fromItems && sharedMem.userPreferences && (sharedMem.userPreferences as string[]).length > 0)
       sharedParts.push(`Preferences I've learned: ${(sharedMem.userPreferences as string[]).join("; ")}`)
 
     const { data } = await aiService.post<BuildContextResponse>("/ai/context/build", {
@@ -428,10 +440,7 @@ export async function callAgentWithContext<T = AgentChatResponse>(opts: AgentCal
       hot_history: ascHistory,
       running_summary: agentMem?.runningSummary ?? "",
       org_summary: orgMem?.runningSummary ?? "",
-      long_term_facts: [
-        ...((agentMem?.longTermFacts as string[]) ?? []),
-        ...((orgMem?.longTermFacts as string[]) ?? []),
-      ],
+      long_term_facts: [...promptFacts.facts, ...((orgMem?.longTermFacts as string[]) ?? [])],
       org_shared_context: sharedParts.join(" | "),
       org_id: organizationId,
       agent: agentEnum.toLowerCase(),
