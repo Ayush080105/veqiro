@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { investorUpdateEmail, runwayBoardEmail } from "@/lib/agents/vega-handoffs"
 import {
   TrendingUp,
   TrendingDown,
@@ -570,6 +571,24 @@ export function RunwayCard({
         {onFollowUpAction && (
           <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
+              label="Email board"
+              icon={Mail}
+              onClick={() =>
+                onFollowUpAction(
+                  "vega:compose-email",
+                  runwayBoardEmail({
+                    runwayLabel,
+                    verdict: result.verdict,
+                    cash: fmtCurrency(result.cash_on_hand),
+                    burn: fmtCurrency(result.monthly_burn),
+                    revenue: fmtCurrency(result.monthly_revenue),
+                    zeroDate: result.date_of_zero,
+                    recommendation: result.recommendation,
+                  }),
+                )
+              }
+            />
+            <FollowUpBtn
               label="Model a scenario"
               icon={GitBranch}
               onClick={() => onFollowUpAction("rex:scenario", {
@@ -862,6 +881,18 @@ export function InvestorUpdateCard({
         )}
         {result.asks_section?.length > 0 && (
           <InfoSection label="Where you can help" bullets={result.asks_section} />
+        )}
+
+        {onFollowUpAction && (
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {/* The draft becomes a Gmail draft in Vega's hands — not sent, and the
+                recipient is the customer's to fill in. */}
+            <FollowUpBtn
+              label="Send via Vega"
+              icon={Mail}
+              onClick={() => onFollowUpAction("vega:compose-email", investorUpdateEmail(result))}
+            />
+          </div>
         )}
 
         <details className="text-[10px]">

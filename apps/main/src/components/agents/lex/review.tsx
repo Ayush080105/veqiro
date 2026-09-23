@@ -33,6 +33,7 @@ import { Kicker } from "@/components/ui/kicker"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { contractRiskEmail } from "@/lib/agents/vega-handoffs"
 import {
   addLexReminders,
   exportLexDocument,
@@ -774,6 +775,28 @@ export function ContractReviewCard({
                 <span className="text-[12px]">Request {changeCount} {changeCount === 1 ? "change" : "changes"}</span>
                 <Button variant="chat-action" onClick={() => onFollowUpAction("lex:draft-reply", { analysis: review, source_row_id: sourceRowId, document_name: documentName })}>
                   <Mail /> Draft negotiation email
+                </Button>
+              </li>
+            )}
+            {critical + high > 0 && onFollowUpAction && (
+              <li className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--vq-r-sm)] border border-border px-2.5 py-2">
+                <span className="text-[12px]">Tell your team about {critical + high} serious {critical + high === 1 ? "issue" : "issues"}</span>
+                <Button
+                  variant="chat-action"
+                  onClick={() =>
+                    onFollowUpAction(
+                      "vega:compose-email",
+                      contractRiskEmail({
+                        documentName,
+                        headline: review.verdict.headline,
+                        critical,
+                        high,
+                        issues: top.map((i) => ({ title: i.title, what_it_means: i.what_it_means })),
+                      }),
+                    )
+                  }
+                >
+                  <Mail /> Email team about risks
                 </Button>
               </li>
             )}
