@@ -68,6 +68,8 @@ export const findAllSageMessages = (
       where: {
         organizationId,
         agent: Agent.SAGE,
+        // The team room lives in the same table; its messages are not this chat's.
+        isTeam: false,
         ...(before ? { createdAt: { lt: new Date(before) } } : {}),
       },
       orderBy: { createdAt: "desc" },

@@ -177,6 +177,7 @@ export async function recordDirectActionContextForAssistantMessage(messageId: st
       where: {
         organizationId: assistant.organizationId,
         agent: assistant.agent,
+        isTeam: false,
         createdAt: { lt: assistant.createdAt },
       },
       orderBy: { createdAt: "desc" },

@@ -89,6 +89,8 @@ export const findAllMayaMessages = (
       where: {
         organizationId,
         agent: Agent.MAYA,
+        // The team room lives in the same table; its messages are not this chat's.
+        isTeam: false,
         ...(before ? { createdAt: { lt: new Date(before) } } : {}),
       },
       orderBy: { createdAt: "desc" },
