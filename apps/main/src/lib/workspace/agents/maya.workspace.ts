@@ -32,6 +32,18 @@ export const mayaWorkspace: AgentWorkspaceSpec = {
       ],
     },
     {
+      // Same objects as Posts, viewed as media rather than a calendar.
+      slug: "gallery",
+      label: "Gallery",
+      labelSingular: "Post",
+      kind: "maya.post",
+      List: lazy(() =>
+        import("@/components/workspace/agents/maya/MayaWork").then((m) => ({
+          default: m.MayaGalleryWork,
+        })),
+      ),
+    },
+    {
       slug: "campaigns",
       label: "Campaigns",
       labelSingular: "Campaign",

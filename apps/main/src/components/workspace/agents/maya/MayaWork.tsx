@@ -5,6 +5,7 @@ import type { ContentPlanItem } from "@/lib/api/assistants"
 
 import { MayaPublishedPostsTab } from "@/components/agents/maya/published-posts-tab"
 import { MayaContentPlanTab } from "@/components/agents/maya/content-plan-tab"
+import { MayaGalleryTab } from "@/components/agents/maya/gallery-tab"
 import { useWorkspaceChat } from "../../WorkspaceChatProvider"
 
 /**
@@ -18,6 +19,10 @@ import { useWorkspaceChat } from "../../WorkspaceChatProvider"
 
 export function MayaPostsWork() {
   return <MayaPublishedPostsTab />
+}
+
+export function MayaGalleryWork() {
+  return <MayaGalleryTab />
 }
 
 export function MayaPlansWork() {

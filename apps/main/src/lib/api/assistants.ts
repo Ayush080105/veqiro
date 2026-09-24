@@ -595,6 +595,11 @@ export interface PublishedPost {
   caption: string
   hashtags: string[]
   imageUrl: string | null
+  /** Every carousel slide (imageUrl is the first). Optional: servers before the gallery omit it. */
+  imageUrls?: string[]
+  videoUrl?: string | null
+  /** Instagram post-vs-reel selection. */
+  postType?: string | null
   status: string
   error: string | null
   publishedAt: string | null
