@@ -643,10 +643,27 @@ export interface ContentPlanItem {
   formatReason?: string
 }
 
+export type PlanSignalKind = "own_post" | "event" | "trend" | "editorial"
+
+/** One thing the plan was based on. Likes/comments are only ever numbers Maya read this run. */
+export interface PlanSignal {
+  kind: PlanSignalKind
+  label: string
+  detail: string
+  format: ContentFormat | null
+  likes: number | null
+  comments: number | null
+  source: string | null
+}
+
 export interface ContentPlan {
   id: string
   weekStart: string
   note: string | null
+  /** The week's strategy in a sentence. Absent on plans made before signals existed. */
+  headline?: string | null
+  signals?: PlanSignal[] | null
+  limits?: string[] | null
   /** Null when the model's JSON couldn't be parsed — render rawText instead. */
   items: ContentPlanItem[] | null
   rawText: string
