@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import AsyncGenerator
 
 from core.llm import LLMClient
+from core.memory_block import fit_memory_block
 from core.observability import set_llm_context
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
@@ -212,7 +213,6 @@ class CrossAgentSink:
     tool_trace: list[dict] = field(default_factory=list)
     rich_results: list[tuple[str, dict]] = field(default_factory=list)
 _TOOL_TIMEOUT = 300.0       # seconds — safety net for tools with no internal timeout
-_MEMORY_HARD_CAP = 8000     # chars (~2k tokens) — prevents context overflow on any message
 
 # Maps AI tool names to frontend AgentActionId values for rich card rendering
 RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
@@ -566,11 +566,8 @@ class BaseAgent(ABC):
 
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
-            word_count = len(request.message.split())
-            if word_count <= 5 and len(memory_context) > 1200:
-                memory_context = memory_context[:1200].rstrip()
-            elif len(memory_context) > _MEMORY_HARD_CAP:
-                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
+            # By section, never a character cut: the saved facts always reach the agent.
+            memory_context = fit_memory_block(memory_context, request.message)
             system_prompt += f"\n\n{memory_context}"
 
         messages = [
@@ -763,15 +760,11 @@ class BaseAgent(ABC):
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
             original_len = len(memory_context)
-            word_count = len(request.message.split())
-            # Short messages only need the summary section (~1200 chars)
-            if word_count <= 5 and original_len > 1200:
-                memory_context = memory_context[:1200].rstrip()
-                print(f"  {_DIM}[ctx] memory_block trimmed {original_len}→1200 chars (short msg){_X}")
-            # Hard cap for all messages — prevents context overflow regardless of length
-            elif original_len > _MEMORY_HARD_CAP:
-                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
-                print(f"  {_DIM}[ctx] memory_block hard-capped {original_len}→{_MEMORY_HARD_CAP} chars{_X}")
+            # Long summaries give way for short messages and for the hard cap; the saved
+            # facts never do (core/memory_block.py).
+            memory_context = fit_memory_block(memory_context, request.message)
+            if len(memory_context) < original_len:
+                print(f"  {_DIM}[ctx] memory_block fitted {original_len}→{len(memory_context)} chars (facts kept whole){_X}")
             else:
                 print(f"  {_DIM}[ctx] memory_block injected ({original_len} chars){_X}")
             system_prompt += f"\n\n{memory_context}"
@@ -1114,11 +1107,7 @@ class BaseAgent(ABC):
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
-            word_count = len(request.message.split())
-            if word_count <= 5 and len(memory_context) > 1200:
-                memory_context = memory_context[:1200].rstrip()
-            elif len(memory_context) > _MEMORY_HARD_CAP:
-                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
+            memory_context = fit_memory_block(memory_context, request.message)
             system_prompt += f"\n\n{memory_context}"
 
         # Add tool-use instructions to system prompt

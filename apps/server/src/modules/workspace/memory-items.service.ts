@@ -201,10 +201,15 @@ export async function loadPromptFacts(
       retiredAt: null,
       OR: [{ agent }, { agent: null }],
     };
-    let rows = await prisma.memoryItem.findMany({ where, orderBy: { createdAt: "asc" }, take: 200 });
+    // Newest 200, not oldest: if a customer ever has more than the cap, it is the
+    // recent things they said that must survive. Reversed back to oldest-first so
+    // the stable weight sort below still puts the newest last within a tier.
+    const newest = () =>
+      prisma.memoryItem.findMany({ where, orderBy: { createdAt: "desc" }, take: 200 });
+    let rows = (await newest()).slice().reverse();
     if (rows.length === 0) {
       await backfillFromLegacyMemory(organizationId, agent);
-      rows = await prisma.memoryItem.findMany({ where, orderBy: { createdAt: "asc" }, take: 200 });
+      rows = (await newest()).slice().reverse();
     }
     const ordered = [...rows].sort((a, b) => weight(a) - weight(b));
     return {

@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 from core.config import settings
 from core.conversation_memory import store_turn, retrieve_relevant
 from core.llm import LLMClient
+from core.memory_block import build_facts_section
 from core.models import Message
 from core.utils import safe_json_loads
 
@@ -83,11 +84,10 @@ async def build_context(request: BuildContextRequest) -> BuildContextResponse:
     if request.org_shared_context:
         parts.append(f"## Organization Goals & Decisions\n{request.org_shared_context}")
     if request.long_term_facts:
-        # Show the last 20 (tail of array = highest priority: the server orders
-        # customer-stated and confirmed facts last, unconfirmed guesses first).
-        recent_facts = request.long_term_facts[-20:]
-        facts_lines = "\n".join(f"• {f}" for f in recent_facts)
-        parts.append(f"## Established Facts\n{facts_lines}")
+        # The tail of the array is highest priority: the server orders customer-stated
+        # and confirmed facts last, unconfirmed guesses first. See core/memory_block.py
+        # for the limit and for why this section is never trimmed afterwards.
+        parts.append(build_facts_section(request.long_term_facts))
     memory_block = "\n\n".join(parts)
 
     return BuildContextResponse(

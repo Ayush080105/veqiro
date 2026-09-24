@@ -103,12 +103,31 @@ describe("loadPromptFacts — what the agent is actually given", () => {
     expect(where.OR).toEqual([{ agent: Agent.LEX }, { agent: null }]);
   });
 
-  it("puts what the customer said last, because the AI service keeps the tail", async () => {
+  it("asks for the newest 200, so a very full memory drops the oldest, not the latest thing said", async () => {
+    findMany.mockResolvedValue([row({ content: "a", confirmed: true })]);
+    await loadPromptFacts("o1", Agent.REX, []);
+    const args = findMany.mock.calls[0][0];
+    expect(args.orderBy).toEqual({ createdAt: "desc" });
+    expect(args.take).toBe(200);
+  });
+
+  it("within a tier the newest fact comes last, so it survives the tail cut", async () => {
+    // The database returns newest first.
     findMany.mockResolvedValue([
-      row({ content: "guess", confirmed: false }),
-      row({ content: "confirmed inference", confirmed: true }),
-      row({ content: "user told me", confirmed: true, origin: MemoryOrigin.USER }),
+      row({ content: "ABC pays on the 1st", confirmed: true, origin: MemoryOrigin.USER }),
+      row({ content: "XYZ pays on the 2nd", confirmed: true, origin: MemoryOrigin.USER }),
+    ]);
+    const { facts } = await loadPromptFacts("o1", Agent.REX, []);
+    expect(facts).toEqual(["XYZ pays on the 2nd", "ABC pays on the 1st"]);
+  });
+
+  it("puts what the customer said last, because the AI service keeps the tail", async () => {
+    // Newest first, as the database returns them.
+    findMany.mockResolvedValue([
       row({ content: "older guess", confirmed: false }),
+      row({ content: "user told me", confirmed: true, origin: MemoryOrigin.USER }),
+      row({ content: "confirmed inference", confirmed: true }),
+      row({ content: "guess", confirmed: false }),
     ]);
     const { facts, fromItems } = await loadPromptFacts("o1", Agent.LEX, []);
     expect(fromItems).toBe(true);
