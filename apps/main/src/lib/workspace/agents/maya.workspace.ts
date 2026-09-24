@@ -43,18 +43,22 @@ export const mayaWorkspace: AgentWorkspaceSpec = {
         })),
       ),
     },
-    {
-      slug: "campaigns",
-      label: "Campaigns",
-      labelSingular: "Campaign",
-      kind: "maya.campaign",
-      List: lazy(() =>
-        import("@/components/workspace/agents/maya/MayaCampaignsWork").then((m) => ({
-          default: m.MayaCampaignsWork,
-        })),
-      ),
-      createActions: ["maya:campaign" as AgentActionId],
-    },
+    // Campaigns tab hidden for now, to be reworked. Everything behind it is
+    // intact (MayaCampaignsWork, maya.campaigns.ts, the projection), so putting
+    // it back is restoring this entry:
+    //
+    //   {
+    //     slug: "campaigns",
+    //     label: "Campaigns",
+    //     labelSingular: "Campaign",
+    //     kind: "maya.campaign",
+    //     List: lazy(() =>
+    //       import("@/components/workspace/agents/maya/MayaCampaignsWork").then((m) => ({
+    //         default: m.MayaCampaignsWork,
+    //       })),
+    //     ),
+    //     createActions: ["maya:campaign" as AgentActionId],
+    //   },
     {
       slug: "plan",
       label: "Content plan",
