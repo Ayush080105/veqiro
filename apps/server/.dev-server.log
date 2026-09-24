@@ -1,9 +1,0 @@
-
-> server@1.0.0 dev
-> tsx watch src/server.ts
-
-Server listening on http://localhost:5000
-[maya-cron] Scheduled-post publisher started — polling every minute
-[system-cron] Follow-up check & Rex alerts (daily 09:00 UTC), Maya scheduled posts (every 1min), entitlement sweeper (15min) scheduled
-[plays-cron] Play scheduler started — checking every minute
-[mcp-retention] Nightly prune scheduled (03:30 UTC) — action log 365d, trigger events 90d
