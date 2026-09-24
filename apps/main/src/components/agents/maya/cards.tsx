@@ -736,12 +736,13 @@ export function CarouselDraftCard({
   const total = slides.length
   const d = result.draft
 
-  if (total === 0 || !d) return null
-
-  const currentSlide = slides[current]
   // Pre-resolve all slide CDN URLs to blob: URLs so images render and download works cross-origin
   const rawSrcs = React.useMemo(() => slides.map((s) => imageSrc(s.image)), [slides])
   const blobSrcs = useBlobUrls(rawSrcs)
+
+  if (total === 0 || !d) return null
+
+  const currentSlide = slides[current]
   const currentSrc = blobSrcs[current] ?? rawSrcs[current]
   const publishableUrls = rawSrcs.filter((src): src is string => !!src)
   // Instagram is the only platform this app can actually publish a multi-image

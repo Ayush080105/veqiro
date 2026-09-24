@@ -1231,7 +1231,7 @@ export function RexQueryDatasetCard({
       <AgentCard.Body className="flex flex-col gap-3">
         {query && (
           <div className="border-l-2 pl-2" style={{ borderColor: "var(--vq-green)" }}>
-            <p className="text-[11px] italic text-muted-foreground leading-snug">"{query}"</p>
+            <p className="text-[11px] italic text-muted-foreground leading-snug">&ldquo;{query}&rdquo;</p>
           </div>
         )}
         <p className="text-[12px] leading-relaxed whitespace-pre-wrap">{result.answer}</p>

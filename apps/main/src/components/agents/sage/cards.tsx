@@ -1665,7 +1665,7 @@ export function PageSeoAuditCard({
           defaultOpen={false}
         >
           <div className="flex flex-col gap-2">
-            <p className="text-[10px] text-muted-foreground">E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is Google's framework for evaluating content quality — especially critical for YMYL topics (health, finance, legal).</p>
+            <p className="text-[10px] text-muted-foreground">E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is Google&apos;s framework for evaluating content quality — especially critical for YMYL topics (health, finance, legal).</p>
             <RichCheckRow
               ok={eeat.has_author_byline}
               label={eeat.has_author_byline ? "Author byline detected" : "No author byline found"}
