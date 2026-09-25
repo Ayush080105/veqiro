@@ -813,6 +813,23 @@ def _build_base_prompt(topic: str, platform: str, brand_kit, aspect_ratio: str, 
     )
 
 
+def logo_unchanged(spelling: str | None = None) -> str:
+    """The one rule for every logo an image or video model draws: the mark itself never changes.
+    It may lose its background or sit on a backing for contrast; the logo does not move.
+
+    Used by campaigns, single images, carousels, edits and video. It lives here, once, because
+    the old wording differed per site and some of it drifted (a small redrawn wordmark came out
+    as "Kalakai" for Kalakari)."""
+    spelled = (f' Its lettering reads exactly "{spelling.strip()}" — every letter, in order.'
+               if spelling and spelling.strip() else "")
+    return (
+        "The logo must not be altered in any way: copy it exactly — same letters, spelling, "
+        "typeface, shape, proportions and colours. Never redraw, restyle, recolour, stretch, crop "
+        "or add effects. It may go without its background or on a plain backing panel for "
+        "contrast; the mark itself stays exactly as given." + spelled
+    )
+
+
 def _asset_mandate(use_logo: bool, use_mascot: bool) -> str:
     """Returns a high-priority preamble that forces the model to include logo/mascot.
 
@@ -824,7 +841,7 @@ def _asset_mandate(use_logo: bool, use_mascot: bool) -> str:
         parts.append(
             "MANDATORY LOGO: composite the brand logo reference into the final image — a corner "
             "(bottom-right preferred), an edge, or integrated into the scene — with clean "
-            "anti-aliased edges. An image without the logo is wrong."
+            "anti-aliased edges. An image without the logo is wrong. " + logo_unchanged()
         )
     if use_mascot:
         parts.append(
@@ -944,9 +961,8 @@ async def generate_social_image(
                 anchor_instructions.append(
                     f"MANDATORY: Reference image {len(anchor_images)} is the brand logo. "
                     f"You MUST include it — its absence is a failure. "
-                    f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color, and correct proportions. "
-                    f"If the logo has a background colour, ignore it — composite only the logo mark with no white box or rectangular border. "
-                    f"Place it in the bottom-right corner, occupying 8-12% of image width. Crisp and exact."
+                    f"{logo_unchanged(getattr(brand_kit, 'company_name', None))} "
+                    f"Place it in the bottom-right corner, occupying 8-12% of image width."
                 )
         mandate = _asset_mandate(use_logo and bool(brand_kit and brand_kit.logo_url), use_mascot and bool(brand_kit and brand_kit.mascot_url))
         full_prompt = mandate + base_prompt + "\n\n" + "\n".join(anchor_instructions)
@@ -992,9 +1008,7 @@ async def generate_social_image(
                         extra_instructions.append(
                             f"MANDATORY: Reference image {idx} is the brand logo. "
                             f"You MUST include it in the final image — its absence is a failure. "
-                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
-                            f"Do NOT simplify, redraw, or reinterpret it. "
-                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                            f"{logo_unchanged(getattr(brand_kit, 'company_name', None))} "
                             f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
                             f"occupying roughly 8-12% of the image width. Small enough not to compete with the product hero, but always clearly visible."
                         )
@@ -1056,9 +1070,7 @@ async def generate_social_image(
                         extra_instructions.append(
                             f"MANDATORY: Reference image {idx} is the brand logo. "
                             f"You MUST include it in the final image — its absence is a failure. "
-                            f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
-                            f"Do NOT simplify, redraw, or reinterpret it. "
-                            f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                            f"{logo_unchanged(getattr(brand_kit, 'company_name', None))} "
                             f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
                             f"occupying roughly 8-12% of the image width. Crisp and exact."
                         )
@@ -1138,9 +1150,7 @@ async def generate_social_image(
             ref_instructions.append(
                 f"MANDATORY: Reference image {idx} is the brand logo. "
                 f"You MUST include it in the final image — its absence is a failure. "
-                f"Reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
-                f"Do NOT simplify, redraw, reinterpret, or approximate it. "
-                f"If the logo has a background colour, ignore it — composite only the logo mark itself with no white box or rectangular border. "
+                f"{logo_unchanged(getattr(brand_kit, 'company_name', None))} "
                 f"Place it where it fits naturally in the composition — a corner, an edge, or integrated into the scene — "
                 f"occupying roughly 8-12% of the image width. Crisp and exact."
             )
@@ -1177,10 +1187,10 @@ async def generate_social_image(
         preamble = (
             "CRITICAL INSTRUCTION: Build a COMPLETELY NEW social media scene from scratch. "
             "Do NOT use the reference image as the scene background. "
-            "The reference is the brand logo — reproduce it with faithful accuracy: preserve the exact shape silhouette, every color as it appears in the reference, correct proportions, and any internal text or distinctive marks. "
-            "If the logo has a background colour, ignore it and composite only the logo mark itself with no white box or rectangular border. "
-            "Place it where it fits naturally in the scene — a corner, an edge, or integrated into the composition. "
-            "Do NOT simplify, redraw, or reinterpret the logo design.\n\n"
+            "The reference is the brand logo. "
+            + logo_unchanged(getattr(brand_kit, "company_name", None))
+            + " Place it where it fits naturally in the scene — a corner, an edge, or integrated "
+            "into the composition.\n\n"
             if logo_only else ""
         )
         mandate = _asset_mandate(use_logo and bool(brand_kit and brand_kit.logo_url), use_mascot and bool(brand_kit and brand_kit.mascot_url))

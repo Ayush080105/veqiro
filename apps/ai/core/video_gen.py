@@ -11,7 +11,7 @@ import base64
 import logging
 import math
 
-from core.image_gen import product_identity_instructions
+from core.image_gen import logo_unchanged, product_identity_instructions
 from core.llm import GEMINI_FLASH, LLMClient, VIDEO_SEGMENT_SECONDS
 from core.logo_animation_styles import LOGO_STYLE_DATA
 from core.models import VideoResult
@@ -305,8 +305,7 @@ async def generate_video_storyboard(
     product_bytes = [b for b, _ in product_images]
     logo_note = (
         "\n\nMANDATORY: The LAST reference image is the brand logo. Composite it as a small "
-        "corner watermark in every panel, reproduced with exact accuracy — do not simplify or "
-        "redraw it."
+        f"corner watermark in every panel. {logo_unchanged()}"
     )
 
     async def _sheet(index: int) -> str:

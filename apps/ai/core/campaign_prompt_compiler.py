@@ -16,12 +16,12 @@ This module is pure: no I/O, no LLM calls. Its output is sent to the model verba
 from __future__ import annotations
 
 from core.campaign_director import CampaignPlan, ShotPlan
-from core.image_gen import product_identity_instructions
+from core.image_gen import logo_unchanged, product_identity_instructions
 
 # Joined-list caps. Field caps bound each item; these bound the list, so a director that
 # returns eight long props cannot tip the prompt from a scene into a wall of text.
 _PROPS_CHARS = 280
-_DETAILS_CHARS = 900
+_DETAILS_CHARS = 760
 _COMPACT_DETAILS = 5
 
 
@@ -116,7 +116,7 @@ def _text_block(plan: CampaignPlan, shot: ShotPlan, compact: int) -> str:
     face = plan.world.typography or "an elegant, legible typeface that suits the product's world"
     where = shot.text_treatment or "in calm negative space, sized and placed with a designer's restraint"
     return (
-        f'TEXT: render exactly "{headline}" as the headline{sub}, letter for letter, in '
+        f'TEXT: render exactly "{headline}" as the headline{sub} in '
         f"{face.rstrip('.')}; {where.rstrip('.')}. Never over the product. No other text, signs, "
         "captions or labels; lettering too small to render stays soft, never invented."
     )
@@ -130,14 +130,9 @@ def _assets_block(
 ) -> str | None:
     parts = []
     if logo_ref:
-        # Redrawn small, a wordmark loses letters ("Kalakai" for Kalakari); naming the exact
-        # spelling keeps it whole.
-        spelled = (f' Its lettering reads exactly "{logo_text.strip()}" — every letter, in order.'
-                   if logo_text and logo_text.strip() else "")
         parts.append(
-            f"Reference image {logo_ref} is the brand logo: it must appear, small (8-12% of the "
-            "image width) in a corner or integrated into the scene, with its exact shape and "
-            f"colours and without its background box.{spelled}"
+            f"Reference image {logo_ref} is the brand logo: it must appear small (8-12% of width), "
+            f"in a corner or worked into the scene. {logo_unchanged(logo_text)}"
         )
     if mascot_ref:
         parts.append(

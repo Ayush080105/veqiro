@@ -406,7 +406,7 @@ class MayaAgent(BaseAgent):
         if modify_call:
             try:
                 from core.brand_kit import load_brand_kit
-                from core.image_gen import _fetch_asset, generate_social_image
+                from core.image_gen import _fetch_asset, generate_social_image, logo_unchanged
                 from core.models import ImageResult
                 args = modify_call["arguments"]
                 use_logo: bool = bool(args.get("use_logo", False))
@@ -442,9 +442,8 @@ class MayaAgent(BaseAgent):
                             edit_images.append(logo_bytes)
                             asset_instructions.append(
                                 f"Reference image {len(edit_images)} is the brand logo. "
-                                "Composite it into reference image 1. Reproduce the logo exactly — "
-                                "exact shape, colours, proportions. If the logo has a background colour, "
-                                "ignore it and composite only the logo mark with no white box or border. "
+                                "Composite it into reference image 1. "
+                                f"{logo_unchanged(getattr(brand_kit, 'company_name', None))} "
                                 "Place it in the bottom-right corner, occupying 8-12% of image width."
                             )
 

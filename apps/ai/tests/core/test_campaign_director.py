@@ -311,15 +311,15 @@ def test_photographic_by_default_and_each_frame_states_its_idea():
 def test_director_asks_for_ideas_variety_and_real_copy():
     system = cd.build_director_system(4)
     for asked in ("visual_style", "typography", "text_treatment", "idea",
-                  "No two shots share a setting type", "adjective plus a noun", "bansuri"):
+                  "No two shots share a setting type", "two-word noun phrase is a failure", "bansuri"):
         assert asked in system, asked
 
 
-def test_first_plan_keeping_most_shots_at_home_is_retried_but_second_is_accepted():
+def test_first_plan_keeping_most_shots_in_the_ordinary_setting_is_retried_then_accepted():
     raw = _raw(4)
     for shot in raw["shots"][:3]:
-        shot["in_home"] = True
-    with pytest.raises(cd.PlanInvalid, match="inside a home"):
+        shot["ordinary_setting"] = True
+    with pytest.raises(cd.PlanInvalid, match="ordinary setting"):
         cd.validate_plan(raw, 4, strict=True)
     assert len(cd.validate_plan(raw, 4).shots) == 4
 
@@ -328,4 +328,5 @@ def test_logo_spelling_is_named_when_known():
     plan = cd.validate_plan(_raw(1), 1)
     prompt = _compile(plan, logo_ref=2, logo_text="Kalakari")
     assert 'Its lettering reads exactly "Kalakari"' in prompt
+    assert "must not be altered in any way" in prompt
     assert "lettering reads" not in _compile(plan, logo_ref=2)

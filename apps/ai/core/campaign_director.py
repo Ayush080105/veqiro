@@ -158,9 +158,10 @@ class ShotPlan(_PlanModel):
     # The one creative idea this frame carries — a moment, a symbol, a story beat. Two shots
     # never share an idea; that is what stops a campaign reading as four placements.
     idea: str | None = None
-    # Set indoors in a home. Checked on the first attempt: a campaign that keeps most frames at
-    # home reads as a catalogue of placements, not a campaign.
-    in_home: bool = False
+    # Set in the product's everyday place (home for décor, a bathroom shelf for skincare, a desk
+    # for a laptop). Checked on the first attempt: a campaign that keeps most frames there reads
+    # as a catalogue of placements, not a campaign.
+    ordinary_setting: bool = False
     scene: str
     environment_label: str = ""
     props: list[str] = Field(default_factory=list)
@@ -209,9 +210,9 @@ class ShotPlan(_PlanModel):
     def _props(cls, v):
         return _clip_list(v, _SHORT, _MAX_LIST)
 
-    @field_validator("in_home", mode="before")
+    @field_validator("ordinary_setting", mode="before")
     @classmethod
-    def _in_home(cls, v):
+    def _ordinary(cls, v):
         return v is True or str(v).strip().lower() == "true"
 
     @field_validator("headline", mode="before")
@@ -269,11 +270,11 @@ def validate_plan(raw: object, photo_count: int, *, strict: bool = False) -> Cam
                 f"shots {repeated} share the same environment_label; every photo needs a "
                 "visibly different setting within the campaign world"
             )
-        at_home = sum(s.in_home for s in plan.shots)
-        if photo_count >= 3 and at_home > photo_count // 2:
+        ordinary = sum(s.ordinary_setting for s in plan.shots)
+        if photo_count >= 3 and ordinary > photo_count // 2:
             raise PlanInvalid(
-                f"{at_home} of {photo_count} shots are inside a home; set at least half in the "
-                "world the product evokes (unless the brief itself requires home settings)"
+                f"{ordinary} of {photo_count} shots are in the product's ordinary setting; set at "
+                "least half in the world it evokes (unless the brief itself requires otherwise)"
             )
 
     for i, shot in enumerate(plan.shots):
@@ -389,10 +390,12 @@ BUILD ONE CAMPAIGN, NOT N VARIATIONS OF ONE PHOTO.
   laid where the gaze falls, a peacock feather lit by lamp light); a grand environmental frame
   (a haveli corridor, a temple courtyard at dusk, the product in the world it evokes); a
   person's life with it; craft and material up close.
-- Go beyond the room. The product is sold for homes, but the campaign is set in the world it
-  evokes: with 3 or more shots, at least half leave the home — the artwork on an easel in a
-  Vrindavan grove at dusk, on a riverside ghat as diyas float by, in a haveli courtyard at
-  festival time. The product is still real, whole and the hero there.
+- Go beyond the ordinary setting. Every product has an everyday place it is used or kept —
+  home for décor, a bathroom shelf for skincare, a desk for a laptop, a kitchen counter for a
+  kettle. With 3 or more shots, at least half leave it for the world the product evokes: a
+  serum in a misty rainforest spring, boots on a glacier ridge at dawn, a devotional painting
+  on an easel in a Vrindavan grove. The product is still real, whole and the hero there. Mark
+  each shot's ordinary_setting true or false.
 - One shot gives the subject's most recognisable symbol a starring role (for Krishna, the
   bansuri; for Ganesha, modak; for a watch, its movement).
 - Variety is required. No two shots share a setting type, shot size, camera angle, time of day,
@@ -431,9 +434,13 @@ ON-IMAGE WORDS — write them like the campaign's copywriter.
   a playful turn — rooted in THIS product's story and audience. It should make someone stop.
   Where the brand and audience are Indian, a short phrase in their language written in Latin
   script is welcome ("Bansi ki dhun", "Radhe Radhe"), if it is simple to spell.
-- Vary the shape across the set: no two headlines with the same structure. Never the formula of
-  an adjective plus a noun ("Divine Gaze", "Serene Presence", "Sacred Artistry"), and never
-  generic décor words: elevate, sacred space, timeless, serene, stunning, divine beauty.
+- Write a real line, not a label: it has a verb, a twist or a voice. "Skin that stops
+  arguing", "Nothing added. Nothing missing.", "Thanda matlab…", "Made for monsoon afternoons".
+  Those show the kind of line — write your own for this product; never reuse an example.
+  A two-word noun phrase is a failure — "Divine Gaze", "Gentle Embrace", "Nature's Calm",
+  "Serene Presence". Never generic filler: elevate, sacred space, timeless, serene, stunning,
+  divine beauty, pure bliss.
+- Vary the shape across the set: no two headlines with the same structure.
 - subtext: 3-6 words only when it adds something concrete (hand-drawn in charcoal, ships
   framed); otherwise "". Not an "X, Y" pair of adjectives.
 - The cover always has a headline. One other shot may carry no words at all, letting the image
@@ -459,7 +466,7 @@ OUTPUT: ONLY a JSON object with this shape.
     {
       "purpose": "cover|story|symbol|ritual|lifestyle|environment|detail|...",
       "idea": "the one creative idea of this frame",
-      "in_home": false,
+      "ordinary_setting": false,
       "scene": "the full physical scene: surfaces, background, props placed, atmosphere",
       "environment_label": "5-10 words naming just this setting",
       "props": ["...", "..."],

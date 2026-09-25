@@ -21,6 +21,7 @@ from core.llm import (
     SPEECH_TAIL_SECONDS,
     VIDEO_SEGMENT_SECONDS,
 )
+from core.image_gen import logo_unchanged
 from core.video_director import DialogueLine, SegmentPlan, VideoPlan
 
 _FORMAT_LABEL = {
@@ -128,8 +129,7 @@ def logo_block(*, opening: bool, product_count: int, images_attached: bool = Tru
     if opening:
         return (
             f"LOGO: {tag} is the brand logo. Show it as a small watermark in the bottom-right "
-            "corner, about 10% of the frame width, reproduced exactly in shape, colour and "
-            "spelling, never covering the subject."
+            f"corner, about 10% of the frame width, never covering the subject. {logo_unchanged()}"
         )
     reference = f" {tag} is that logo, for reference." if images_attached else ""
     return (
