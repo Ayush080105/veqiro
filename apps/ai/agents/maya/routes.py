@@ -6,7 +6,7 @@ logger = logging.getLogger("agents")
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from core.brand_kit import load_brand_kit, get_platform_tone
 from core.campaign_director import plan_campaign
@@ -89,13 +89,23 @@ class IdeationRequest(BaseModel):
 
 class ContentIdea(BaseModel):
     title: str
-    content_type: str
-    platform: str
-    hook: str
-    predicted_engagement: str
-    reasoning: str
-    suggested_hashtags: list[str]
+    content_type: str = ""
+    platform: str = ""
+    hook: str = ""
+    predicted_engagement: str = ""
+    reasoning: str = ""
+    suggested_hashtags: list[str] = Field(default_factory=list)
     visual_description: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _nulls_to_defaults(cls, data):
+        # The model sometimes returns null for a field it has nothing for (seen for
+        # visual_description when no image was asked for). One null used to fail validation
+        # and turn the whole request into a 500, so drop nulls and let the defaults apply.
+        if isinstance(data, dict):
+            return {k: v for k, v in data.items() if v is not None}
+        return data
 
 
 class IdeationResponse(BaseModel):

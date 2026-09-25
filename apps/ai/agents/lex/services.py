@@ -217,7 +217,10 @@ async def explain_text(llm, *, provider: str, model: str, system: str, text: str
             provider=provider, model=model, system=system,
             messages=[{"role": "user", "content": (
                 f"Explain this legal text to a founder who is not a lawyer:\n\n{text}\n\n"
-                f"Where it comes from: {context or 'not given'}\n\n"
+                f"The founder's note (where it comes from, or their question): {context or 'not given'}\n\n"
+                "If the note asks a question — 'is this risky for us?', 'should I sign?', 'can they do "
+                "X?' — the explanation must OPEN with a direct answer to it (e.g. 'Yes, this is risky "
+                "for you because…'), then explain. Don't make them infer the answer.\n\n"
                 "Return ONLY a JSON object with:\n"
                 "explanation: 2-4 plain sentences on what it means and what it lets each side do.\n"
                 "practical_implications: 2-5 short concrete consequences for you.\n"

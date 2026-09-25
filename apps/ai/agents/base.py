@@ -388,6 +388,11 @@ class BaseAgent(ABC):
             "If a question is clearly outside your domain, redirect the user to the right team member "
             "instead of guessing. Say which agent handles it and why.\n"
             "It's better to redirect cleanly than to give a mediocre or made-up answer.\n"
+            "EXCEPTION — saved facts: anything under 'Established Facts' is what the customer told the "
+            "team to remember, and it is true. If the question is answered there, answer it directly "
+            "with that fact, even when the topic belongs to another agent — never send the customer "
+            "elsewhere for something you already know. Mention the other agent only as the place for "
+            "deeper or fresher analysis.\n"
         )
 
     def _current_date_block(self) -> str:
