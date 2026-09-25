@@ -12,7 +12,19 @@ test("stays on the chat page when the flag is off", () => {
 })
 
 test("stays on the chat page for an agent that has not been migrated", () => {
-  assert.equal(workspaceRedirectTarget({ agent: "maya", enabled: true }), null)
+  // Every shipped agent is migrated now, so the rollback case — one agent taken
+  // out of WORKSPACE_MIGRATED — is exercised by injecting a smaller set.
+  assert.equal(
+    workspaceRedirectTarget({ agent: "maya", enabled: true, migrated: new Set(["lex"]) }),
+    null,
+  )
+})
+
+test("a migrated agent still redirects when the set names it", () => {
+  assert.equal(
+    workspaceRedirectTarget({ agent: "maya", enabled: true, migrated: new Set(["maya"]) }),
+    "/workspace/maya/overview",
+  )
 })
 
 test("sends a migrated agent to its overview", () => {

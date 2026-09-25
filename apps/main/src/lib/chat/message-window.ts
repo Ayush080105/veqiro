@@ -164,6 +164,25 @@ export function mergeServerSnapshot(
   return applyLimit(merged, limit)
 }
 
+/**
+ * The window to show when a thread's history load starts.
+ *
+ * `sameThread` means the load is starting only because the thread became
+ * visible (the dock opened, the Chat page was entered) — not because the
+ * agent or organization changed. In that case anything already on screen that
+ * the server does not know about yet (an optimistic send, an action result)
+ * must survive; repainting from the cache alone would erase it. A different
+ * thread replaces the window outright.
+ */
+export function applyCachedWindow(
+  current: Message[],
+  cached: Message[],
+  sameThread: boolean,
+  limit: number,
+): Message[] {
+  return sameThread ? mergeServerSnapshot(current, cached, limit) : cached
+}
+
 /** Parse the local chat cache defensively; browser storage is user-editable
  * and older app versions may have left incompatible data behind. */
 export function parseCachedMessageWindow(raw: string, limit: number): Message[] {

@@ -1,5 +1,4 @@
 import { WORKSPACE_MIGRATED } from "./migrated"
-import type { AgentSlug } from "@/lib/types"
 
 /**
  * Where /assistants/<id> should send someone, if anywhere.
@@ -15,13 +14,16 @@ export function workspaceRedirectTarget({
   agent,
   enabled,
   searchParams,
+  migrated = WORKSPACE_MIGRATED,
 }: {
   agent: string
   enabled: boolean
   searchParams?: Record<string, string | string[] | undefined>
+  /** Which agents have moved. Injectable so the rollback path stays testable. */
+  migrated?: ReadonlySet<string>
 }): string | null {
   if (!enabled) return null
-  if (!WORKSPACE_MIGRATED.has(agent as AgentSlug)) return null
+  if (!migrated.has(agent)) return null
 
   const qs = new URLSearchParams()
   for (const [key, value] of Object.entries(searchParams ?? {})) {

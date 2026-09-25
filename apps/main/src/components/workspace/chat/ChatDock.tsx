@@ -1,12 +1,13 @@
 "use client"
 
-import { Suspense, useMemo } from "react"
-import { ChevronDown } from "lucide-react"
+import { Suspense, useLayoutEffect, useMemo } from "react"
+import { ChevronDown, Maximize2, PanelRight, X } from "lucide-react"
 
 import { AGENT_PHOTOS } from "@/lib/config/agents"
 import { useLexSources } from "@/lib/api/lex"
 import type { AgentActionId } from "@/lib/types/agents"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import { ChatInput } from "@/components/chat/ChatInput"
 import { ChatMessage, TypingIndicator } from "@/components/chat/ChatMessage"
 import { ChatDockEmptyState } from "./ChatDockEmptyState"
@@ -22,7 +23,7 @@ import { useWorkspaceChat } from "../WorkspaceChatProvider"
  */
 export function ChatDock({ fullBleed }: { fullBleed?: boolean }) {
   const { agent, config, spec } = useAgentWorkspace()
-  const { chat, dialogs, openAction } = useWorkspaceChat()
+  const { chat, dialogs, openAction, expandChat, collapseChat, setDockOpen } = useWorkspaceChat()
   const { setToolsOpen } = dialogs
 
   const {
@@ -38,6 +39,8 @@ export function ChatDock({ fullBleed }: { fullBleed?: boolean }) {
     isAtBottom,
     setIsAtBottom,
     chatScrollRef,
+    scrollAnchorRef,
+    scrollIntentRef,
     highlightedMessageId,
     attachedSourceIds,
     setAttachedSourceIds,
@@ -56,24 +59,96 @@ export function ChatDock({ fullBleed }: { fullBleed?: boolean }) {
 
   const photo = AGENT_PHOTOS[agent]
   const isBusy = isLoading
+
+  // The thread's scroll behaviour. The chat hook only records what it wants
+  // (`scrollIntentRef`, `scrollAnchorRef`); a view has to act on it. Without
+  // this the thread sat at the very top — the oldest message — and prepending
+  // older history jumped the position.
+  useLayoutEffect(() => {
+    const el = chatScrollRef.current
+    if (!el) return
+    // Prepending older messages: keep the reader where they were.
+    if (scrollAnchorRef.current !== null) {
+      el.scrollTop = el.scrollHeight - scrollAnchorRef.current
+      scrollAnchorRef.current = null
+      return
+    }
+    const intent = scrollIntentRef.current
+    if (intent) {
+      scrollIntentRef.current = null
+      if (intent === "smooth") el.scrollTo({ top: el.scrollHeight, behavior: "smooth" })
+      else el.scrollTop = el.scrollHeight
+    }
+  }, [chatScrollRef, scrollAnchorRef, scrollIntentRef, msgWindow, isBusy])
+
+  // Docking, expanding and landing on the Chat page each mount a fresh
+  // scroller at the top. Start at the latest message, where a conversation
+  // is read from.
+  useLayoutEffect(() => {
+    const el = chatScrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [chatScrollRef])
   const hasStreamingMessage = messages.some((m) => m.deliveryStatus === "streaming")
 
   return (
     <div className={cn("flex min-h-0 w-full flex-col", fullBleed && "h-full")}>
-      <div className="flex shrink-0 items-center gap-2 border-b border-(--vq-line-2) px-3 py-2">
-        <span className="truncate text-xs font-medium text-muted-foreground">Chat</span>
+      <div className="flex shrink-0 items-center gap-1 border-b border-(--vq-line-2) px-3 py-2">
+        <span className="truncate text-xs font-medium text-muted-foreground">
+          Chat with {config.name}
+        </span>
         <span className="flex-1" />
         {spec.chatHeaderExtras?.map((Extra, i) => (
           <Suspense key={i} fallback={null}>
             <Extra />
           </Suspense>
         ))}
+        {fullBleed ? (
+          // On the Chat page the way to put it back beside the work. Below lg
+          // there is no dock to return to, so the control is not offered.
+          <Button
+            variant="ghost"
+            size="sm"
+            className="hidden gap-1.5 text-muted-foreground lg:inline-flex"
+            onClick={collapseChat}
+          >
+            <PanelRight className="size-4" />
+            Dock chat
+          </Button>
+        ) : (
+          <>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground"
+              aria-label="Open chat full screen"
+              title="Open chat full screen"
+              onClick={expandChat}
+            >
+              <Maximize2 className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="text-muted-foreground"
+              aria-label="Close chat"
+              title="Close chat"
+              onClick={() => setDockOpen(false)}
+            >
+              <X className="size-4" />
+            </Button>
+          </>
+        )}
       </div>
 
       <div className="relative min-h-0 flex-1">
         <div
           ref={chatScrollRef}
-          className="flex h-full flex-col overflow-y-auto px-4 py-4"
+          className={cn(
+            "flex h-full flex-col overflow-y-auto px-4 py-4",
+            // On the Chat page keep the thread a readable column while the
+            // scrollbar stays at the window edge.
+            fullBleed && "px-[max(1rem,calc((100%-48rem)/2))]",
+          )}
           onScroll={(e) => {
             const el = e.currentTarget
             setIsAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 50)
@@ -160,7 +235,7 @@ export function ChatDock({ fullBleed }: { fullBleed?: boolean }) {
         </button>
       </div>
 
-      <div className="shrink-0">
+      <div className={cn("shrink-0", fullBleed && "mx-auto w-full max-w-3xl")}>
         <ChatInput
           value={content}
           onChange={setContent}

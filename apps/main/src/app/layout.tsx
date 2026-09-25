@@ -29,6 +29,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      // next-themes sets the theme class and colour-scheme on <html> before
+      // hydration, which React would otherwise report as a mismatch.
+      suppressHydrationWarning
       className={cn(
         "h-full antialiased font-mono",
         jetbrainsMono.variable,

@@ -151,8 +151,12 @@ export function MemoryGraph({ agentName, color, items, busy, onConfirm, onRetire
     <div className="flex flex-col gap-3">
       <div
         ref={wrapRef}
-        className="relative overflow-hidden rounded-[var(--vq-r)] border border-border bg-background"
-        style={{ height: HEIGHT, touchAction: "none" }}
+        // Fine pointer: the graph owns every gesture (drag to pan, wheel to
+        // zoom). Touch: leave vertical swipes to the page — with `none` a
+        // finger resting on a graph that fills half a phone screen could not
+        // scroll past it. Horizontal drags still pan the graph.
+        className="relative touch-none overflow-hidden rounded-[var(--vq-r)] border border-border bg-background pointer-coarse:touch-pan-y"
+        style={{ height: HEIGHT }}
         onWheel={(e) => {
           const factor = e.deltaY < 0 ? 1.08 : 0.92
           setCam((c) => ({ ...c, k: Math.min(2.2, Math.max(0.5, c.k * factor)) }))

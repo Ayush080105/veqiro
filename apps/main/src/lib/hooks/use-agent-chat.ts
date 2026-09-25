@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { ApiError } from "@/lib/api/client"
 import { getMessages, useSendMessage, AgentNotAvailableError } from "@/lib/api/assistants"
 import type { Message } from "@/lib/types"
-import {
+import { applyCachedWindow,
   mergeMessageWindow,
   mergeServerSnapshot,
   parseCachedMessageWindow,
@@ -96,6 +96,10 @@ export function useAgentChat(
   const thisMutationRef = useRef(false)
   const prevMutationStatusRef = useRef<string | undefined>(undefined)
   const didCatchUpRef = useRef(false)
+  // Which thread the last history load was for (null before the first). If the
+  // effect re-runs for the same thread it is only because the thread became
+  // visible (`active`), and whatever is on screen must not be wiped.
+  const loadedKeyRef = useRef<string | null>(null)
   const isAtBottomRef = useRef(isAtBottom)
   const activeChatKey = `${organizationId}:${agentId}`
   const activeChatKeyRef = useRef(activeChatKey)
@@ -105,6 +109,11 @@ export function useAgentChat(
   useEffect(() => {
     if (!agentId || !organizationId || !active) return
     const requestKey = `${organizationId}:${agentId}`
+    // Only a change of thread identity resets the window. The first ever load
+    // (null) has nothing to reset — and anything on screen by then is local
+    // (an optimistic send made just before the thread became visible).
+    const sameThread = loadedKeyRef.current === null || loadedKeyRef.current === requestKey
+    loadedKeyRef.current = requestKey
     const controller = new AbortController()
     setFetchError(null)
     setIsLoadingPrev(false)
@@ -122,20 +131,22 @@ export function useAgentChat(
         const cached = parseCachedMessageWindow(raw, WINDOW)
         if (cached.length > 0) {
           scrollIntentRef.current = "instant"
-          setMsgWindow(cached)
+          setMsgWindow((current) => applyCachedWindow(current, cached, sameThread, WINDOW))
           setHasPreviousPage(cached.length === WINDOW)
           setInitialLoaded(true)
-        } else {
+        } else if (!sameThread) {
           setInitialLoaded(false)
           setMsgWindow([])
         }
-      } else {
+      } else if (!sameThread) {
         setInitialLoaded(false)
         setMsgWindow([])
       }
     } catch {
-      setInitialLoaded(false)
-      setMsgWindow([])
+      if (!sameThread) {
+        setInitialLoaded(false)
+        setMsgWindow([])
+      }
     }
 
     // Refresh from server in background

@@ -7,6 +7,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
 } from "react"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
@@ -18,6 +19,9 @@ import {
 } from "@/lib/hooks/use-agent-action-dialogs"
 import type { AgentActionId } from "@/lib/types/agents"
 import { useDockOpen } from "@/lib/workspace/dock-store"
+import { useDockPlacement } from "@/lib/workspace/use-dock-placement"
+import { useHydrated } from "@/lib/hooks/use-hydrated"
+import type { ModuleId } from "@/lib/workspace/types"
 import { useAgentWorkspace } from "./AgentWorkspaceContext"
 
 interface WorkspaceChatValue {
@@ -27,9 +31,23 @@ interface WorkspaceChatValue {
   openAction: (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
   /** Put a prompt in the composer and reveal the dock. */
   sendPrompt: (prompt: string) => void
+  /** The customer's saved preference for the docked column. */
   dockOpen: boolean
   setDockOpen: (open: boolean) => void
   toggleDock: () => void
+  /**
+   * Whether the docked column is actually on screen right now: preferred open,
+   * not superseded by the full-page Chat module, and the viewport can hold it.
+   * Derived rather than written back, so visiting the Chat page never
+   * overwrites what the customer chose for the dock.
+   */
+  dockVisible: boolean
+  /** Make the thread visible by whatever means this screen has: dock or page. */
+  revealChat: () => void
+  /** Chat as the main area (the Chat module). */
+  expandChat: () => void
+  /** Back to the module the customer came from, with the dock open. */
+  collapseChat: () => void
 }
 
 const Ctx = createContext<WorkspaceChatValue | null>(null)
@@ -53,18 +71,37 @@ const Ctx = createContext<WorkspaceChatValue | null>(null)
  *   4. a changing `key` above this in the tree.
  */
 export function WorkspaceChatProvider({ children }: { children: ReactNode }) {
-  const { agent, config, organizationId } = useAgentWorkspace()
+  const { agent, config, organizationId, activeModule, hrefFor } = useAgentWorkspace()
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
   const [dockOpen, setDockOpen] = useDockOpen(agent)
+  const placement = useDockPlacement()
 
-  // Only fetch history for a dock that is actually showing. Mounting here is
-  // what makes the thread survive module navigation, but it also means this
-  // runs on entering any module — so a customer who keeps the dock shut should
-  // not pay for a chat fetch on every click.
-  const chat = useAgentChat(agent, organizationId, config.name, { active: dockOpen })
+  const onChatPage = activeModule === "chat"
+  const dockVisible = dockOpen && !onChatPage && placement !== "none"
+
+  // Only fetch history for a thread that is actually showing — the dock, or the
+  // Chat page. Mounting here is what makes the thread survive module
+  // navigation, but it also means this runs on entering any module, so a
+  // customer who keeps the dock shut should not pay for a chat fetch on every
+  // click. (The gate used to be the saved dock preference alone, which the Chat
+  // page then forced to "closed" — aborting the very fetch it needed.)
+  //
+  // Two guards keep the gate from thrashing the thread. `hydrated`: the server
+  // snapshots of the dock stores assume a desktop, and on a phone that briefly
+  // reads "visible" during hydration — a phantom fetch that is aborted at once.
+  // Sticky: once the thread has been shown it stays loaded, so resizing the
+  // window across a breakpoint or hopping between dock and page does not
+  // re-run the initial load.
+  const hydrated = useHydrated()
+  const threadWanted = hydrated && (onChatPage || dockVisible)
+  const [threadEverWanted, setThreadEverWanted] = useState(false)
+  if (threadWanted && !threadEverWanted) setThreadEverWanted(true)
+  const chat = useAgentChat(agent, organizationId, config.name, {
+    active: threadEverWanted || threadWanted,
+  })
 
   const dialogs = useAgentActionDialogs(agent, router, searchParams, {
     hrefForAgent: (slug, query) => `/workspace/${slug}/chat?${query}`,
@@ -76,12 +113,36 @@ export function WorkspaceChatProvider({ children }: { children: ReactNode }) {
   const { openAction: openActionDialog } = dialogs
   const { setContent, setAttachedSourceIds } = chat
 
+  /**
+   * Show the thread. On a screen that can hold the dock that means opening it;
+   * on one that cannot (below lg) the only place the thread exists is the Chat
+   * page, so go there. Without this, "Ask about this document" and every
+   * post-action "see the result" did nothing visible on a phone.
+   */
+  const revealChat = useCallback(() => {
+    if (onChatPage) return
+    if (placement === "none") router.push(hrefFor("chat"))
+    else setDockOpen(true)
+  }, [onChatPage, placement, router, hrefFor, setDockOpen])
+
+  // Where "Dock chat" returns to: the last module that was not Chat.
+  const lastModuleRef = useRef<ModuleId>("overview")
+  useEffect(() => {
+    if (activeModule !== "chat") lastModuleRef.current = activeModule
+  }, [activeModule])
+
+  const expandChat = useCallback(() => router.push(hrefFor("chat")), [router, hrefFor])
+  const collapseChat = useCallback(() => {
+    setDockOpen(true)
+    router.push(hrefFor(lastModuleRef.current))
+  }, [router, hrefFor, setDockOpen])
+
   const sendPrompt = useCallback(
     (prompt: string) => {
       setContent(prompt)
-      setDockOpen(true)
+      revealChat()
     },
-    [setContent, setDockOpen],
+    [setContent, revealChat],
   )
 
   /**
@@ -102,12 +163,12 @@ export function WorkspaceChatProvider({ children }: { children: ReactNode }) {
           setAttachedSourceIds((prev) => (prev.includes(sourceId) ? prev : [...prev, sourceId]))
         }
         setContent(typeof prefill?.prompt === "string" ? prefill.prompt : "")
-        setDockOpen(true)
+        revealChat()
         return
       }
       openActionDialog(actionId, prefill)
     },
-    [openActionDialog, setAttachedSourceIds, setContent, setDockOpen],
+    [openActionDialog, setAttachedSourceIds, setContent, revealChat],
   )
 
   // Dev-only guard for the failure mode above. A second mount for the same
@@ -141,8 +202,23 @@ export function WorkspaceChatProvider({ children }: { children: ReactNode }) {
       dockOpen,
       setDockOpen,
       toggleDock: () => setDockOpen(!dockOpen),
+      dockVisible,
+      revealChat,
+      expandChat,
+      collapseChat,
     }),
-    [chat, dialogs, openAction, sendPrompt, dockOpen, setDockOpen],
+    [
+      chat,
+      dialogs,
+      openAction,
+      sendPrompt,
+      dockOpen,
+      setDockOpen,
+      dockVisible,
+      revealChat,
+      expandChat,
+      collapseChat,
+    ],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

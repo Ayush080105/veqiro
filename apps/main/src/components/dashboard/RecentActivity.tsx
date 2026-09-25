@@ -39,7 +39,7 @@ export function RecentActivity({ items }: { items: ActivityItem[] }) {
       </div>
 
       {items.length === 0 ? (
-        <div className="px-4 py-3.5 bg-white border border-dashed border-[var(--vq-line-2)] rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
+        <div className="px-4 py-3.5 bg-card border border-dashed border-[var(--vq-line-2)] rounded-xl font-mono text-xs text-muted-foreground tracking-[0.1em]">
           {"// nothing to show yet"}
         </div>
       ) : (
@@ -59,7 +59,7 @@ export function RecentActivity({ items }: { items: ActivityItem[] }) {
             const Icon = item.type === "post" ? Send : MessageSquare
 
             const content = (
-              <div className="max-sm:items-start flex items-center gap-3 px-3 py-2.5 bg-white border border-[var(--vq-line-2)] rounded-xl transition-transform duration-[120ms] ease">
+              <div className="max-sm:items-start flex items-center gap-3 px-3 py-2.5 bg-card border border-[var(--vq-line-2)] rounded-xl transition-transform duration-[120ms] ease">
                 {/* Avatar: colored base + icon behind + photo on top */}
                 <div
                   className="relative size-8 rounded-full overflow-hidden border border-[var(--vq-line-2)] shrink-0 grid place-items-center"

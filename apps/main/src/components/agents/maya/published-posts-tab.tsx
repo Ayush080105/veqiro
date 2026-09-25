@@ -20,14 +20,16 @@ import { toast } from "sonner"
 import { authClient } from "@/lib/auth-client"
 import { usePublishedPosts, useCancelScheduledPost } from "@/lib/api/assistants"
 import type { PublishedPost } from "@/lib/api/assistants"
+import {
+  PLATFORM_STYLE,
+  STATUS_TONE,
+  STATUS_TONE_PENDING,
+  UNKNOWN_PLATFORM_DOT,
+} from "./post-style"
 
 // ─── Platform config ─────────────────────────────────────────────────────────
 
-const PLATFORM: Record<string, { label: string; color: string; dot: string }> = {
-  LINKEDIN: { label: "LinkedIn", color: "#0077B5", dot: "bg-[#0077B5]" },
-  TWITTER: { label: "X / Twitter", color: "#000000", dot: "bg-[#000000]" },
-  INSTAGRAM: { label: "Instagram", color: "#E1306C", dot: "bg-[#E1306C]" },
-}
+const PLATFORM = PLATFORM_STYLE
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
@@ -66,7 +68,7 @@ function PostCard({ post }: { post: PublishedPost }) {
   const organizationId = activeOrg?.id ?? ""
   const cancelScheduledPost = useCancelScheduledPost(organizationId)
 
-  const cfg = PLATFORM[post.platform] ?? { label: post.platform, color: "var(--muted-foreground)", dot: "bg-gray-400" }
+  const cfg = PLATFORM[post.platform] ?? { label: post.platform, color: "var(--muted-foreground)", ink: "var(--background)", dot: UNKNOWN_PLATFORM_DOT }
   const date = postDate(post)
   const isSuccess = post.status === "success"
   const isFailed = post.status === "failed"
@@ -81,7 +83,7 @@ function PostCard({ post }: { post: PublishedPost }) {
   }
 
   return (
-    <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-white overflow-hidden">
+    <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card overflow-hidden">
       {post.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -99,8 +101,8 @@ function PostCard({ post }: { post: PublishedPost }) {
         {/* platform + time row */}
         <div className="flex items-center justify-between">
           <span
-            className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 text-white"
-            style={{ background: cfg.color }}
+            className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5"
+            style={{ background: cfg.color, color: cfg.ink }}
           >
             {cfg.label}
           </span>
@@ -116,7 +118,7 @@ function PostCard({ post }: { post: PublishedPost }) {
 
         {/* hashtags */}
         {post.hashtags.length > 0 && (
-          <p className="text-[10px] text-[#0077B5] truncate">
+          <p className="text-[10px] text-chart-1 truncate">
             {post.hashtags.slice(0, 5).map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}
             {post.hashtags.length > 5 && ` +${post.hashtags.length - 5}`}
           </p>
@@ -124,7 +126,7 @@ function PostCard({ post }: { post: PublishedPost }) {
 
         {/* error message */}
         {isFailed && post.error && (
-          <p className="text-[10px] text-red-600 line-clamp-2" title={post.error}>
+          <p className="text-[10px] text-destructive line-clamp-2" title={post.error}>
             {post.error}
           </p>
         )}
@@ -133,15 +135,7 @@ function PostCard({ post }: { post: PublishedPost }) {
         <div className="flex items-center justify-between pt-0.5">
           <span
             className={`text-[10px] font-medium px-1.5 py-0.5 border ${
-              isSuccess
-                ? "border-green-600 text-green-700 bg-green-50"
-                : isFailed
-                ? "border-red-500 text-red-600 bg-red-50"
-                : isScheduled
-                ? "border-blue-500 text-blue-700 bg-blue-50"
-                : isCancelled
-                ? "border-gray-400 text-gray-500 bg-gray-50"
-                : "border-yellow-500 text-yellow-700 bg-yellow-50"
+              STATUS_TONE[post.status] ?? STATUS_TONE_PENDING
             }`}
           >
             {isSuccess
@@ -159,7 +153,7 @@ function PostCard({ post }: { post: PublishedPost }) {
               type="button"
               onClick={handleCancel}
               disabled={cancelScheduledPost.isPending}
-              className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-red-600 disabled:opacity-60"
+              className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-destructive disabled:opacity-60"
               title="Cancel scheduled post"
             >
               <X className="size-3" /> Cancel
@@ -288,8 +282,8 @@ export function MayaPublishedPostsTab() {
                     {/* Date number */}
                     <span
                       className={`text-xs font-bold mb-1 w-5 h-5 flex items-center justify-center
-                        ${today && !isSelected ? "bg-primary text-white rounded-full" : ""}
-                        ${isSelected ? "text-white" : inMonth ? "text-foreground" : "text-muted-foreground"}
+                        ${today && !isSelected ? "bg-primary text-primary-foreground rounded-full" : ""}
+                        ${isSelected ? "text-primary-foreground" : inMonth ? "text-foreground" : "text-muted-foreground"}
                       `}
                     >
                       {format(day, "d")}
@@ -311,12 +305,12 @@ export function MayaPublishedPostsTab() {
                           ) : (
                             <span
                               key={p.id}
-                              className={`w-3 h-3 rounded-full ${cfg?.dot ?? "bg-gray-400"} ${isSelected ? "opacity-90" : ""}`}
+                              className={`w-3 h-3 rounded-full ${cfg?.dot ?? UNKNOWN_PLATFORM_DOT} ${isSelected ? "opacity-90" : ""}`}
                             />
                           )
                         })}
                         {dayPosts.length > 3 && (
-                          <span className={`text-[9px] font-bold ${isSelected ? "text-white" : "text-muted-foreground"}`}>
+                          <span className={`text-[9px] font-bold ${isSelected ? "text-primary-foreground" : "text-muted-foreground"}`}>
                             +{dayPosts.length - 3}
                           </span>
                         )}

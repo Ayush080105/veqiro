@@ -52,13 +52,18 @@ export function WorkModule({ agent, organizationId }: ModuleProps) {
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
         {spec.workTypes.length > 1 && (
-          <nav className="flex items-center gap-1" aria-label="Work types">
+          // Scrolls sideways rather than wrapping or pushing the page wider:
+          // an agent with four or five work types does not fit one phone row.
+          <nav
+            className="-mx-1 flex max-w-full items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none]"
+            aria-label="Work types"
+          >
             {spec.workTypes.map((type) => (
               <Link
                 key={type.slug}
                 href={hrefFor("work", type.slug)}
                 className={cn(
-                  "rounded-[var(--vq-r-sm)] px-2.5 py-1.5 text-sm no-underline transition-colors",
+                  "shrink-0 rounded-[var(--vq-r-sm)] px-2.5 py-1.5 text-sm whitespace-nowrap no-underline transition-colors",
                   type.slug === activeSlug
                     ? "bg-muted font-medium text-foreground"
                     : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
@@ -70,17 +75,23 @@ export function WorkModule({ agent, organizationId }: ModuleProps) {
           </nav>
         )}
 
-        <span className="flex-1" />
+        <span className="hidden flex-1 sm:block" />
 
-        {workType.createActions?.map((id) => {
-          const action = findAction(id)
-          if (!action) return null
-          return (
-            <Button key={id} size="sm" variant="outline" onClick={() => openAction(id)}>
-              {action.label}
-            </Button>
-          )
-        })}
+        {/* On a phone the create buttons take their own row instead of
+            squeezing beside the tabs. */}
+        {(workType.createActions?.length ?? 0) > 0 && (
+          <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+            {workType.createActions?.map((id) => {
+              const action = findAction(id)
+              if (!action) return null
+              return (
+                <Button key={id} size="sm" variant="outline" onClick={() => openAction(id)}>
+                  {action.label}
+                </Button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       <Suspense fallback={<Skeleton className="h-64 rounded-[var(--vq-r)]" />}>

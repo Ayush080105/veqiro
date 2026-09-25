@@ -1,21 +1,15 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
-  LayoutDashboard,
-  Users,
-  Brain,
-  Settings,
   ChevronDown,
   LogOut,
   Plus,
   Check,
   ArrowUpRight,
   Loader2,
-  MessageSquare,
-  CalendarClock,
 } from "lucide-react"
 import {
   Sidebar,
@@ -39,25 +33,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
 import { authClient } from "@/lib/auth-client"
-import {
-  clearActiveAndStartNew,
-  switchToOrganization,
-} from "@/lib/api/organizations"
+import { CONSOLE_NAV } from "@/lib/config/console-nav"
 import { useHydrated } from "@/lib/hooks/use-hydrated"
+import { useOrgSwitcher } from "@/lib/hooks/use-org-switcher"
+import { useBillingStatus } from "@/lib/api/billing"
+import { orgPlanLabel } from "@/lib/billing/org-plan"
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  // "Employees", not "Assistants": the product model is people you have hired,
-  // and the directory this points at is the workforce rather than a chat list.
-  { href: "/assistants", label: "Employees", icon: Users },
-  { href: "/tasks", label: "Tasks", icon: CalendarClock },
-]
-
-const bottomNavItems = [
-  { href: "/feedback", label: "Community", icon: MessageSquare },
-  { href: "/brain", label: "Brain", icon: Brain },
-  { href: "/settings", label: "Settings", icon: Settings },
-]
+const navItems = CONSOLE_NAV.primary
+const bottomNavItems = CONSOLE_NAV.secondary
 
 const LANDING_URL =
   process.env.NEXT_PUBLIC_LANDING_URL ?? "http://localhost:3000"
@@ -68,13 +51,8 @@ export function AppSidebar() {
   const pathname = usePathname()
   const { setOpenMobile } = useSidebar()
   const { data: session } = authClient.useSession()
-  const { data: activeOrg } = authClient.useActiveOrganization()
-  const { data: organizationList } = authClient.useListOrganizations()
   const hydrated = useHydrated()
   const visibleSession = hydrated ? session : null
-  const visibleActiveOrg = hydrated ? activeOrg : null
-  const organizations = hydrated ? (organizationList ?? []) : []
-  const [switchingId, setSwitchingId] = useState<string | null>(null)
 
   // A mobile sidebar is a temporary sheet, so navigation should dismiss it.
   // The pathname effect also covers programmatic navigation from workspace
@@ -85,21 +63,18 @@ export function AppSidebar() {
 
   const closeMobileSidebar = () => setOpenMobile(false)
 
-  const switchOrg = async (organizationId: string) => {
-    if (switchingId || organizationId === visibleActiveOrg?.id) return
-    closeMobileSidebar()
-    setSwitchingId(organizationId)
-    await switchToOrganization(organizationId, router)
-    setSwitchingId(null)
-  }
+  const {
+    activeOrg: visibleActiveOrg,
+    organizations,
+    switchingId,
+    switchOrg,
+    createOrg,
+  } = useOrgSwitcher(closeMobileSidebar)
 
-  const createOrg = async () => {
-    if (switchingId) return
-    closeMobileSidebar()
-    setSwitchingId("__new__")
-    await clearActiveAndStartNew(router)
-    setSwitchingId(null)
-  }
+  // Derived from what the organization actually holds; absent when it holds
+  // nothing. (This badge was a hardcoded "Free" for everyone.)
+  const { data: billing } = useBillingStatus(visibleActiveOrg?.id)
+  const planLabel = orgPlanLabel(billing?.subscription?.entitlements)
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
@@ -110,15 +85,32 @@ export function AppSidebar() {
           className="flex h-9 items-center group-data-[collapsible=icon]:justify-center"
           title="Back to veqiro.com"
         >
-          {/* Full logo when sidebar is expanded */}
-          <Image
-            src="/logo.png"
-            alt="Veqiro"
-            width={110}
-            height={28}
-            className="group-data-[collapsible=icon]:hidden object-contain"
-            priority
-          />
+          {/* Full logo when sidebar is expanded. logo.png's wordmark is dark ink
+              and disappears on the dark sidebar, so dark mode gets the mark plus a
+              text wordmark instead — the same lockup the sign-in screen uses. */}
+          <span className="group-data-[collapsible=icon]:hidden">
+            <Image
+              src="/logo.png"
+              alt="Veqiro"
+              width={110}
+              height={28}
+              className="object-contain dark:hidden"
+              priority
+            />
+            <span className="hidden items-center gap-2 dark:flex">
+              <Image
+                src="/icon.png"
+                alt=""
+                width={28}
+                height={28}
+                className="shrink-0 rounded-lg"
+                priority
+              />
+              <span className="font-head text-xl leading-none tracking-tight text-foreground">
+                veqiro
+              </span>
+            </span>
+          </span>
           {/* Icon-only mark when sidebar is collapsed */}
           <Image
             src="/icon.png"
@@ -144,9 +136,11 @@ export function AppSidebar() {
                 <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground">
                   {visibleActiveOrg.name}
                 </span>
-                <span className="rounded-full border border-sidebar-border bg-accent px-1.5 py-0.5 text-[10px] font-medium leading-none text-accent-foreground">
-                  Free
-                </span>
+                {planLabel && (
+                  <span className="rounded-full border border-sidebar-border bg-accent px-1.5 py-0.5 text-[10px] font-medium leading-none text-accent-foreground">
+                    {planLabel}
+                  </span>
+                )}
                 <ChevronDown className="size-3 text-foreground/70" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64 p-1">

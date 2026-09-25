@@ -181,7 +181,7 @@ function ItemDetail({
       {onCreate && (
         <button
           onClick={() => onCreate(item)}
-          className="flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+          className="flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
           <Wand2 className="size-3" />
           {item.format === "reel" ? "Make this reel" : "Make this post"}
@@ -386,7 +386,7 @@ export function MayaContentPlanTab({
           <button
             onClick={handleGenerate}
             disabled={generating || !organizationId}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             <Sparkles className="size-3" />
             {generating ? "Planning…" : "Generate plan"}

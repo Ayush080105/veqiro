@@ -1,29 +1,27 @@
 "use client"
 
-import { useEffect } from "react"
-
-import { useWorkspaceChat } from "../WorkspaceChatProvider"
 import { ChatDock } from "../chat/ChatDock"
 
 /**
- * Chat as a full-width module.
+ * Chat as the main area.
  *
- * Two audiences need this: phones, where a 380px dock beside a module body is
- * not a layout, and anyone who wants the thread at full width. It renders the
- * same ChatDock reading the same provider state, so switching between docked
- * and full-bleed keeps the draft and scroll position.
+ * Two audiences: phones, where a docked column beside a module is not a
+ * layout, and anyone who wants the thread at full width. It renders the same
+ * ChatDock reading the same provider state, so switching between docked and
+ * full-page keeps the draft and scroll position.
+ *
+ * It does NOT touch the customer's saved dock preference. The shell hides the
+ * dock while this module is showing (see `dockVisible` in WorkspaceChatProvider)
+ * instead of writing "closed" — which used to persist, so visiting Chat once
+ * meant the dock stayed shut on every later visit, and also aborted this very
+ * page's history fetch.
+ *
+ * Height comes from the shell: on this module <main> is a definite-height flex
+ * column, so the thread scrolls and the composer pins to the bottom.
  */
 export function ChatModule() {
-  const { setDockOpen } = useWorkspaceChat()
-
-  // Showing the thread twice at once is just confusing, so the dock steps
-  // aside while this module owns the screen.
-  useEffect(() => {
-    setDockOpen(false)
-  }, [setDockOpen])
-
   return (
-    <div className="-mx-4 -my-5 h-[calc(100%+2.5rem)] sm:-mx-6">
+    <div className="flex min-h-0 flex-1 flex-col">
       <ChatDock fullBleed />
     </div>
   )

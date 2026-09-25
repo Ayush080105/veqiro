@@ -34,8 +34,8 @@ const ToolsMenu = dynamic(() =>
  * from an insight's "do this" button.
  */
 export function WorkspaceDialogs() {
-  const { agent, config, organizationId } = useAgentWorkspace()
-  const { chat, dialogs, openAction, setDockOpen } = useWorkspaceChat()
+  const { agent, config, organizationId, activeModule } = useAgentWorkspace()
+  const { chat, dialogs, openAction, revealChat, dockVisible } = useWorkspaceChat()
   const queryClient = useQueryClient()
 
   const { setMsgWindow, scrollIntentRef, isAtBottomRef, conversationId } = chat
@@ -94,9 +94,25 @@ export function WorkspaceDialogs() {
       }
       if (isAtBottomRef.current) scrollIntentRef.current = "smooth"
       setMsgWindow((prev) => [...prev, assistantMsg].slice(-WINDOW))
-      toast.success(meta ? `${meta.label} complete.` : "Action complete.")
+      // The result card lands in the thread. If the thread is not on screen
+      // (phones, or a closed dock) say where to find it rather than leaving the
+      // customer with a toast and nothing to look at.
+      const threadShowing = dockVisible || activeModule === "chat"
+      toast.success(meta ? `${meta.label} complete.` : "Action complete.", {
+        action: threadShowing ? undefined : { label: "View in chat", onClick: revealChat },
+      })
     },
-    [agent, organizationId, queryClient, setMsgWindow, scrollIntentRef, isAtBottomRef],
+    [
+      agent,
+      organizationId,
+      queryClient,
+      setMsgWindow,
+      scrollIntentRef,
+      isAtBottomRef,
+      dockVisible,
+      activeModule,
+      revealChat,
+    ],
   )
 
   return (
@@ -120,8 +136,9 @@ export function WorkspaceDialogs() {
           onSubmit={(prompt) => {
             closeAction()
             // Reveal the thread first: the reply is the point, and a send into
-            // a closed dock looks like nothing happened.
-            setDockOpen(true)
+            // a hidden thread looks like nothing happened (on a phone that
+            // means going to the Chat page).
+            revealChat()
             void chat.sendText(prompt)
           }}
         />

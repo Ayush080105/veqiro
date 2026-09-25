@@ -18,13 +18,14 @@ import type { ModuleId } from "./types"
  * The canonical module order, labels and icons.
  *
  * Order matters and is not alphabetical: it follows the PRD's dashboard
- * hierarchy — outcome first, then the work, then what needs a human, and only
- * then the configuration surfaces. An agent's spec can override a label or
+ * hierarchy — outcome first, then chat (the always-available way to ask), then
+ * the work, then what needs a human, and only then the configuration surfaces. An agent's spec can override a label or
  * demote a module, but it cannot reorder them, because every workspace looking
  * the same is the point.
  */
 export const MODULE_ORDER: ModuleId[] = [
   "overview",
+  "chat",
   "work",
   "actions",
   "approvals",
@@ -33,7 +34,6 @@ export const MODULE_ORDER: ModuleId[] = [
   "memory",
   "integrations",
   "settings",
-  "chat",
 ]
 
 export interface ModuleMeta {

@@ -1307,9 +1307,9 @@ export function RexQueryDatasetForm({
               {col}
               <span className={cn(
                 "ml-1",
-                type === "date" && "text-blue-500",
-                type === "numeric" && "text-green-600",
-                type === "categorical" && "text-purple-500",
+                type === "date" && "text-chart-1",
+                type === "numeric" && "text-chart-2",
+                type === "categorical" && "text-chart-4",
               )}>
                 {type === "date" ? "📅" : type === "numeric" ? "#" : type === "categorical" ? "Aa" : "T"}
               </span>
@@ -1522,9 +1522,9 @@ export function RexAnalyzeDatasetForm({
                 key={col}
                 className={cn(
                   "border px-1.5 py-0.5 font-mono text-[9px]",
-                  type === "date" && "border-blue-200 bg-blue-50 text-blue-700",
-                  type === "numeric" && "border-green-200 bg-green-50 text-green-700",
-                  type === "categorical" && "border-purple-200 bg-purple-50 text-purple-700",
+                  type === "date" && "border-chart-1/40 bg-chart-1/10 text-foreground",
+                  type === "numeric" && "border-chart-2/40 bg-chart-2/10 text-foreground",
+                  type === "categorical" && "border-chart-4/40 bg-chart-4/10 text-foreground",
                   type === "text" && "border-border bg-muted/30 text-muted-foreground",
                 )}
               >
@@ -1635,7 +1635,7 @@ export function RexGenerateReportForm({
       )}
 
       {done && (
-        <p className="text-center text-[11px] text-green-600">
+        <p className="text-center text-[11px] text-chart-2">
           Report downloaded successfully.
         </p>
       )}

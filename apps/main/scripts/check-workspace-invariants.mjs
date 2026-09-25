@@ -20,7 +20,12 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import { join, relative } from "node:path"
 
 const ROOT = new URL("..", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1")
-const AGENT_DIR = join(ROOT, "src/app/(dashboard)/workspace/[agent]")
+// The workspace routes live in their own (workspace) group, outside the
+// console's (dashboard) group. This used to point at (dashboard)/workspace, a
+// path that stopped existing when they moved — and because a missing directory
+// was swallowed below, the check silently inspected nothing.
+const WORKSPACE_ROOT = join(ROOT, "src/app/(workspace)/workspace")
+const AGENT_DIR = join(WORKSPACE_ROOT, "[agent]")
 const FRAMEWORK_FILES = [
   join(ROOT, "src/lib/workspace/registry.ts"),
   join(ROOT, "src/lib/workspace/modules.ts"),
@@ -34,7 +39,18 @@ const AGENT_SLUGS = ["maya", "rex", "sage", "scout", "lex", "vega"]
 const failures = []
 
 // ── 1. boundary files ────────────────────────────────────────────────────────
+// A missing directory is a failure, not a pass: the guard has nothing to guard
+// and the routes have moved again.
 try {
+  statSync(AGENT_DIR)
+} catch {
+  failures.push(
+    `${relative(ROOT, AGENT_DIR)} does not exist, so the [agent]-level boundary check ` +
+      `inspected nothing. If the workspace routes moved, update WORKSPACE_ROOT in this script.`,
+  )
+}
+
+if (!failures.length) {
   for (const entry of readdirSync(AGENT_DIR)) {
     if (entry === "loading.tsx" || entry === "template.tsx") {
       failures.push(
@@ -44,8 +60,6 @@ try {
       )
     }
   }
-} catch {
-  // The workspace routes not existing is not this script's problem.
 }
 
 // A template.tsx anywhere under workspace/ remounts its subtree.
@@ -64,7 +78,7 @@ const walk = (dir) => {
   }
   return found
 }
-for (const file of walk(join(ROOT, "src/app/(dashboard)/workspace"))) {
+for (const file of walk(WORKSPACE_ROOT)) {
   failures.push(
     `${relative(ROOT, file)} remounts its subtree by definition — no template.tsx under workspace/.`,
   )

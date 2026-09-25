@@ -335,7 +335,7 @@ export function DraftPreview({
 }) {
   const src = imageSrc(image)
   const limit = PLATFORM_LIMITS[platform]
-  const headerBtnCls = "flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-black/[0.06] hover:text-foreground transition-colors"
+  const headerBtnCls = "flex size-7 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
   const fullText = `${body}${cta ? `\n\n${cta}` : ""}${
     hashtags.length
       ? `\n\n${hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}`

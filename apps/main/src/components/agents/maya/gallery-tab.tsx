@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { EmptyState } from "@/components/ui/empty-state"
 import { SegmentedGroup } from "@/components/ui/segmented-group"
 import { Skeleton } from "@/components/ui/skeleton"
+import { PLATFORM_STYLE, STATUS_TONE, STATUS_TONE_PENDING } from "./post-style"
 
 /**
  * Every post Maya has made, as media. The calendar answers "what goes out when";
@@ -18,11 +19,7 @@ import { Skeleton } from "@/components/ui/skeleton"
  * It reads the same list the calendar does; nothing here is stored separately.
  */
 
-const PLATFORM: Record<string, { label: string; color: string }> = {
-  LINKEDIN: { label: "LinkedIn", color: "#0077B5" },
-  TWITTER: { label: "X / Twitter", color: "#000000" },
-  INSTAGRAM: { label: "Instagram", color: "#E1306C" },
-}
+const PLATFORM = PLATFORM_STYLE
 
 type StatusFilter = "all" | "success" | "scheduled" | "failed"
 type PlatformFilter = "all" | "LINKEDIN" | "TWITTER" | "INSTAGRAM"
@@ -34,13 +31,6 @@ const STATUS_LABEL: Record<string, string> = {
   cancelled: "Cancelled",
   pending: "Pending",
   publishing: "Publishing",
-}
-
-const STATUS_TONE: Record<string, string> = {
-  success: "border-green-600 text-green-700 bg-green-50",
-  failed: "border-red-500 text-red-600 bg-red-50",
-  scheduled: "border-blue-500 text-blue-700 bg-blue-50",
-  cancelled: "border-gray-400 text-gray-500 bg-gray-50",
 }
 
 /** A carousel's slides, or the single image, or nothing. */
@@ -57,7 +47,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span
       className={`text-[10px] font-medium px-1.5 py-0.5 border ${
-        STATUS_TONE[status] ?? "border-yellow-500 text-yellow-700 bg-yellow-50"
+        STATUS_TONE[status] ?? STATUS_TONE_PENDING
       }`}
     >
       {STATUS_LABEL[status] ?? status}
@@ -66,11 +56,11 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function PlatformTag({ platform }: { platform: string }) {
-  const cfg = PLATFORM[platform] ?? { label: platform, color: "var(--muted-foreground)" }
+  const cfg = PLATFORM[platform] ?? { label: platform, color: "var(--muted-foreground)", ink: "var(--background)" }
   return (
     <span
-      className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 text-white"
-      style={{ background: cfg.color }}
+      className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5"
+      style={{ background: cfg.color, color: cfg.ink }}
     >
       {cfg.label}
     </span>
@@ -196,12 +186,12 @@ function Lightbox({ post, onClose }: { post: PublishedPost | null; onClose: () =
 
             <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">{post.caption}</p>
             {post.hashtags.length > 0 && (
-              <p className="text-[11px] text-[#0077B5]">
+              <p className="text-[11px] text-chart-1">
                 {post.hashtags.map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}
               </p>
             )}
             {post.status === "failed" && post.error && (
-              <p className="text-[11px] text-red-600">{post.error}</p>
+              <p className="text-[11px] text-destructive">{post.error}</p>
             )}
           </>
         )}

@@ -13,6 +13,7 @@ import { authClient } from "@/lib/auth-client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme/ThemeToggle"
+import { ConsoleMenu } from "@/components/workspace/ConsoleMenu"
 import type { Message } from "@/lib/types"
 
 /**
@@ -78,7 +79,9 @@ export default function TeamPage() {
   return (
     <div className="flex h-svh min-h-0 flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-(--vq-line-2) bg-card px-3 py-3 sm:px-5">
+      <div className="flex items-center gap-2 border-b border-(--vq-line-2) bg-card px-2 py-3 sm:gap-3 sm:px-5">
+        {/* Same exits as a workspace: the console's pages and organization switching. */}
+        <ConsoleMenu />
         <Button asChild variant="ghost" size="sm" className="shrink-0 gap-1.5 px-2 text-muted-foreground">
           <Link href="/assistants" aria-label="Back to your employees">
             <ArrowLeft className="size-4" />
@@ -86,7 +89,7 @@ export default function TeamPage() {
           </Link>
         </Button>
         <span className="hidden h-5 w-px shrink-0 bg-(--vq-line-2) sm:block" />
-        <div className="flex shrink-0">
+        <div className="hidden shrink-0 sm:flex">
           {agents.slice(0, 6).map((slug, i) => (
             <span
               key={slug}

@@ -71,9 +71,11 @@ export function resolveModules(spec: AgentWorkspaceSpec): ResolvedModule[] {
       id,
       ...override,
       status: override?.status ?? (alwaysReady || hasWork ? "ready" : "coming-soon"),
-      // The dock already shows chat on every module, so a desktop nav entry for
-      // it would just be a second door into the same room.
-      hiddenInNav: override?.hiddenInNav ?? id === "chat",
+      // Chat is listed: the dock is one way to talk to this employee, the Chat
+      // page (thread as the main area) is another, and on desktop the rail was
+      // the only place that could offer the second. Hiding it left no way to
+      // open chat full-width without knowing the URL.
+      hiddenInNav: override?.hiddenInNav ?? false,
     }
   })
 }

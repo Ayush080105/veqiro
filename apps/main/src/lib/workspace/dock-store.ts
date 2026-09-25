@@ -2,6 +2,8 @@
 
 import { useCallback, useSyncExternalStore } from "react"
 
+import { DOCK_DEFAULT, INLINE_AT, clampDockWidth, resolveStoredWidth } from "./chat-layout"
+
 /**
  * Whether the chat dock is open, per agent, remembered per browser.
  *
@@ -48,9 +50,10 @@ function read(agent: string): boolean {
   if (memory.has(agent)) return memory.get(agent)!
   try {
     const stored = localStorage.getItem(`${PREFIX}${agent}`)
-    // No preference yet means open: a customer who has never touched the dock
-    // should meet the employee, not an empty column.
-    return stored === null ? true : stored === "1"
+    // No preference yet: open where the dock sits beside the module (xl+), shut
+    // where it would float over it (lg–xl) — a first-time visitor on a small
+    // laptop should meet their module, not a panel covering it.
+    return stored === null ? window.innerWidth >= INLINE_AT : stored === "1"
   } catch {
     return true
   }
@@ -80,4 +83,46 @@ export function useDockOpen(agent: string): [boolean, (open: boolean) => void] {
   )
 
   return [open, setOpen]
+}
+
+
+/**
+ * The dock's width, remembered per browser (one width, not one per agent — it
+ * is a preference about how the customer likes their screen laid out).
+ *
+ * `setLive` is for drag: it updates memory and notifies, but does not write to
+ * storage on every pointer move. `commit` is the final value and is persisted.
+ */
+const WIDTH_KEY = "vq.workspace.dockWidth"
+let widthMemory: number | null = null
+
+function readWidth(): number {
+  if (widthMemory !== null) return widthMemory
+  try {
+    // Never trust storage as-is: it can be corrupt, or saved on a wider screen.
+    return resolveStoredWidth(localStorage.getItem(WIDTH_KEY), window.innerWidth)
+  } catch {
+    return DOCK_DEFAULT
+  }
+}
+
+export function useDockWidth(): [number, (px: number) => void, (px: number) => void] {
+  const width = useSyncExternalStore(subscribe, readWidth, () => DOCK_DEFAULT)
+
+  const setLive = useCallback((px: number) => {
+    widthMemory = clampDockWidth(px, window.innerWidth)
+    emit()
+  }, [])
+
+  const commit = useCallback((px: number) => {
+    widthMemory = clampDockWidth(px, window.innerWidth)
+    try {
+      localStorage.setItem(WIDTH_KEY, String(widthMemory))
+    } catch {
+      // Session-only for this browser; the drag still worked.
+    }
+    emit()
+  }, [])
+
+  return [width, setLive, commit]
 }
