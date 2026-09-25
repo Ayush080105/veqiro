@@ -22,6 +22,7 @@ import {
 } from "./rex.schema.js";
 import * as rexService from "./rex.service.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
+import { keyBelongsToOrg } from "../../../common/utils/r2.js";
 import { UnauthenticatedError } from "../../../common/errors/unauthenticated.js";
 
 const requireAuthContext = (req: Request): { userId: string; organizationId: string } => {
@@ -212,6 +213,7 @@ const singleSheetSchema = z.object({
 
 const rawTableSchema = singleSheetSchema.extend({
   sheets: z.record(z.string(), singleSheetSchema).optional(),
+  fileKey: z.string().optional(),
 }).optional();
 
 const saveDatasetBodySchema = z.object({
@@ -251,6 +253,10 @@ export const parseDataset = async (req: Request, res: Response) => {
 export const saveDatasets = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
   const { datasets, mapping, rawTable } = saveDatasetBodySchema.parse(req.body);
+  // The file key comes back from the client, so only keep it if it is this org's own upload.
+  if (rawTable?.fileKey && !keyBelongsToOrg(rawTable.fileKey, organizationId)) {
+    delete rawTable.fileKey;
+  }
   // Attach rawTable to each dataset's meta so query-dataset can access the full table
   const datasetsWithMeta = datasets.map((d) => ({
     ...d,

@@ -24,6 +24,9 @@ feedparser
 # ── Data & analytics (Rex agent) ──────────────────────────────────────────────
 numpy
 pandas
+duckdb>=1.1
+openpyxl
+xlrd
 matplotlib
 prophet
 

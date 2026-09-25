@@ -1,5 +1,7 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
+import { ForbiddenError } from "../../../common/errors/forbidden.js";
+import { getPresignedGetUrl, keyBelongsToOrg } from "../../../common/utils/r2.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import {
   callAgentWithContext,
@@ -255,12 +257,25 @@ export const queryDataset = async (
   const points = dataset.points as Array<{ date: string; value: number }>;
 
   let tableForAI: Record<string, unknown>;
+  let fileForAI: { file_url: string; file_name: string } | Record<string, never> = {};
   if (rawTable && rawTable.headers.length > 0) {
+    // The stored preview rows and every sheet; the full file goes as a link below. Trimming
+    // here would silently turn totals and rankings into a sample again.
     tableForAI = {
       headers: rawTable.headers,
-      rows: rawTable.rows.slice(0, 300),
+      rows: rawTable.rows,
       columnTypes: rawTable.columnTypes,
+      ...(rawTable.sheets ? { sheets: rawTable.sheets } : {}),
     };
+    // Every row, not the stored preview: a short-lived link to the original upload. The AI
+    // service falls back to the preview rows if the file can't be read.
+    if (rawTable.fileKey && keyBelongsToOrg(rawTable.fileKey, organizationId)) {
+      try {
+        fileForAI = { file_url: await getPresignedGetUrl(rawTable.fileKey), file_name: rawTable.fileKey };
+      } catch (err) {
+        console.error("[rex] could not presign dataset file, answering from the preview", err);
+      }
+    }
   } else if (points.length > 0) {
     // Legacy dataset — synthesize a table from time-series points
     tableForAI = {
@@ -285,6 +300,7 @@ export const queryDataset = async (
     dataset_name: dataset.name,
     query: input.query,
     table: tableForAI,
+    ...fileForAI,
   });
 
   // Embed dataset name and original query inside result so the chat card can display them
@@ -811,7 +827,12 @@ export const listDatasets = (organizationId: string) =>
   rexRepository.findDatasets(organizationId);
 
 export const parseDataset = async (organizationId: string, r2Key: string) => {
+  if (!keyBelongsToOrg(r2Key, organizationId)) {
+    throw new ForbiddenError("That file belongs to another workspace.");
+  }
   const result = await parseUploaded(r2Key);
+  // The stored table is a preview; questions are answered over the whole file.
+  if (result.rawTable.headers.length > 0) result.rawTable.fileKey = r2Key;
   // C7: surface saved column mapping from prior uploads — and apply it
   // when the headers match, so column → metricKey is stable across uploads.
   try {

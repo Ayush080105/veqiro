@@ -21,7 +21,14 @@ export interface SheetTable {
 export interface RawTable extends SheetTable {
   /** Present when the source file had multiple non-empty sheets. */
   sheets?: Record<string, SheetTable>;
+  /** R2 key of the uploaded file. `rows` is only a preview (first ROW_PREVIEW_LIMIT rows);
+   *  query-dataset reads every row from this file. */
+  fileKey?: string;
 }
+
+/** Rows kept in the dataset's meta: enough for the UI and a fallback, small enough that
+ *  listing datasets stays light. Questions are answered over the whole file (fileKey). */
+export const ROW_PREVIEW_LIMIT = 500;
 
 export interface ParseResult {
   candidate_mapping: ColumnMapping;
@@ -253,6 +260,10 @@ function isMostlyDates(values: CellLike[]): boolean {
   const sample = cleanValues(values);
   if (sample.length === 0) return false;
   const ok = sample.filter((v) => parseDateCell(v) != null).length;
+  // A file with only one or two rows (a startup's first months of MRR) is a date column when
+  // every value is a date. The 3-value floor is for bigger columns, where one stray date-like
+  // cell must not make the whole column a date.
+  if (sample.length < 3) return ok === sample.length;
   return ok >= Math.max(3, Math.floor(sample.length * 0.7));
 }
 
@@ -449,7 +460,7 @@ export function parseRows(rows: Record<string, unknown>[]): {
   }
   const rawTable: RawTable = {
     headers,
-    rows: rows.slice(0, 500) as Record<string, string>[],
+    rows: rows.slice(0, ROW_PREVIEW_LIMIT) as Record<string, string>[],
     columnTypes,
   };
 

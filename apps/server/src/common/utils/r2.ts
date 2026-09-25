@@ -1,6 +1,7 @@
 import {
   S3Client,
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
@@ -248,6 +249,16 @@ export const getPresignedPutUrl = async (
     publicUrl: getPublicUrl(args.key),
     expiresIn,
   };
+};
+
+// Short-lived read link for a private object — lets another service (the AI service
+// reading a whole Rex upload) fetch one file without holding R2 credentials.
+export const getPresignedGetUrl = async (key: string, expiresInSeconds = 600): Promise<string> => {
+  const bucket = process.env.R2_BUCKET;
+  if (!bucket) throw new Error("R2_BUCKET must be set to presign downloads.");
+  return getSignedUrl(getClient(), new GetObjectCommand({ Bucket: bucket, Key: key }), {
+    expiresIn: expiresInSeconds,
+  });
 };
 
 export interface HeadObjectResult {

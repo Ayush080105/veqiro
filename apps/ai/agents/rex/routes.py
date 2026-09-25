@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import uuid
 from datetime import datetime
 
@@ -25,6 +26,8 @@ from agents.rex.forecasting import forecast_metric
 router = APIRouter(prefix="/ai/rex", tags=["Rex"])
 
 from agents.registry import register_agent
+
+logger = logging.getLogger("agents")
 
 _llm = LLMClient()
 _rag = RAGService()
@@ -1390,7 +1393,11 @@ class QueryDatasetRequest(BaseModel):
     organization_id: str = ""
     dataset_name: str = "Dataset"
     query: str
+    # The stored preview (first 500 rows): column names, types, and the fallback data.
     table: RawTablePayload
+    # Short-lived link to the original upload; when present, every row of it is used.
+    file_url: str | None = None
+    file_name: str = ""
 
 
 class ChartYKey(BaseModel):
@@ -1412,10 +1419,114 @@ class QueryDatasetResponse(BaseModel):
     chart: ChartSpec | None = None
     tokens_used: int = 0
     model_used: str = ""
+    # Set when the answer was computed with SQL over every row (not read off a sample),
+    # so the card can show how the number was worked out.
+    sql: str | None = None
+    rows_used: int | None = None
 
 
 CHART_COLORS = ["#1DBC87", "#6366F1", "#f59e0b", "#ef4444", "#8b5cf6",
                 "#06b6d4", "#ec4899", "#84cc16", "#f97316", "#14b8a6"]
+
+
+def _parse_query_answer(raw: str) -> tuple[str, ChartSpec | None]:
+    """The model's {"answer", "chart"} JSON → answer text and a validated chart spec."""
+    try:
+        parsed = safe_json_loads(raw)
+        answer = parsed.get("answer", "Analysis complete.")
+        chart_raw = parsed.get("chart")
+        chart = None
+        if chart_raw and isinstance(chart_raw, dict):
+            y_keys = [
+                ChartYKey(
+                    key=yk.get("key", "value"),
+                    label=yk.get("label", yk.get("key", "value")),
+                    color=yk.get("color", CHART_COLORS[i % len(CHART_COLORS)]),
+                )
+                for i, yk in enumerate(chart_raw.get("yKeys", [])) if isinstance(yk, dict)
+            ]
+            chart_data = chart_raw.get("data", [])
+            if chart_data and y_keys:
+                fallback_x = next(
+                    (k for k in chart_data[0].keys() if k not in {yk.key for yk in y_keys}),
+                    list(chart_data[0].keys())[0] if chart_data[0] else "x",
+                )
+                chart = ChartSpec(
+                    type=chart_raw.get("type", "bar"),
+                    title=chart_raw.get("title", ""),
+                    data=chart_data,
+                    xKey=chart_raw.get("xKey") or fallback_x,
+                    yKeys=y_keys,
+                )
+        return answer, chart
+    except Exception:
+        return (raw[:500] if raw else "Could not parse response."), None
+
+
+async def _answer_with_sql(request: "QueryDatasetRequest", system: str) -> QueryDatasetResponse | None:
+    """Compute the answer with SQL over every row. None when the question needs no computation
+    or the SQL could not be made to work — the caller then answers the old way."""
+    from agents.rex import dataset_sql
+
+    table = request.table.model_dump()
+    ds = None
+    if request.file_url:
+        try:
+            data = await dataset_sql.fetch_file(request.file_url)
+            ds = await asyncio.wait_for(
+                asyncio.to_thread(dataset_sql.load_file, data, request.file_name, table),
+                timeout=dataset_sql.FILE_LOAD_TIMEOUT_S,
+            )
+        except Exception as err:
+            # Never an error for the customer: the preview still answers, just over fewer rows.
+            logger.warning("query-dataset: whole file unusable, using the preview | %s: %s",
+                           type(err).__name__, err)
+    if ds is None:
+        try:
+            ds = await asyncio.to_thread(dataset_sql.load, table)
+        except Exception as err:
+            logger.warning("query-dataset: could not load table into DuckDB | %s", err)
+            return None
+    try:
+        sql, result, error = None, None, ""
+        for attempt in range(2):
+            retry = (f"\nYour previous query failed: {error}\nPrevious query: {sql}\nFix it.\n"
+                     if attempt else "")
+            plan = await _llm.complete_json(
+                provider=_agent.default_provider, model=_agent.default_model, system=system,
+                messages=[{"role": "user", "content": dataset_sql.PLAN_PROMPT.format(
+                    name=request.dataset_name, schema=ds.schema_text,
+                    question=request.query, retry=retry)}],
+            )
+            sql = plan.get("sql") if isinstance(plan, dict) else None
+            if not sql:
+                return None
+            try:
+                result = await dataset_sql.run(ds, sql)
+                break
+            except Exception as err:
+                error = f"{type(err).__name__}: {err}"
+                logger.info("query-dataset SQL attempt %d failed | %s", attempt + 1, error)
+        if result is None:
+            logger.warning("query-dataset: SQL failed twice, answering from the sample | %s", error)
+            return None
+
+        raw = await _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model, system=system,
+            messages=[{"role": "user", "content": dataset_sql.ANSWER_PROMPT.format(
+                name=request.dataset_name, rows=ds.total_rows, question=request.query,
+                coverage=dataset_sql.coverage_note(ds),
+                sql=sql, result=dataset_sql.result_text(result), colors=CHART_COLORS[:5])}],
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+        answer, chart = _parse_query_answer(raw)
+        return QueryDatasetResponse(
+            answer=answer, chart=chart, tokens_used=_llm.count_tokens(raw),
+            model_used=_agent.default_model, sql=dataset_sql.check_sql(sql), rows_used=ds.total_rows,
+        )
+    finally:
+        ds.con.close()
 
 
 @router.post("/query-dataset", response_model=QueryDatasetResponse, summary="Natural language Q&A on any dataset")
@@ -1438,6 +1549,11 @@ async def query_dataset(request: QueryDatasetRequest) -> QueryDatasetResponse:
     system = await _agent.build_system_prompt(
         request.user_id, request.organization_id, use_brand_kit=False
     )
+
+    # Computed over every row with SQL; the sample prompt below is the fallback.
+    computed = await _answer_with_sql(request, system)
+    if computed is not None:
+        return computed
 
     data_context = _sheet_context(table)
     sheet_note = (
@@ -1479,38 +1595,7 @@ Guidelines:
     )
 
     tokens_used = _llm.count_tokens(raw)
-
-    try:
-        parsed = safe_json_loads(raw)
-        answer = parsed.get("answer", "Analysis complete.")
-        chart_raw = parsed.get("chart")
-        chart = None
-        if chart_raw and isinstance(chart_raw, dict):
-            y_keys_raw = chart_raw.get("yKeys", [])
-            y_keys = []
-            for i, yk in enumerate(y_keys_raw):
-                if isinstance(yk, dict):
-                    y_keys.append(ChartYKey(
-                        key=yk.get("key", "value"),
-                        label=yk.get("label", yk.get("key", "value")),
-                        color=yk.get("color", CHART_COLORS[i % len(CHART_COLORS)]),
-                    ))
-            chart_data = chart_raw.get("data", [])
-            if chart_data and y_keys:
-                fallback_x = next(
-                    (k for k in chart_data[0].keys() if k not in {yk.key for yk in y_keys}),
-                    list(chart_data[0].keys())[0] if chart_data[0] else "x",
-                )
-                chart = ChartSpec(
-                    type=chart_raw.get("type", "bar"),
-                    title=chart_raw.get("title", ""),
-                    data=chart_data,
-                    xKey=chart_raw.get("xKey") or fallback_x,
-                    yKeys=y_keys,
-                )
-    except Exception:
-        answer = raw[:500] if raw else "Could not parse response."
-        chart = None
+    answer, chart = _parse_query_answer(raw)
 
     return QueryDatasetResponse(
         answer=answer,
