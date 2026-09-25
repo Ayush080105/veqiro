@@ -28,6 +28,11 @@ class Case:
     tags: tuple[str, ...] = field(default_factory=tuple)
 
 
+# Datasets a case's customer has uploaded, by id — what the server's internal
+# /internal/rex/datasets endpoint would return. The harness serves Rex's fetch_dataset from here.
+DATASETS: dict[str, dict] = {}
+
+
 def chat(agent: str, message: str, org: str = "", history: list[dict] | None = None,
          memory: str | None = None, conversation: str = "eval") -> tuple[str, dict]:
     """A chat turn exactly as the server forwards it."""

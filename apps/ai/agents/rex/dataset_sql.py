@@ -190,6 +190,22 @@ async def fetch_file(url: str) -> bytes:
     return b"".join(chunks)
 
 
+async def fetch_dataset(organization_id: str, dataset_id: str) -> dict | None:
+    """One of the org's datasets, as query-dataset needs it: {name, table, file_url?, file_name?}.
+    Rex's chat uses this so a question typed into chat is answered from the file, like Ask REX."""
+    import httpx
+
+    from core.config import settings
+
+    url = f"{settings.BRAND_KIT_SERVICE_URL}/api/v1/internal/rex/datasets/{organization_id}/{dataset_id}"
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.get(url, headers={"x-internal-key": settings.INTERNAL_API_KEY})
+    if resp.status_code == 404:
+        return None
+    resp.raise_for_status()
+    return resp.json()
+
+
 def _grids(data: bytes, file_name: str) -> dict[str, object]:
     """Every sheet as a grid of raw text cells, no header assumed."""
     import io

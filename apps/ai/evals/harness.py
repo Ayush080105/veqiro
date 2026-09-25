@@ -107,6 +107,11 @@ def install_stubs(model_override: str | None) -> None:
         return await real_fetch(url)
     dataset_sql.fetch_file = fetch_fixture
 
+    async def fetch_case_dataset(organization_id: str, dataset_id: str):
+        from evals.case import DATASETS
+        return DATASETS.get(dataset_id)
+    dataset_sql.fetch_dataset = fetch_case_dataset
+
     original_create = AsyncCompletions.create
 
     async def create(self, *args, **kwargs):

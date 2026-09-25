@@ -1,7 +1,7 @@
 """Rex: founders asking about their own numbers. Being wrong here costs real decisions."""
 from collections import defaultdict
 
-from evals.case import Case, chat, read_rows, table
+from evals.case import DATASETS, Case, chat, read_rows, table
 from evals.graders import (CORRECT, HONEST, answers_first, avoids, count, judge, mentions,
                            nonempty, number)
 from evals.personas import KULHAD, LEDGERLOOP
@@ -114,7 +114,48 @@ UPLOAD_CASES = [
             "and say it only covered part of the file."),
 ]
 
-CASES = UPLOAD_CASES + [
+DATASETS["ds_orders_5k"] = {
+    "name": "Kulhad orders 2026", "table": _XLSX_PREVIEW,
+    "file_url": "fixture://kulhad_orders_5k.xlsx",
+    "file_name": f"rex-dataset/{KULHAD}-kulhad_orders_5k.xlsx",
+}
+# What the server now sends Rex's chat: every uploaded file, sheet and column.
+_UPLOADED = {"rex_datasets": [{"id": "ds_orders_5k", "name": "Kulhad orders 2026", "sheets": {
+    "Orders": [{"name": h, "type": t} for h, t in ORDER_TYPES.items()],
+    "Targets": [{"name": "City", "type": "categorical"}, {"name": "Monthly Target", "type": "numeric"}],
+}}]}
+
+
+def _chat_on_upload(case_id, message, graders, story):
+    endpoint, payload = chat("rex", message, KULHAD)
+    payload["metadata"] = {**payload["metadata"], **_UPLOADED}
+    return Case(id=case_id, agent="rex", endpoint=endpoint, payload=payload,
+                graders=[nonempty("response"),
+                         mentions("tool_trace", "Query Uploaded Data", "query_uploaded_data", category=CORRECT,
+                                  name="computed it from the file"), *graders],
+                story=story, latency_s=60)
+
+
+CHAT_ON_UPLOAD_CASES = [
+    _chat_on_upload("rex.chat_upload.top_city",
+                    "which city is making us the most money from delivered orders?",
+                    [answers_first("response", BIG_TOP_CITY, "Mumbai", "Delhi", "Bengaluru", "Pune")],
+                    "Owner types the question into Rex's chat instead of pressing Ask. Rex must use "
+                    "the uploaded 5,000-row file, not ask for numbers."),
+    _chat_on_upload("rex.chat_upload.sheet_without_dates",
+                    "Delhi ka monthly target kitna hai?",
+                    [mentions("response", "2,50,000", "250,000", "250000", "2.5 lakh", "2.50 lakh",
+                              name="₹2,50,000 from the Targets sheet")],
+                    "The answer is on a sheet with no date column at all (City, Monthly Target)."),
+    _chat_on_upload("rex.chat_upload.no_bounce",
+                    "how many orders got returned?",
+                    [number("response", BIG_RETURNED, tol_pct=0, name=f"{BIG_RETURNED} returns"),
+                     judge("Does not ask the customer to paste, share or upload data they already uploaded.",
+                           path="response")],
+                    "A vague question with the file already uploaded: bouncing it back is friction."),
+]
+
+CASES = UPLOAD_CASES + CHAT_ON_UPLOAD_CASES + [
     _query("rex.dataset.churn_spike",
            "Which month did churn spike and what else changed that month?",
            "saas_metrics.csv", SAAS_TYPES, "LedgerLoop metrics 2025-26",

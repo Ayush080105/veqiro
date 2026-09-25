@@ -45,9 +45,14 @@ class RexAgent(BaseAgent):
             "- User provides base metrics for modeling → call `scenario_model`\n"
             "- User provides current metrics for a digest → call `weekly_digest`\n"
             "- User asks for an investor update and provides metrics → call `generate_investor_update`\n"
-            "- User asks for an executive briefing → call `compile_briefing`\n\n"
+            "- User asks for an executive briefing → call `compile_briefing`\n"
+            "- User asks anything about a file they uploaded (see 'Uploaded datasets' — any sheet, any "
+            "column, dated or not) → call `query_uploaded_data` with that dataset's id and their "
+            "question. It computes the answer over every row of the file; use its numbers as-is.\n\n"
             "## When the user asks but provides NO data\n"
-            "First check whether a connected data tool can answer it directly (see Connected Tools below) — "
+            "First check the uploaded datasets: if one holds the answer, call `query_uploaded_data` — "
+            "never ask the customer to paste numbers that are already in a file they gave you. "
+            "Then check whether a connected data tool can answer it directly (see Connected Tools below) — "
             "fetch the real numbers, format them as the JSON these tools expect, then proceed as if the user "
             "had provided them. Only if no connected source exists, ask the user to share the numbers directly "
             "in chat (e.g., 'What was your MRR last month?', 'Share your revenue data and I'll run the analysis.'). "
@@ -159,6 +164,21 @@ class RexAgent(BaseAgent):
         )
         return base + client_ctx + rex_specific
 
+    def request_context_block(self, metadata: dict) -> str:
+        """The files this workspace uploaded, with every sheet and column, so Rex knows what it
+        can answer from and calls query_uploaded_data instead of asking for numbers."""
+        datasets = metadata.get("rex_datasets") or []
+        if not datasets:
+            return ""
+        lines = ["\n\n## Uploaded datasets",
+                 "Files the customer uploaded. Answer questions about them with `query_uploaded_data`."]
+        for ds in datasets[:20]:
+            lines.append(f"- id `{ds.get('id')}` — \"{ds.get('name')}\"")
+            for sheet, columns in (ds.get("sheets") or {}).items():
+                cols = ", ".join(f"{c.get('name')} ({c.get('type')})" for c in columns[:60])
+                lines.append(f"  - {sheet}: {cols}")
+        return "\n".join(lines) + "\n"
+
     # ── Chat override: RAG ingest for key analyses ───────────────────────
 
     async def chat_sync(self, request: ChatRequest) -> ChatSyncResponse:
@@ -183,6 +203,16 @@ class RexAgent(BaseAgent):
 
     def get_tools(self) -> list[ToolDefinition]:
         return [
+            ToolDefinition(
+                name="query_uploaded_data",
+                description="Answer a question about a file the customer uploaded (CSV/Excel, any sheet, any "
+                            "column) by computing it over every row. Use for totals, counts, rankings, "
+                            "filters, comparisons, trends and 'what's in this file' questions.",
+                parameters=[
+                    ToolParameter(name="dataset_id", type="string", description="The dataset id from 'Uploaded datasets'", required=True),
+                    ToolParameter(name="question", type="string", description="The customer's question, in their words", required=True),
+                ],
+            ),
             ToolDefinition(
                 name="analyze_metrics",
                 description="Analyze business metrics with anomaly detection and health indicators. Provide metric data as JSON and get back trends, anomalies, and actionable insights.",
@@ -283,7 +313,24 @@ class RexAgent(BaseAgent):
         # is free — and the deliverable-generating calls need brand voice/industry/audience.
         system = await self.build_system_prompt(user_id, organization_id, use_brand_kit=True)
 
-        if name == "analyze_metrics":
+        if name == "query_uploaded_data":
+            from agents.rex import dataset_sql
+            from agents.rex.routes import QueryDatasetRequest, query_dataset
+
+            try:
+                found = await dataset_sql.fetch_dataset(organization_id, str(arguments.get("dataset_id", "")))
+            except Exception as err:
+                return json.dumps({"error": f"Couldn't open that dataset ({err}). Ask the customer to pick it with Ask REX."})
+            if not found:
+                return json.dumps({"error": "No uploaded dataset with that id in this workspace."})
+            result = await query_dataset(QueryDatasetRequest(
+                user_id=user_id, organization_id=organization_id, dataset_name=found.get("name") or "Dataset",
+                query=str(arguments.get("question", "")), table=found["table"],
+                file_url=found.get("file_url"), file_name=found.get("file_name") or "",
+            ))
+            return result.model_dump_json(exclude={"tokens_used", "model_used"})
+
+        elif name == "analyze_metrics":
             try:
                 metrics_raw = json.loads(arguments.get("metrics_json", "{}"))
             except Exception:

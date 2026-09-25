@@ -76,6 +76,6 @@ CASES = [
                   judge("Uses the parties, duration and jurisdiction given instead of leaving "
                         "blanks for them.", path="document")],
          story="Owner gives parties, purpose, duration and court; blanks for those mean retyping "
-               "what they already said. (Signatory names and signing date were not given, so blanks there are fine.)",
+               "what they already said. (Only the cities were given — not full addresses, CIN/LLPIN, notice emails, signatories or the signing date — so blanks for those are correct.)",
          latency_s=90),
 ]

@@ -395,6 +395,11 @@ class BaseAgent(ABC):
             "deeper or fresher analysis.\n"
         )
 
+    def request_context_block(self, metadata: dict) -> str:
+        """Context this agent builds from the request's metadata, appended to the system
+        prompt on every chat path. None by default; see RexAgent for the uploaded datasets."""
+        return ""
+
     def _current_date_block(self) -> str:
         """Universal grounding for 'today' — injected by every agent. Without
         this the LLM has no way to know the real current date and silently
@@ -569,6 +574,8 @@ class BaseAgent(ABC):
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
 
+        # Per-request context an agent adds from metadata (e.g. Rex: the files uploaded).
+        system_prompt += self.request_context_block(request.metadata)
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
             # By section, never a character cut: the saved facts always reach the agent.
@@ -762,6 +769,8 @@ class BaseAgent(ABC):
             else:
                 print(f"  {_DIM}[ctx] rag=0 chunks{_X}")
 
+        # Per-request context an agent adds from metadata (e.g. Rex: the files uploaded).
+        system_prompt += self.request_context_block(request.metadata)
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
             original_len = len(memory_context)
@@ -1110,6 +1119,8 @@ class BaseAgent(ABC):
         if rag_chunks:
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
+        # Per-request context an agent adds from metadata (e.g. Rex: the files uploaded).
+        system_prompt += self.request_context_block(request.metadata)
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
             memory_context = fit_memory_block(memory_context, request.message)
