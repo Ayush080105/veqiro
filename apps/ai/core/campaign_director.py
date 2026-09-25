@@ -55,7 +55,10 @@ def _clip(value: object, limit: int) -> str | None:
     text = " ".join(str(value).split())
     if text.rstrip(".").lower() in _EMPTY_VALUES:
         return None
-    return text[:limit] if text else None
+    if len(text) <= limit:
+        return text or None
+    cut = text[:limit]
+    return (cut.rsplit(" ", 1)[0] if " " in cut else cut).rstrip(",;:—- ")
 
 
 def _clip_list(value: object, limit: int, max_items: int) -> list[str]:
@@ -116,6 +119,12 @@ class CampaignWorld(_PlanModel):
     """What every photo shares, so four photos read as one campaign rather than four posts."""
 
     concept: str = ""
+    # The medium every image is made in — "cinematic editorial photography", "warm storybook
+    # illustration", "3D clay render". Chosen from the brief; photography when it says nothing.
+    visual_style: str | None = None
+    # One type direction for the campaign, chosen for this product's world: typeface character,
+    # weight, colour, finish. Replaces the old fixed "clean, bold, highly legible typeface".
+    typography: str | None = None
     setting: str | None = None
     prop_kit: list[str] = Field(default_factory=list)
     lighting: str | None = None
@@ -126,6 +135,11 @@ class CampaignWorld(_PlanModel):
     @classmethod
     def _concept(cls, v):
         return _clip(v, _MEDIUM) or ""
+
+    @field_validator("visual_style", "typography", mode="before")
+    @classmethod
+    def _direction(cls, v):
+        return _clip(v, _TINY)
 
     @field_validator("setting", "lighting", "palette", "grade", mode="before")
     @classmethod
@@ -141,6 +155,12 @@ class CampaignWorld(_PlanModel):
 class ShotPlan(_PlanModel):
     index: int = 0
     purpose: str = ""
+    # The one creative idea this frame carries — a moment, a symbol, a story beat. Two shots
+    # never share an idea; that is what stops a campaign reading as four placements.
+    idea: str | None = None
+    # Set indoors in a home. Checked on the first attempt: a campaign that keeps most frames at
+    # home reads as a catalogue of placements, not a campaign.
+    in_home: bool = False
     scene: str
     environment_label: str = ""
     props: list[str] = Field(default_factory=list)
@@ -155,6 +175,9 @@ class ShotPlan(_PlanModel):
     mood: str | None = None
     headline: str = ""
     subtext: str = ""
+    # Where and how this frame's words live: placement, size, and whether they sit over the
+    # image or inside the scene (embossed on the mat, lettered on a paper tag, set in the sky).
+    text_treatment: str | None = None
 
     @field_validator("scene", mode="before")
     @classmethod
@@ -165,6 +188,11 @@ class ShotPlan(_PlanModel):
     @classmethod
     def _label(cls, v):
         return _clip(v, _SHORT) or ""
+
+    @field_validator("idea", "text_treatment", mode="before")
+    @classmethod
+    def _short(cls, v):
+        return _clip(v, _SHORT)
 
     @field_validator("product_placement", "subject", "composition", "lighting", mode="before")
     @classmethod
@@ -180,6 +208,11 @@ class ShotPlan(_PlanModel):
     @classmethod
     def _props(cls, v):
         return _clip_list(v, _SHORT, _MAX_LIST)
+
+    @field_validator("in_home", mode="before")
+    @classmethod
+    def _in_home(cls, v):
+        return v is True or str(v).strip().lower() == "true"
 
     @field_validator("headline", mode="before")
     @classmethod
@@ -236,6 +269,12 @@ def validate_plan(raw: object, photo_count: int, *, strict: bool = False) -> Cam
                 f"shots {repeated} share the same environment_label; every photo needs a "
                 "visibly different setting within the campaign world"
             )
+        at_home = sum(s.in_home for s in plan.shots)
+        if photo_count >= 3 and at_home > photo_count // 2:
+            raise PlanInvalid(
+                f"{at_home} of {photo_count} shots are inside a home; set at least half in the "
+                "world the product evokes (unless the brief itself requires home settings)"
+            )
 
     for i, shot in enumerate(plan.shots):
         shot.index = i + 1
@@ -290,43 +329,78 @@ def fallback_plan(brief: str, photo_count: int) -> CampaignPlan:
 
 
 _DIRECTOR_ROLE = """\
-You are the creative director and photographer for a premium product photo campaign. You turn
-real product photos and a brief into a shot plan that an AI image model can render reliably.
-You make decisions, not descriptions: every field is a choice you would commit to on set."""
+You are the creative team of a top advertising agency — creative director, art director,
+copywriter and photographer in one — making a paid social campaign for a real product. You turn
+real product photos and a brief into a shot plan an AI image model can render. Work like the
+agency the client would hire: every frame has an idea, the set feels crafted and surprising,
+and nothing looks like a stock catalogue or a template. You make decisions, not descriptions:
+every field is a choice you would commit to on set."""
 
 
 _READ_THE_PRODUCT = """\
 READ THE PRODUCT FIRST. Before planning, study the attached product photos and decide:
 - What it is (category) and who it is for.
-- Its cultural, emotional or usage world. A devotional painting of Shiva belongs among a brass
-  diya, rudraksha, a trishul, a Shivling, marigolds, incense smoke, carved wood and warm lamp
-  light. A skincare serum belongs on a sunlit marble vanity with water droplets and linen. Hiking
-  boots belong on wet rock at dawn. Find the specific world THIS product belongs to — its
-  symbols, rituals, materials and places — and build the campaign inside it. Generic rooms, empty
-  walls and plain studio sweeps are the failure you are here to avoid.
+- Its cultural, emotional or usage world — the specific symbols, stories, rituals, materials
+  and places that belong to THIS product. If it depicts a deity, person or story, name who it
+  is and use their own iconography: Sree Krishna brings a bansuri flute, peacock feathers,
+  makhan in a clay matki, Vrindavan and the Yamuna at dusk, kadamba trees, cows, tulsi and
+  gopis; Shiva brings a brass diya, rudraksha, a trishul, a Shivling, bilva leaves and Kailash
+  snow. Use only this subject's own symbols — never another deity's (rudraksha and a trishul
+  belong to Shiva, not Krishna). A skincare serum belongs on a sunlit marble vanity with water
+  droplets and linen;
+  hiking boots belong on wet rock at dawn. Build the campaign inside that world. Generic rooms,
+  empty walls and plain studio sweeps are the failure you are here to avoid.
 - is_flat_artwork: true when the product is a painting, print, poster, canvas, illustration or
   photograph — its image IS the product.
 - detail_lock: every fine detail a viewer would notice changing, each one short, literal and
   checkable. Faces and figures (eyes open or closed, gaze direction, expression, profile or
-  frontal, pose), how many of each element and where, which way things face, colours of specific
-  regions, marks and patterns, borders and edges, printed text verbatim. For flat artwork,
-  always state the picture's background (e.g. "plain white unpainted background") and anything
-  a viewer might expect that is absent (e.g. "no trishul or damaru in the picture"). For a
-  product with a label, the brand name and label layout. Describe only what is visible."""
+  frontal, pose, how much of the face is shown), how many of each element and where, which way
+  things face, colours of specific regions, marks and patterns, borders and edges, printed text
+  verbatim. For flat artwork, always state the picture's crop and background (e.g. "eyes-only
+  horizontal band, forehead to nose tip, between two black stripes") and anything a viewer
+  might expect that is absent (e.g. "no trishul or damaru in the picture"). For a product with
+  a label, the brand name and label layout. Describe only what is visible."""
+
+
+_STYLE = """\
+VISUAL STYLE AND TYPE — decide these once, for the whole campaign.
+- visual_style: the medium every image is made in. Follow the brief: realistic, cinematic,
+  illustrated, cartoon or storybook, anime, 3D or clay render, watercolour, paper-cut, retro
+  poster — whatever it asks for, committed to fully. When the brief doesn't say, choose premium
+  editorial photography with cinematic, motivated light. Use what AI imagery can do that a
+  normal shoot can't — impossible locations, magical light, scale play, dreamlike touches — when
+  it serves the idea and suits the brand.
+- typography: one type direction that belongs to this product's world, never a default. Name
+  the typeface character, weight, colour and finish: e.g. "elegant high-contrast serif in warm
+  gold leaf", "hand-painted brush lettering in vermilion", "delicate calligraphic script with a
+  small serif subline", "condensed editorial serif in ivory". A plain bold geometric sans is only
+  right for a tech, sports or minimalist brand."""
 
 
 _CAMPAIGN_CRAFT = """\
-BUILD ONE CAMPAIGN, NOT N POSTS.
-- world: one concept sentence and a shared visual world — setting family, a prop kit of 4-8
-  specific objects drawn from the product's world, lighting character, palette and grade. Every
-  photo lives inside this world, so the set reads as one campaign.
-- Each shot uses a visibly different setting WITHIN that world (e.g. the altar, a reading nook,
-  a gallery wall, a close vignette on carved wood) with a different shot size and camera angle.
-  Draw on: hero still life, styled in-context placement, macro material detail, wide
-  environmental shot, overhead flatlay, low dramatic angle, a person interacting with it.
+BUILD ONE CAMPAIGN, NOT N VARIATIONS OF ONE PHOTO.
+- world: one concept sentence and a shared look (palette, grade, light character) so the set
+  reads as one campaign. The prop kit is a POOL to draw from, not a set every photo repeats.
+- Every shot carries its own idea: a distinct moment, symbol or story beat — not just a new
+  place to put the product. An idea is a specific visual situation a camera could capture,
+  not an adjective: "the bansuri laid on the frame's ledge, a diya's glow in its holes", not
+  "the divine gaze drawing the viewer in". Range across: the arresting cover; a story or ritual moment (a
+  hand lighting the diya, a child looking up at it); a symbol that tells the story (the flute
+  laid where the gaze falls, a peacock feather lit by lamp light); a grand environmental frame
+  (a haveli corridor, a temple courtyard at dusk, the product in the world it evokes); a
+  person's life with it; craft and material up close.
+- Go beyond the room. The product is sold for homes, but the campaign is set in the world it
+  evokes: with 3 or more shots, at least half leave the home — the artwork on an easel in a
+  Vrindavan grove at dusk, on a riverside ghat as diyas float by, in a haveli courtyard at
+  festival time. The product is still real, whole and the hero there.
+- One shot gives the subject's most recognisable symbol a starring role (for Krishna, the
+  bansuri; for Ganesha, modak; for a watch, its movement).
+- Variety is required. No two shots share a setting type, shot size, camera angle, time of day,
+  dominant prop or text placement. Each prop appears in at most two shots. At most one shot may
+  be a plain "hung on a wall above a shelf or console" placement.
 - Scenes are rich and specific: named surfaces and materials, 3-6 props placed with intent,
-  light direction and quality, atmosphere (smoke, dust in light, steam, reflections). A scene a
-  prop stylist could build from your words.
+  light direction and quality, atmosphere (smoke, dust in light, steam, petals, reflections).
+  A scene a prop stylist could build from your words.
 - People only where they serve the product and the brief (apparel on a model, a hand lighting a
   diya beside the painting). Never force a "problem, then relief" story onto a product that does
   not solve a problem.
@@ -335,15 +409,15 @@ BUILD ONE CAMPAIGN, NOT N POSTS.
   never covered by props or hands, never tiny or cropped out.
 - For flat artwork, keep the artwork facing the camera — straight on or at a gentle angle — so
   its image stays fully legible; never place it where the picture itself would be distorted or
-  hidden. Detail shots show texture, brushwork or frame edges of the real artwork, not a new
-  picture.
-- THE BRIEF OUTRANKS EVERY DEFAULT ABOVE. If it names a setting, person, prop, mood or theme,
-  that is required, not optional."""
+  hidden. A detail shot shows the real artwork's paper, stroke or frame edge — never a part of
+  the picture that is not in the reference.
+- THE BRIEF OUTRANKS EVERY DEFAULT ABOVE. If it names a setting, person, prop, mood, style or
+  theme, that is required, not optional."""
 
 
 _IMAGE_MODEL_LIMITS = """\
 WHAT THE IMAGE MODEL CAN AND CANNOT DO.
-- One photograph per image: one camera, one moment. No collages, split screens or panels unless
+- One image per frame: one camera, one moment. No collages, split screens or panels unless
   the brief explicitly asks for them.
 - It redraws the product from the photos and drifts on what it cannot see, so show the product
   from angles the photos support and keep detail_lock details visible and unobstructed.
@@ -352,12 +426,24 @@ WHAT THE IMAGE MODEL CAN AND CANNOT DO.
 
 
 _TEXT_RULES = """\
-ON-IMAGE TEXT. Write the exact text for all photos together, so no two repeat a word.
-- headline: 2-4 words expressing a benefit, feeling or tension — never a literal label of the
-  photo ("The Product", "In Use"). No filler adjectives (amazing, powerful, stunning).
-- subtext: 3-6 words only if it adds something; otherwise "".
-- Short and plainly spelled — every extra word is a chance for a rendering mistake.
-- Match the language the brief is written in."""
+ON-IMAGE WORDS — write them like the campaign's copywriter.
+- headline: 2-5 words with a point of view — a feeling, a line of poetry, a promise, a question,
+  a playful turn — rooted in THIS product's story and audience. It should make someone stop.
+  Where the brand and audience are Indian, a short phrase in their language written in Latin
+  script is welcome ("Bansi ki dhun", "Radhe Radhe"), if it is simple to spell.
+- Vary the shape across the set: no two headlines with the same structure. Never the formula of
+  an adjective plus a noun ("Divine Gaze", "Serene Presence", "Sacred Artistry"), and never
+  generic décor words: elevate, sacred space, timeless, serene, stunning, divine beauty.
+- subtext: 3-6 words only when it adds something concrete (hand-drawn in charcoal, ships
+  framed); otherwise "". Not an "X, Y" pair of adjectives.
+- The cover always has a headline. One other shot may carry no words at all, letting the image
+  speak.
+- text_treatment: where and how the words live in THIS frame, different in every shot —
+  placement, size and whether they sit over the image or inside the scene (embossed on the
+  mount below the art, lettered on a paper tag, set into the dusk sky, small and elegant in a
+  corner beside a thin rule). They never cover the product.
+- Short and plainly spelled — every extra word is a chance for a rendering mistake. Match the
+  language the brief is written in."""
 
 
 _OUTPUT_SCHEMA = """\
@@ -365,11 +451,15 @@ OUTPUT: ONLY a JSON object with this shape.
 {
   "product": {"category": "...", "description": "visible facts only", "is_flat_artwork": false,
               "detail_lock": ["one literal fine detail", "..."], "context": "the world it belongs to"},
-  "world": {"concept": "one sentence", "setting": "setting family", "prop_kit": ["...", "..."],
+  "world": {"concept": "one sentence", "visual_style": "under 10 words",
+            "typography": "under 10 words",
+            "setting": "setting family", "prop_kit": ["...", "..."],
             "lighting": "...", "palette": "...", "grade": "..."},
   "shots": [
     {
-      "purpose": "cover|in context|detail|ritual|lifestyle|...",
+      "purpose": "cover|story|symbol|ritual|lifestyle|environment|detail|...",
+      "idea": "the one creative idea of this frame",
+      "in_home": false,
       "scene": "the full physical scene: surfaces, background, props placed, atmosphere",
       "environment_label": "5-10 words naming just this setting",
       "props": ["...", "..."],
@@ -377,7 +467,7 @@ OUTPUT: ONLY a JSON object with this shape.
       "subject": "a person and what they do, only if one is in the shot",
       "shot_size": "...", "camera_angle": "...", "lens": "...", "depth_of_field": "...",
       "composition": "...", "lighting": "this shot's light within the world",
-      "mood": "...", "headline": "...", "subtext": ""
+      "mood": "...", "headline": "...", "subtext": "", "text_treatment": "..."
     }
   ]
 }
@@ -389,6 +479,7 @@ def build_director_system(photo_count: int) -> str:
         _DIRECTOR_ROLE,
         f"This campaign has EXACTLY {photo_count} photo(s).",
         _READ_THE_PRODUCT,
+        _STYLE,
         _CAMPAIGN_CRAFT,
         _IMAGE_MODEL_LIMITS,
         _TEXT_RULES,

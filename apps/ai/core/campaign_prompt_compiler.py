@@ -20,7 +20,7 @@ from core.image_gen import product_identity_instructions
 
 # Joined-list caps. Field caps bound each item; these bound the list, so a director that
 # returns eight long props cannot tip the prompt from a scene into a wall of text.
-_PROPS_CHARS = 360
+_PROPS_CHARS = 280
 _DETAILS_CHARS = 900
 _COMPACT_DETAILS = 5
 
@@ -69,6 +69,21 @@ def artwork_fidelity(num_product_refs: int) -> str:
     )
 
 
+# A visual_style containing any of these is a photographic campaign.
+_PHOTO_WORDS = ("photo", "cinematic", "editorial", "realistic", "film", "camera", "lens")
+
+
+def _finish(medium: str, photographic: bool, flat_artwork: bool) -> str:
+    """The closing instruction, matched to the chosen medium."""
+    if photographic:
+        return ("Render it as a real photograph: natural depth, true materials, plausible scale — "
+                "a top agency shoot, not a poster, mockup or stock photo.")
+    keep = (" The artwork itself stays the exact reference picture, unchanged, even though the "
+            "world around it is in this style." if flat_artwork else "")
+    return (f"Render the whole image as {medium}, with the finish and intent of a top studio — "
+            f"a consistent, deliberate style, not a template.{keep}")
+
+
 def _product_block(plan: CampaignPlan, num_product_refs: int, compact: int) -> str:
     product = plan.product
     parts = []
@@ -86,7 +101,7 @@ def _product_block(plan: CampaignPlan, num_product_refs: int, compact: int) -> s
     return " ".join(parts)
 
 
-def _text_block(shot: ShotPlan, compact: int) -> str:
+def _text_block(plan: CampaignPlan, shot: ShotPlan, compact: int) -> str:
     headline = shot.headline.strip()
     subtext = shot.subtext.strip() if compact < 2 else ""
     if not headline:
@@ -95,11 +110,15 @@ def _text_block(shot: ShotPlan, compact: int) -> str:
             "product may appear, exactly as in the reference."
         )
     sub = f', with "{subtext}" as a smaller line beneath it' if subtext else ""
+    # The type comes from the campaign's own direction (a gold-leaf serif, brush lettering),
+    # placed the way this frame calls for. A fixed "clean, bold" face in empty space made every
+    # campaign look like the same template.
+    face = plan.world.typography or "an elegant, legible typeface that suits the product's world"
+    where = shot.text_treatment or "in calm negative space, sized and placed with a designer's restraint"
     return (
-        f'TEXT: render exactly "{headline}" as the headline{sub}, letter for letter, in a '
-        "clean, bold, highly legible typeface placed in calm negative space so it never covers "
-        "the product. No other added text, signs, captions or labels anywhere; any lettering "
-        "too small to render correctly stays soft and out of focus rather than invented."
+        f'TEXT: render exactly "{headline}" as the headline{sub}, letter for letter, in '
+        f"{face.rstrip('.')}; {where.rstrip('.')}. Never over the product. No other text, signs, "
+        "captions or labels; lettering too small to render stays soft, never invented."
     )
 
 
@@ -107,13 +126,18 @@ def _assets_block(
     logo_ref: int | None,
     mascot_ref: int | None,
     brand_image_refs: list[tuple[int, str | None]],
+    logo_text: str | None = None,
 ) -> str | None:
     parts = []
     if logo_ref:
+        # Redrawn small, a wordmark loses letters ("Kalakai" for Kalakari); naming the exact
+        # spelling keeps it whole.
+        spelled = (f' Its lettering reads exactly "{logo_text.strip()}" — every letter, in order.'
+                   if logo_text and logo_text.strip() else "")
         parts.append(
             f"Reference image {logo_ref} is the brand logo: it must appear, small (8-12% of the "
             "image width) in a corner or integrated into the scene, with its exact shape and "
-            "colours and without its background box."
+            f"colours and without its background box.{spelled}"
         )
     if mascot_ref:
         parts.append(
@@ -142,16 +166,21 @@ def compile_shot_prompt(
     mascot_ref: int | None = None,
     brand_image_refs: list[tuple[int, str | None]] | None = None,
     compact: int = 0,
+    logo_text: str | None = None,
 ) -> str:
     """One photo's prompt. `compact` sheds the least load-bearing context on retries after
     IMAGE_OTHER: level 1 drops shared-world colour, level 2 also trims details and subtext.
     The scene, the product lock and the text are never dropped."""
     world = plan.world
+    style = (world.visual_style or "").strip().rstrip(".")
+    photographic = not style or any(w in style.lower() for w in _PHOTO_WORDS)
+    medium = style or "premium editorial photograph with cinematic, motivated light"
     opener = (
-        f"A premium {platform} product campaign photograph, {aspect_ratio}"
-        + (f" — photo {shot.index} of {photo_count} in one campaign" if photo_count > 1 else "")
+        f"Ad campaign image for {platform}, {aspect_ratio}, made as: {medium}"
+        + (f" — image {shot.index} of {photo_count} in one campaign" if photo_count > 1 else "")
         + "."
         + (f" Campaign idea: {world.concept.rstrip('.')}." if world.concept else "")
+        + (f" This frame's idea: {shot.idea.rstrip('.')}." if shot.idea else "")
     )
 
     props = _cap_join(shot.props, _PROPS_CHARS, sep=", ")
@@ -177,9 +206,8 @@ def compile_shot_prompt(
         "\n".join(l for l in scene_lines if l),
         "\n".join(l for l in (camera, light) if l),
         _product_block(plan, num_product_refs, compact),
-        _text_block(shot, compact),
-        _assets_block(logo_ref, mascot_ref, brand_image_refs or []),
-        "Render it as a real photograph with natural depth, true materials and physically "
-        "plausible scale — not a poster, mockup template or graphic layout.",
+        _text_block(plan, shot, compact),
+        _assets_block(logo_ref, mascot_ref, brand_image_refs or [], logo_text),
+        _finish(medium, photographic, plan.product.is_flat_artwork),
     ]
     return "\n\n".join(b for b in blocks if b)

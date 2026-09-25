@@ -1385,6 +1385,7 @@ async def create_campaign(request: CampaignRequest):
             mascot_ref=mascot_ref,
             brand_image_refs=brand_image_refs,
             compact=compact,
+            logo_text=getattr(brand_kit, "company_name", None) if logo_ref else None,
         )
 
     async def _gen_photo(shot) -> CampaignPhoto | None:

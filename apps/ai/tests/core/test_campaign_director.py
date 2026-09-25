@@ -163,7 +163,7 @@ def test_prompt_leads_with_the_scene_and_states_fidelity_once():
     assert prompt.count("THE ARTWORK IS FIXED") == 1
     assert "eyes fully closed" in prompt
     assert '"Silence Takes Shape 1"' in prompt
-    assert "photo 1 of 4" in prompt
+    assert "image 1 of 4" in prompt
 
 
 def test_non_artwork_products_get_no_artwork_lock():
@@ -211,10 +211,12 @@ def test_worst_case_plan_stays_well_inside_the_image_prompt_budget():
     long = "x" * 2000
     raw = _raw(1)
     raw["product"].update(description=long, detail_lock=[long] * 20, context=long)
-    raw["world"].update(concept=long, lighting=long, palette=long, grade=long)
+    raw["world"].update(concept=long, lighting=long, palette=long, grade=long,
+                        visual_style=long, typography=long)
     raw["shots"][0].update({k: long for k in (
         "scene", "product_placement", "subject", "shot_size", "camera_angle", "lens",
         "depth_of_field", "composition", "lighting", "mood", "headline", "subtext",
+        "idea", "text_treatment",
     )}, props=[long] * 20)
     plan = cd.validate_plan(raw, 1)
     prompt = _compile(plan, num_product_refs=5, logo_ref=6, mascot_ref=7,
@@ -272,3 +274,58 @@ def test_campaign_route_fetches_once_and_renders_every_shot_with_all_references(
     assert all(images == [b"product", b"logo"] for _, images in seen["renders"])
     assert all("Reference image 2 is the brand logo" in p for p, _ in seen["renders"])
     assert len({p for p, _ in seen["renders"]}) == 4
+
+
+# ── creative direction ───────────────────────────────────────────────────────
+
+def test_type_comes_from_the_campaign_not_a_fixed_bold_face():
+    raw = _raw(2)
+    raw["world"]["typography"] = "high-contrast serif in warm gold leaf"
+    raw["shots"][0]["text_treatment"] = "embossed on the cream mount below the art"
+    plan = cd.validate_plan(raw, 2)
+    first, second = _compile(plan), _compile(plan, shot=plan.shots[1])
+    assert "high-contrast serif in warm gold leaf" in first
+    assert "embossed on the cream mount below the art" in first
+    assert "embossed on the cream mount" not in second
+    assert "clean, bold" not in first
+
+
+def test_an_illustrated_campaign_is_not_told_to_be_a_photograph_but_keeps_the_artwork():
+    raw = _raw(1)
+    raw["world"]["visual_style"] = "warm storybook illustration, gouache textures"
+    prompt = _compile(cd.validate_plan(raw, 1))
+    assert "made as: warm storybook illustration" in prompt
+    assert "real photograph" not in prompt
+    assert "stays the exact reference picture" in prompt
+    assert "THE ARTWORK IS FIXED" in prompt
+
+
+def test_photographic_by_default_and_each_frame_states_its_idea():
+    raw = _raw(1)
+    raw["shots"][0]["idea"] = "the flute rests where the gaze falls"
+    prompt = _compile(cd.validate_plan(raw, 1))
+    assert "real photograph" in prompt
+    assert "This frame's idea: the flute rests where the gaze falls." in prompt
+
+
+def test_director_asks_for_ideas_variety_and_real_copy():
+    system = cd.build_director_system(4)
+    for asked in ("visual_style", "typography", "text_treatment", "idea",
+                  "No two shots share a setting type", "adjective plus a noun", "bansuri"):
+        assert asked in system, asked
+
+
+def test_first_plan_keeping_most_shots_at_home_is_retried_but_second_is_accepted():
+    raw = _raw(4)
+    for shot in raw["shots"][:3]:
+        shot["in_home"] = True
+    with pytest.raises(cd.PlanInvalid, match="inside a home"):
+        cd.validate_plan(raw, 4, strict=True)
+    assert len(cd.validate_plan(raw, 4).shots) == 4
+
+
+def test_logo_spelling_is_named_when_known():
+    plan = cd.validate_plan(_raw(1), 1)
+    prompt = _compile(plan, logo_ref=2, logo_text="Kalakari")
+    assert 'Its lettering reads exactly "Kalakari"' in prompt
+    assert "lettering reads" not in _compile(plan, logo_ref=2)
