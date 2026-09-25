@@ -166,10 +166,22 @@ export function parseDateCell(raw: string | number | null | undefined): string |
     return null;
   }
 
-  // Last resort: native Date.parse
+  // Last resort: native Date.parse — but it is lenient enough to read an order ID like
+  // "KC-10400" as the year 10400, which made an ID column the "date" column. Accept its
+  // answer only for something date-shaped: a month name ("25 May 2026") or at least two
+  // number groups ("2026-01-11T10:00"), landing in a plausible year.
   const t = Date.parse(s);
   if (!isNaN(t)) {
-    return new Date(t).toISOString().slice(0, 10);
+    // Date.parse reads "25 May 2026" as local midnight; taking the UTC date shifted it to the
+    // 24th on any server east of UTC (IST). Read the local parts it parsed.
+    const d = new Date(t);
+    const year = d.getFullYear();
+    const lower = s.toLowerCase();
+    const hasMonthName = Object.keys(MONTH_NAMES).some((name) => new RegExp(`\\b${name}\\b`).test(lower));
+    const numberGroups = (s.match(/\d+/g) ?? []).length;
+    if (year >= 1900 && year <= 2100 && (hasMonthName || numberGroups >= 2)) {
+      return `${year}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
   }
 
   return null;
@@ -352,6 +364,36 @@ function dedupeKey(used: Set<string>, key: string): string {
   return out;
 }
 
+/**
+ * One row per event rather than one row per period: dates repeat a lot, and a text column
+ * repeats within a date. Long-format metric sheets (Month, Metric, Value) repeat dates too,
+ * but each (date, metric) pair appears once — that is what tells them apart.
+ */
+export function isTransactionLog(
+  rows: Record<string, unknown>[],
+  dateCol: string,
+  textCols: string[],
+): boolean {
+  const dates = rows.map((r) => parseDateCell(r[dateCol] as string | number | null | undefined));
+  const dated = dates.filter((d): d is string => d != null);
+  if (dated.length < 20) return false;
+  const distinct = new Set(dated).size;
+  if (dated.length < distinct * 1.5) return false; // mostly one row per date: a metrics sheet
+  return textCols.some((col) => {
+    // A constant column ("Currency: INR" on every row) says nothing about the shape.
+    if (new Set(rows.map((r) => String(r[col] ?? "").trim().toLowerCase())).size < 2) return false;
+    const seen = new Set<string>();
+    let repeats = 0;
+    rows.forEach((r, i) => {
+      if (!dates[i]) return;
+      const key = `${dates[i]}\u0000${String(r[col] ?? "").trim().toLowerCase()}`;
+      if (seen.has(key)) repeats += 1;
+      else seen.add(key);
+    });
+    return repeats > dated.length * 0.1;
+  });
+}
+
 function rowsToDataset(
   rows: Record<string, unknown>[],
   dateCol: string,
@@ -468,6 +510,26 @@ export function parseRows(rows: Record<string, unknown>[]): {
   const dateCols = profile.filter((p) => p.isDate);
   const numericCols = profile.filter((p) => p.isNumeric && !p.isDate);
   const catCols = profile.filter((p) => p.isCategorical && !p.isDate && !p.isNumeric);
+
+  // ── Transaction log (orders, invoices, payments): many rows share a date, and a text
+  // column repeats within the same date (two Mumbai orders on 3 March). Splitting it into
+  // one "metric" per numeric column, or pivoting City as if it were a metric name, gives
+  // cards nobody asked for. It is one table; Ask REX answers over every row of it.
+  if (dateCols[0] && isTransactionLog(rows, dateCols[0].header, catCols.map((c) => c.header))) {
+    return {
+      result: {
+        candidate_mapping: { dateColumn: dateCols[0].header, valueColumns: [] },
+        sample_rows: rows.slice(0, 5) as Record<string, string>[],
+        headers,
+        datasets: [{ metricKey: "table", points: [] }],
+        rawTable,
+        warnings: [
+          ...warnings,
+          "Looks like a transaction log (many rows per date) — saved as one table. Ask REX for totals and trends, e.g. 'revenue by month'.",
+        ],
+      },
+    };
+  }
 
   if (dateCols.length >= 1 && catCols.length >= 1 && numericCols.length === 1) {
     const dateCol = dateCols[0]!.header;

@@ -230,3 +230,59 @@ describe("parseBuffer large file", () => {
     assert.equal(mrr!.points[0]!.value, 1000);
   });
 });
+
+// ── Order exports: IDs are not dates, and a transaction log is one table ─────
+describe("order exports", () => {
+  test("IDs like KC-10400 or INV-2024 are not dates; real dates still are", () => {
+    assert.equal(parseDateCell("KC-10400"), null);
+    assert.equal(parseDateCell("INV-2024"), null);
+    assert.equal(parseDateCell("PO-7781"), null);
+    assert.equal(parseDateCell("Market-2024"), null);
+    assert.equal(parseDateCell("25 May 2026"), "2026-05-25");
+    assert.equal(parseDateCell("2026-01-11T10:00:00"), "2026-01-11");
+  });
+
+  const cities = ["Mumbai", "Delhi", "Pune"];
+  const orders = Array.from({ length: 90 }, (_, i) => ({
+    "Order ID": `KC-${10400 + i}`,
+    "Order Date": `2026-03-${String(1 + (i % 10)).padStart(2, "0")}`,
+    City: cities[i % 3]!,
+    Qty: String(1 + (i % 4)),
+    Amount: `₹${(349 * (1 + (i % 4))).toLocaleString("en-IN")}`,
+    Status: i % 15 === 0 ? "Returned" : "Delivered",
+  }));
+
+  test("an order export is saved as one table, dated by Order Date, not Order ID", () => {
+    const { result } = parseRows(orders);
+    assert.deepEqual(result.datasets.map((d) => d.metricKey), ["table"]);
+    assert.equal(result.candidate_mapping.dateColumn, "Order Date");
+    assert.equal(result.rawTable.columnTypes["Order ID"], "text");
+    assert.ok(result.warnings.some((w) => /transaction log/i.test(w)));
+  });
+
+  test("an order export with one numeric column is not pivoted by City", () => {
+    const { result } = parseRows(orders.map(({ Qty: _q, ...r }) => r));
+    assert.deepEqual(result.datasets.map((d) => d.metricKey), ["table"]);
+  });
+
+  test("a monthly metrics sheet still becomes one chart series per metric", () => {
+    const rows = Array.from({ length: 24 }, (_, i) => ({
+      Month: `2025-${String(1 + (i % 12)).padStart(2, "0")}-01`.replace("2025", String(2024 + Math.floor(i / 12))),
+      MRR: String(30000 + i * 1000),
+      Burn: String(45000 + i * 500),
+    }));
+    const { result } = parseRows(rows);
+    assert.deepEqual(result.datasets.map((d) => d.metricKey).sort(), ["burn", "mrr"]);
+  });
+
+  test("a long-format sheet with a constant Currency column still pivots", () => {
+    const rows = Array.from({ length: 24 }, (_, i) => ({
+      Month: `2025-${String(1 + Math.floor(i / 2)).padStart(2, "0")}`,
+      Metric: i % 2 ? "MRR" : "Churn",
+      Value: String(100 + i),
+      Currency: "INR",
+    }));
+    const { result } = parseRows(rows);
+    assert.ok(!result.datasets.some((d) => d.metricKey === "table"), JSON.stringify(result.datasets.map((d) => d.metricKey)));
+  });
+});
