@@ -121,7 +121,7 @@ class MayaAgent(BaseAgent):
         "creative direction, and always have a reason for every choice. Enthusiastic but not over the top."
     )
     default_provider = "openai"
-    default_model = "gpt-5.6-luna"
+    default_model = "gpt-6-luna"
 
     async def build_system_prompt(
         self,

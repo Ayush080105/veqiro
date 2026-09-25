@@ -31,9 +31,9 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = Field(default="development")
     MOCK_MODE: bool = Field(default=True)
 
-    SCOUT_MODEL: str = Field(default="gpt-5.6-luna")
+    SCOUT_MODEL: str = Field(default="gpt-6-luna")
 
-    SAGE_MODEL: str = Field(default="gpt-5.6-luna")
+    SAGE_MODEL: str = Field(default="gpt-6-luna")
 
     # Image generation model (Nano Banana 2 Lite) — override in .env to A/B test another tier
     # (e.g. GEMINI_IMAGE_MODEL=gemini-3.1-flash-image or gemini-3-pro-image)

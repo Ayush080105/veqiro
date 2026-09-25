@@ -16,22 +16,22 @@ from core.tools import (
 GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
 # Historically the cheap model. Repointed at the main model: quality is
 # preferred over cost on every call that used it.
-GPT4O_MINI = ("openai", "gpt-5.6-luna")
+GPT4O_MINI = ("openai", "gpt-6-luna")
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
 # Models whose Chat Completions API only accepts the default temperature (1) —
-# a custom value is rejected outright with a 400 (verified live: gpt-5.6-luna).
-_FIXED_TEMPERATURE_MODELS = {"gpt-5.6-luna"}
+# a custom value is rejected outright with a 400 (verified live: gpt-6-luna).
+_FIXED_TEMPERATURE_MODELS = {"gpt-6-luna"}
 # Models that reject function/tool calling on /v1/chat/completions unless
-# reasoning_effort is explicitly disabled (verified live: gpt-5.6-luna — without
+# reasoning_effort is explicitly disabled (verified live: gpt-6-luna — without
 # this, tool calls fail with "Function tools with reasoning_effort are not
 # supported... use /v1/responses or set reasoning_effort to 'none'").
-_REASONING_EFFORT_REQUIRED_FOR_TOOLS = {"gpt-5.6-luna"}
+_REASONING_EFFORT_REQUIRED_FOR_TOOLS = {"gpt-6-luna"}
 
 # Default budget for complete_json. On a reasoning model, max_completion_tokens covers
 # REASONING PLUS OUTPUT, and reasoning runs first — so a budget that only fits the answer
 # returns HTTP 200 with an empty string and finish_reason="length". Measured on
-# gpt-5.6-luna: at 3000 the model spent all 3000 tokens reasoning and emitted no content
+# gpt-6-luna: at 3000 the model spent all 3000 tokens reasoning and emitted no content
 # (3/3 runs); at 8000 it reasoned for 107 and wrote the full answer. The cap is not a
 # charge — only generated tokens are billed — so headroom here is strictly cheaper than
 # paying for a burnt budget that produced nothing.

@@ -24,7 +24,7 @@ class LexAgent(BaseAgent):
         "not scared. Precise and sharp, yes — but always warm, encouraging, and on their side."
     )
     default_provider = "openai"
-    default_model = "gpt-5.6-luna"
+    default_model = "gpt-6-luna"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)

@@ -15,7 +15,7 @@ class VegaAgent(BaseAgent):
         "Always calm, always a step ahead, and genuinely happy to help."
     )
     default_provider = "openai"
-    default_model = "gpt-5.6-luna"
+    default_model = "gpt-6-luna"
 
     # ── Tool-use instructions ────────────────────────────────────────────
 

@@ -33,7 +33,7 @@ logger = logging.getLogger("planner")
 # cross-integration DAG over a live tool catalogue is a much harder task than
 # 6-way intent routing, it happens once per run, and a bad plan wastes dozens
 # of tool calls — so quality wins over the cheaper option on both calls.
-PLANNER_MODEL = ("openai", "gpt-5.6-luna")
+PLANNER_MODEL = ("openai", "gpt-6-luna")
 GATE_MODEL = PLANNER_MODEL
 
 MIN_NODES = 2
