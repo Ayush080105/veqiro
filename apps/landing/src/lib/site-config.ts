@@ -12,8 +12,15 @@ export const consoleUrl =
 export const landingUrl =
   process.env.NEXT_PUBLIC_LANDING_URL || 'http://localhost:3000';
 
-export const serverUrl =
-  process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000/api/v1';
+/** The API base. Every server route lives under /api/v1, so it is added when the configured
+ *  value is just the host — production had "https://server.veqiro.com", and the contact form,
+ *  waitlist and live prices all 404'd. */
+function apiBase(raw: string): string {
+  const trimmed = raw.replace(/\/+$/, '');
+  return trimmed.endsWith('/api/v1') ? trimmed : `${trimmed}/api/v1`;
+}
+
+export const serverUrl = apiBase(process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:5000/api/v1');
 
 export const isPreLaunch =
   process.env.NEXT_PUBLIC_PRE_LAUNCH === 'true';
