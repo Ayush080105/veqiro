@@ -1,35 +1,53 @@
 'use client';
-import { useState } from 'react';
-import { Hero } from '@/components/veqiro/hero';
-import { CrewSection, DeskPanel } from '@/components/veqiro/crew';
-import { ProblemSection, SharedBrainSection, OutcomesSection } from '@/components/veqiro/story';
-import { IntegrationsSection } from '@/components/veqiro/integrations-section';
 import { T } from '@/components/veqiro/shared';
-import { HowItWorks, Pricing, FAQ, FinalCTA, Footer } from '@/components/veqiro/sections';
+import { NavShared } from '@/components/veqiro/nav-shared';
+import { Footer } from '@/components/veqiro/sections';
+import { IntegrationsSection } from '@/components/veqiro/integrations-section';
+import { HeroWork } from '@/components/veqiro/home/hero-work';
+import {
+  PainSection, WorkforceSection, DelegateSection, WorkExamplesSection,
+} from '@/components/veqiro/home/story-sections';
+import {
+  BrainSection, CompareSection, HowSection, UseCasesSection,
+  CalculatorSection, PricingSection, TrustSection, FinalCtaSection,
+} from '@/components/veqiro/home/proof-sections';
+import '@/components/veqiro/home/home.css';
 
 /**
- * Narrative order: what the day looks like now (Hero) → what it costs
- * (Problem) → what makes Veqiro different (SharedBrain) → who does the work
- * (Crew) → what working with one feels like (DeskPanel) → how you set it up
- * (HowItWorks) → what it plugs into (Integrations) → what it costs (Pricing)
- * → objections (FAQ) → ask (FinalCTA).
+ * The homepage sells the outcome, not the feature list. Every section answers one buyer
+ * question, in the order a first-time visitor asks them:
+ *
+ *   Do I have this problem?        Hero (work piling up → done), Pain
+ *   Can Veqiro actually solve it?  Workforce, Delegate, Work examples
+ *   Why is it different?           Shared brain, Compare with a general AI chat
+ *   How does it work?              Integrations, How it works
+ *   Is it for me?                  Built for teams like yours, workload calculator
+ *   How much does it cost?         Pricing
+ *   Can I trust it?                Questions worth asking
+ *   What do I do next?             Final CTA
+ *
+ * The nav sits outside the hero so it stays pinned for the whole page.
  */
 export default function HomePageContent() {
-  const [active, setActive] = useState('vega');
-
   return (
     <div style={{ background: T.bg, minHeight: '100vh' }}>
-      <Hero />
-      <OutcomesSection />
-      <ProblemSection />
-      <SharedBrainSection />
-      <CrewSection onSelect={setActive} activeKey={active} />
-      <DeskPanel active={active} onNavigate={setActive} />
-      <HowItWorks />
-      <IntegrationsSection />
-      <Pricing />
-      <FAQ />
-      <FinalCTA />
+      <NavShared variant="hero" />
+      <main>
+        <HeroWork />
+        <PainSection />
+        <WorkforceSection />
+        <DelegateSection />
+        <WorkExamplesSection />
+        <BrainSection />
+        <CompareSection />
+        <IntegrationsSection />
+        <HowSection />
+        <UseCasesSection />
+        <CalculatorSection />
+        <PricingSection />
+        <TrustSection />
+        <FinalCtaSection />
+      </main>
       <Footer />
     </div>
   );

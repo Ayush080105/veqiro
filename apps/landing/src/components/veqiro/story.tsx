@@ -168,7 +168,7 @@ function AgentNode({ name, role, color }: { name: string; role: string; color: s
   );
 }
 
-function BrainDiagram() {
+export function BrainDiagram() {
   const stubs = Array.from({ length: 6 }, (_, i) => <span key={i} />);
 
   return (

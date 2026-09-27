@@ -1,5 +1,10 @@
 // Single source of truth for marketing data.
 // Edit copy, links, and content here; components consume from this file.
+import { INTEGRATIONS_CATALOG } from '@repo/integrations-catalog';
+
+/** Integrations that actually connect today (verified provider toolkit). Computed, never typed:
+ *  the site said "fifty-two" while 46 were live and five were still coming soon. */
+export const LIVE_INTEGRATION_COUNT = INTEGRATIONS_CATALOG.filter(t => t.status === 'composio').length;
 
 export const consoleUrl =
   process.env.NEXT_PUBLIC_CONSOLE_URL || 'http://localhost:3001';
@@ -32,8 +37,10 @@ export const social = {
   instagram: 'https://www.instagram.com/veqiro_',
 };
 
+// Desktop order: Product, How it works, [Use cases ▾], Pricing, [Resources ▾] — the nav
+// renders the first two, the Use cases menu, then the rest. One primary action: Start free.
 export const nav: { href: string; label: string }[] = [
-  { href: '#agents', label: 'Product' },
+  { href: '#workforce', label: 'Product' },
   { href: '#how', label: 'How it works' },
   { href: 'pricing', label: 'Pricing' },
 ];
@@ -122,18 +129,18 @@ export interface ExamplePrompt {
   segments: PromptSegment[];
 }
 
+// Every tool named here is live in @repo/integrations-catalog AND listed for that agent —
+// an example that pairs an agent with a tool it cannot reach is a promise the product breaks.
 export const examplePrompts: ExamplePrompt[] = [
   {
     agent: 'vega',
     agentLabel: 'Vega · Executive Assistant',
-    outcome: 'One instruction, four systems, zero tab-switching.',
+    outcome: 'One instruction, three tools, zero tab-switching.',
     segments: [
       { text: 'Check my ' },
       { tool: 'Google Calendar', slug: 'google-calendar' },
-      { text: ' for tomorrow, pull each external attendee’s history from ' },
-      { tool: 'LinkedIn', slug: 'linkedin' },
-      { text: ' and ' },
-      { tool: 'HubSpot', slug: 'hubspot-marketing' },
+      { text: ' for tomorrow, pull each attendee’s recent threads from ' },
+      { tool: 'Gmail', slug: 'gmail' },
       { text: ', then leave me a one-page prep doc in ' },
       { tool: 'Notion', slug: 'notion' },
       { text: '.' },
@@ -144,43 +151,37 @@ export const examplePrompts: ExamplePrompt[] = [
     agentLabel: 'Scout · Research & Strategy',
     outcome: 'Competitive intel that arrives before the customer tells you.',
     segments: [
-      { text: 'Track our top five competitors across ' },
-      { tool: 'Reddit', slug: 'reddit' },
+      { text: 'Research our top five competitors with ' },
+      { tool: 'Tavily', slug: 'tavily' },
       { text: ' and ' },
-      { tool: 'X (Twitter)', slug: 'twitter' },
-      { text: ', then post a weekly signal digest to ' },
-      { tool: 'Slack', slug: 'slack' },
-      { text: '.' },
+      { tool: 'Exa', slug: 'exa' },
+      { text: ', and profile each one — pricing, strengths, weaknesses and recent news.' },
     ],
   },
   {
     agent: 'maya',
     agentLabel: 'Maya · Content & Marketing',
-    outcome: 'A launch campaign built, written, and filed in one pass.',
+    outcome: 'A launch campaign built, written and ready to publish in one pass.',
     segments: [
       { text: 'Turn the launch post into six assets for ' },
       { tool: 'LinkedIn', slug: 'linkedin' },
       { text: ', ' },
       { tool: 'Instagram', slug: 'instagram' },
       { text: ' and ' },
-      { tool: 'X (Twitter)', slug: 'twitter' },
-      { text: ', then file the approved copy in ' },
-      { tool: 'Google Docs', slug: 'google-docs' },
-      { text: '.' },
+      { tool: 'Facebook Pages', slug: 'facebook-pages' },
+      { text: ', with visuals and captions ready for my approval.' },
     ],
   },
   {
     agent: 'sage',
     agentLabel: 'Sage · SEO',
-    outcome: 'From ranking drop to a prioritised fix-list engineers can take.',
+    outcome: 'From ranking drop to a prioritised fix-list.',
     segments: [
       { text: 'Audit our top twenty pages in ' },
       { tool: 'Google Search Console', slug: 'google-search-console' },
       { text: ', cross-check the rankings against ' },
       { tool: 'Ahrefs', slug: 'ahrefs' },
-      { text: ', and open a prioritised fix-list in ' },
-      { tool: 'Linear', slug: 'linear' },
-      { text: '.' },
+      { text: ', and write me a prioritised fix-list.' },
     ],
   },
   {
@@ -190,8 +191,8 @@ export const examplePrompts: ExamplePrompt[] = [
     segments: [
       { text: 'Read the MSA sitting in ' },
       { tool: 'Google Drive', slug: 'google-drive' },
-      { text: ', flag anything non-standard against our playbook, and summarise the risk in ' },
-      { tool: 'Notion', slug: 'notion' },
+      { text: ', flag anything non-standard, and summarise the risk in ' },
+      { tool: 'Google Docs', slug: 'google-docs' },
       { text: '.' },
     ],
   },
@@ -223,7 +224,7 @@ export const marqueeItems = [
 export const marqueeRedItems = [
   'Six specialists',
   'One shared brain',
-  'Fifty-two integrations',
+  `${LIVE_INTEGRATION_COUNT} integrations`,
   'From $9 a month',
 ];
 
@@ -235,7 +236,7 @@ export const howItWorksSteps = [
   {
     n: '01',
     t: 'Connect your stack',
-    d: 'OAuth into mail, calendar, CRM, analytics, billing, and docs. Fifty-two integrations are supported out of the box — no middleware and no custom build.',
+    d: `OAuth into mail, calendar, CRM, analytics, billing, and docs. ${LIVE_INTEGRATION_COUNT} integrations are supported out of the box — no middleware and no custom build.`,
     c: '#6FCDE8',
   },
   {
@@ -258,7 +259,7 @@ export const howItWorksSteps = [
 
 export const outcomeStats = [
   { v: '9 min',   k: 'Median time to first completed task' },
-  { v: '52',      k: 'Integrations available on day one' },
+  { v: String(LIVE_INTEGRATION_COUNT), k: 'Integrations available on day one' },
   { v: '$9',      k: 'Per agent, per month, billed separately' },
   { v: '24/7',    k: 'Coverage across every timezone you sell into' },
 ];
@@ -327,7 +328,7 @@ export const enterpriseTier: PricingTier = {
 export const PRICING_FAQ = [
   { q: 'Is there a free trial?', a: 'Yes — seven days, no credit card required. Full access to all six agents from day one.' },
   { q: 'Can I cancel anytime?', a: 'Yes. Cancel any agent at any time from the billing portal; you keep access until the end of the period you have already paid for.' },
-  { q: 'What integrations are included?', a: 'Fifty-two integrations across mail, calendar, social, CRM, analytics, billing, storage, docs, project management, and databases — all included at every price point.' },
+  { q: 'What integrations are included?', a: `${LIVE_INTEGRATION_COUNT} integrations across mail, calendar, social, CRM, analytics, billing, storage, docs, project management, and databases — all included at every price point.` },
   { q: 'Do agents share memory across tasks?', a: 'Yes. Your company brain — profile, brand voice, goals, competitors — is read by all six agents, so their work stays consistent with each other.' },
   { q: 'Is my data used to train your AI?', a: 'Never. Your content is used only to perform the tasks you ask for.' },
   { q: 'Can I buy just one agent?', a: 'Yes. Every agent is billed independently starting at $9/mo. Take only the ones you need and add more whenever you are ready.' },
@@ -368,7 +369,7 @@ export const faqItems = [
   },
   {
     q: 'Which tools do you integrate with?',
-    a: 'Fifty-two, including Gmail, Outlook, Google Calendar, Slack, HubSpot, Stripe, QuickBooks, Google Analytics, Search Console, Ahrefs, Notion, Linear, Airtable, Supabase, and BigQuery. If your team already uses it, an agent can most likely reach it.',
+    a: `${LIVE_INTEGRATION_COUNT}, including Gmail, Outlook, Google Calendar, Slack, HubSpot, Stripe, QuickBooks, Google Analytics, Search Console, Ahrefs, Notion, Linear, Airtable and Supabase. If your team already uses it, an agent can most likely reach it.`,
   },
 ];
 

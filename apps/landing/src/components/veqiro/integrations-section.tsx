@@ -40,7 +40,8 @@ function IconRow({ tools, reverse, duration }: { tools: Tool[]; reverse?: boolea
 }
 
 export function IntegrationsSection() {
-  const allTools = useMemo(() => getAllTools(), []);
+  // Live connectors only: "coming soon" rows are never shown or counted.
+  const allTools = useMemo(() => getAllTools().filter(t => (t as { status?: string }).status !== 'coming-soon'), []);
   const toolCount = allTools.length;
   const rows = useMemo(() => intoRows(allTools, 3), [allTools]);
 
@@ -58,13 +59,13 @@ export function IntegrationsSection() {
       <div className="vq-shell">
         <SectionHead
           center
-          eyebrow="Integrations"
-          title={<>They work inside the tools you already pay for</>}
+          eyebrow={`${toolCount} integrations`}
+          title={<>They work where your work already happens</>}
           lede={
             <>
-              {toolCount} integrations out of the box — mail, calendars, CRM, analytics,
-              billing, docs, and databases. Connect once with OAuth; every agent that needs
-              a tool can reach it. No middleware, no custom build.
+              Mail, calendars, social, CRM, analytics, payments, docs and databases. Connect once
+              — your AI employees can use the tools they need, and anything that sends, posts or
+              changes something waits for your approval.
             </>
           }
         />
