@@ -67,7 +67,7 @@ export const heroCopy = {
   eyebrow: 'AI employees for small teams',
   headline: 'Six specialists. One shared brain. No headcount.',
   sub: 'Veqiro staffs the work that quietly eats your week — inbox and calendar, research, content, SEO, contracts, and numbers — with six AI employees that share your company context and work inside the tools you already use.',
-  trust: ['No credit card', 'Set up in 9 minutes', 'From $9 per agent / month'],
+  trust: ['No credit card', 'Set up in minutes', 'From $9 per agent / month'],
 };
 
 /* ──────────────────────────────────────────────────────────────
@@ -258,7 +258,7 @@ export const howItWorksSteps = [
    ────────────────────────────────────────────────────────────── */
 
 export const outcomeStats = [
-  { v: '9 min',   k: 'Median time to first completed task' },
+  { v: 'Minutes', k: 'To your first completed task' },
   { v: String(LIVE_INTEGRATION_COUNT), k: 'Integrations available on day one' },
   { v: '$9',      k: 'Per agent, per month, billed separately' },
   { v: '24/7',    k: 'Coverage across every timezone you sell into' },
@@ -353,7 +353,7 @@ export const faqItems = [
   },
   {
     q: 'How long does setup actually take?',
-    a: 'About nine minutes for the first agent: connect the tools it needs, fill in your company brain, and give it a task. Each additional agent inherits the same brain, so it is faster than the first.',
+    a: 'Minutes for the first agent: connect the tools it needs, fill in your company brain, and give it a task. Each additional agent inherits the same brain, so it is faster than the first.',
   },
   {
     q: 'Is my data used to train your models?',

@@ -98,7 +98,7 @@ export function HeroWork() {
 
         <div style={{ marginTop: 28 }}>
           <Ctas center />
-          <TrustLine center items={['No credit card', 'Set up in 9 minutes', 'AI employees from $9/month']} />
+          <TrustLine center items={['No credit card', 'Set up in minutes', 'AI employees from $9/month']} />
         </div>
 
         <WorkFlow />
