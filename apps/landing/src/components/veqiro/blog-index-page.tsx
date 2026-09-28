@@ -184,7 +184,7 @@ export function BlogIndexPage({ featured, posts }: BlogIndexPageProps) {
               textDecoration: 'none',
             }}
           >
-            Start free — 7 days on us →
+            Start free, 7 days on us →
           </a>
           <Link
             href="/pricing"

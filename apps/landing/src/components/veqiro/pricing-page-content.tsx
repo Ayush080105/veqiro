@@ -33,12 +33,12 @@ function TwoLineBlurb({ text }: { text: string }) {
 }
 
 const FEATURES = [
-  { title: 'All 6 AI Employees', desc: 'Vega, Scout, Maya, Sage, Lex, and Rex — fully specialized, ready to work.', color: T.amber },
+  { title: 'All 6 AI Employees', desc: 'Vega, Scout, Maya, Sage, Lex, and Rex, fully specialized, ready to work.', color: T.amber },
   { title: 'Shared Brain', desc: 'One company profile. All agents read your brand voice, competitors, and goals.', color: T.blue },
-  { title: 'Custom Brand Voice', desc: '6 presets or fully custom — your agents write like you, not like a template.', color: T.red },
+  { title: 'Custom Brand Voice', desc: '6 presets or fully custom, your agents write like you, not like a template.', color: T.red },
   { title: 'Priority Processing', desc: "Your tasks don't wait in a queue. You get dedicated compute from day one.", color: T.green },
   { title: 'Integrations', desc: 'Gmail, Google Calendar, LinkedIn, Twitter/X, Instagram, and more.', color: T.pink },
-  { title: 'No Per-Task Fees', desc: "Assign as much work as you want. Maya's image/video generation draws from a monthly credit allowance — every other agent has none at all.", color: T.violet },
+  { title: 'No Per-Task Fees', desc: "Assign as much work as you want. Maya's image/video generation draws from a monthly credit allowance; every other agent has none at all.", color: T.violet },
 ];
 
 // Fallback only, for the brief window before /billing/catalog resolves.
@@ -89,7 +89,7 @@ export default function PricingPageContent() {
             fontFamily: FONT.body, fontSize: 'clamp(13px, 1.8vw, 15px)', color: T.ink3,
             marginTop: 14, lineHeight: 1.6, maxWidth: 620, marginLeft: 'auto', marginRight: 'auto',
           }}>
-            Veqiro pricing is simple: every AI employee bills independently, starting at $9/mo — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst. Pick one or hire the whole team. No bundle, no tier decisions.
+            Veqiro pricing is simple: every AI employee bills independently, starting at $9/mo (executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst). Pick one or hire the whole team. No bundle, no tier decisions.
           </p>
 
           {/* Trust strip */}
@@ -122,7 +122,7 @@ export default function PricingPageContent() {
               </span>
             </h2>
             <p style={{ fontFamily: FONT.body, fontSize: 15, lineHeight: 1.6, color: T.ink2, maxWidth: 620, margin: '18px auto 0' }}>
-              Every agent bills and renews on its own — no bundle, no tiers. Pick one, or hire the whole team.
+              Every agent bills and renews on its own, no bundle, no tiers. Pick one, or hire the whole team.
             </p>
           </div>
 
@@ -157,7 +157,7 @@ export default function PricingPageContent() {
                       <TwoLineBlurb text={AGENT_BLURBS[emp.key]} />
                     </div>
                     <div style={{ fontFamily: FONT.display, fontWeight: 600, letterSpacing: '-0.03em', fontSize: 24, color: T.ink, marginTop: 12 }}>
-                      {monthlyPrice == null ? '—' : `$${monthlyPrice}`}
+                      {monthlyPrice == null ? '-' : `$${monthlyPrice}`}
                       <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3, marginLeft: 4 }}>/mo</span>
                     </div>
                     <div style={{ fontFamily: FONT.mono, fontSize: 10, color: T.green, marginTop: 4 }}>

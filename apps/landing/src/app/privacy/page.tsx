@@ -93,7 +93,7 @@ export default function PrivacyPage() {
             </div>
             <ul style={{ margin: 0, padding: '0 0 0 20px', display: 'grid', gap: 8 }}>
               {[
-                "We collect only what's needed — account info, usage data, and what you share with the AI.",
+                "We collect only what's needed: account info, usage data, and what you share with the AI.",
                 "We do not sell your personal data. Ever.",
                 "You can access, update, or delete your data at any time.",
                 "We use industry-standard security measures to protect your information.",
@@ -107,10 +107,10 @@ export default function PrivacyPage() {
           <Section n="1" title="Information We Collect">
             <P>We may collect the following types of information:</P>
             <ul style={{ margin: '0 0 16px', padding: '0 0 0 24px', display: 'grid', gap: 8 }}>
-              <Li><strong>Personal Information</strong> — Name, email address, phone number</Li>
-              <Li><strong>Business Information</strong> — Startup details, pitch decks, documents you share with our agents</Li>
-              <Li><strong>Usage Data</strong> — App interactions, feature usage, logs, and analytics</Li>
-              <Li><strong>Communication Data</strong> — Messages, emails, and feedback you send us</Li>
+              <Li><strong>Personal Information:</strong> Name, email address, phone number</Li>
+              <Li><strong>Business Information:</strong> Startup details, pitch decks, documents you share with our agents</Li>
+              <Li><strong>Usage Data:</strong> App interactions, feature usage, logs, and analytics</Li>
+              <Li><strong>Communication Data:</strong> Messages, emails, and feedback you send us</Li>
             </ul>
           </Section>
 
@@ -125,7 +125,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section n="3" title="Data Protection">
-            <P>We implement industry-standard security measures — including encryption at rest and in transit, access controls, and regular security audits — to protect your data.</P>
+            <P>We implement industry-standard security measures, including encryption at rest and in transit, access controls, and regular security audits, to protect your data.</P>
             <P>No system is 100% secure. In the event of a breach affecting your data, we will notify you promptly.</P>
           </Section>
 
@@ -149,7 +149,7 @@ export default function PrivacyPage() {
           </Section>
 
           <Section n="6" title="Cookies" id="cookies">
-            <P>We may use cookies to enhance your experience on the platform — for example, to keep you logged in and remember your preferences. You can disable cookies in your browser settings, though some features may not function correctly without them.</P>
+            <P>We may use cookies to enhance your experience on the platform, for example, to keep you logged in and remember your preferences. You can disable cookies in your browser settings, though some features may not function correctly without them.</P>
           </Section>
 
           <Section n="7" title="Changes to Policy">

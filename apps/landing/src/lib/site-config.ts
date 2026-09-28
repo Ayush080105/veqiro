@@ -35,7 +35,7 @@ export const waitlistUrl = '/waitlist';
 export const contact = {
   email: 'info@veqiro.com',
   phone: '+1 (555) 010-0000',
-  address: 'Made in a small room, loud — IN',
+  address: 'Made in a small room, loud, IN',
 };
 
 export const social = {
@@ -73,7 +73,7 @@ export const useCaseNavItems: UseCaseNavItem[] = [
 export const heroCopy = {
   eyebrow: 'AI employees for small teams',
   headline: 'Six specialists. One shared brain. No headcount.',
-  sub: 'Veqiro staffs the work that quietly eats your week — inbox and calendar, research, content, SEO, contracts, and numbers — with six AI employees that share your company context and work inside the tools you already use.',
+  sub: 'Veqiro staffs the work that quietly eats your week: inbox and calendar, research, content, SEO, contracts, and numbers, with six AI employees that share your company context and work inside the tools you already use.',
   trust: ['No credit card', 'Set up in minutes', 'From $9 per agent / month'],
 };
 
@@ -91,7 +91,7 @@ export interface ProblemItem {
 export const problemCopy = {
   eyebrow: 'The problem',
   title: 'Six jobs. One of you.',
-  lede: "Every small team carries the same six workloads. Individually, none of them justifies a full-time hire — so they land on the founder, get done badly at 11pm, or quietly don't get done at all.",
+  lede: "Every small team carries the same six workloads. Individually, none of them justifies a full-time hire, so they land on the founder, get done badly at 11pm, or quietly don't get done at all.",
   items: [
     { agent: 'vega',  label: 'Inbox & calendar',   pain: 'Threads pile up, replies slip, and the calendar double-books itself.',        cost: '~2 hrs a day' },
     { agent: 'scout', label: 'Research',           pain: "You hear about a competitor's launch from a customer, weeks after it shipped.", cost: 'Always late' },
@@ -109,7 +109,7 @@ export const problemCopy = {
 export const brainCopy = {
   eyebrow: 'The difference',
   title: 'They never start from zero',
-  lede: "Most AI tools forget you between prompts. Veqiro keeps one company brain that every agent reads before it does anything — so Maya writes in the voice Sage optimises for, and Rex reports on the goals Scout is tracking against.",
+  lede: "Most AI tools forget you between prompts. Veqiro keeps one company brain that every agent reads before it does anything, so Maya writes in the voice Sage optimises for, and Rex reports on the goals Scout is tracking against.",
   contexts: [
     { label: 'Brand voice',      desc: 'Tone, style, and the words you refuse to use.' },
     { label: 'Company info',     desc: 'Products, services, positioning, and pricing.' },
@@ -162,7 +162,7 @@ export const examplePrompts: ExamplePrompt[] = [
       { tool: 'Tavily', slug: 'tavily' },
       { text: ' and ' },
       { tool: 'Exa', slug: 'exa' },
-      { text: ', and profile each one — pricing, strengths, weaknesses and recent news.' },
+      { text: ', and profile each one: pricing, strengths, weaknesses and recent news.' },
     ],
   },
   {
@@ -243,7 +243,7 @@ export const howItWorksSteps = [
   {
     n: '01',
     t: 'Connect your stack',
-    d: `OAuth into mail, calendar, CRM, analytics, billing, and docs. ${LIVE_INTEGRATION_COUNT} integrations are supported out of the box — no middleware and no custom build.`,
+    d: `OAuth into mail, calendar, CRM, analytics, billing, and docs. ${LIVE_INTEGRATION_COUNT} integrations are supported out of the box, no middleware and no custom build.`,
     c: '#6FCDE8',
   },
   {
@@ -333,10 +333,10 @@ export const enterpriseTier: PricingTier = {
 };
 
 export const PRICING_FAQ = [
-  { q: 'Is there a free trial?', a: 'Yes — seven days, no credit card required. Full access to all six agents from day one.' },
+  { q: 'Is there a free trial?', a: 'Yes, seven days, no credit card required. Full access to all six agents from day one.' },
   { q: 'Can I cancel anytime?', a: 'Yes. Cancel any agent at any time from the billing portal; you keep access until the end of the period you have already paid for.' },
-  { q: 'What integrations are included?', a: `${LIVE_INTEGRATION_COUNT} integrations across mail, calendar, social, CRM, analytics, billing, storage, docs, project management, and databases — all included at every price point.` },
-  { q: 'Do agents share memory across tasks?', a: 'Yes. Your company brain — profile, brand voice, goals, competitors — is read by all six agents, so their work stays consistent with each other.' },
+  { q: 'What integrations are included?', a: `${LIVE_INTEGRATION_COUNT} integrations across mail, calendar, social, CRM, analytics, billing, storage, docs, project management, and databases, all included at every price point.` },
+  { q: 'Do agents share memory across tasks?', a: 'Yes. Your company brain (profile, brand voice, goals, competitors) is read by all six agents, so their work stays consistent with each other.' },
   { q: 'Is my data used to train your AI?', a: 'Never. Your content is used only to perform the tasks you ask for.' },
   { q: 'Can I buy just one agent?', a: 'Yes. Every agent is billed independently starting at $9/mo. Take only the ones you need and add more whenever you are ready.' },
 ];
@@ -348,7 +348,7 @@ export const PRICING_FAQ = [
 export const faqItems = [
   {
     q: 'How is this different from ChatGPT or a general AI assistant?',
-    a: 'A general assistant answers questions in a chat window and forgets you afterwards. Veqiro agents hold a persistent company brain, connect to your actual tools through OAuth, and return finished deliverables — a sent reply, a published post, a filed report — rather than text you still have to act on.',
+    a: 'A general assistant answers questions in a chat window and forgets you afterwards. Veqiro agents hold a persistent company brain, connect to your actual tools through OAuth, and return finished deliverables (a sent reply, a published post, a filed report) rather than text you still have to act on.',
   },
   {
     q: 'Do I have to buy all six agents?',
@@ -381,7 +381,7 @@ export const faqItems = [
 ];
 
 export const crewReplies: Record<string, string> = {
-  vega: 'Move the Thursday one — the investor call takes priority.',
+  vega: 'Move the Thursday one, the investor call takes priority.',
   scout: 'Show me the weird one.',
   maya: 'Deeper contrast on the hero. Logo bottom-right across all placements.',
   sage: 'Write the title tag, H1, and meta description.',
@@ -392,9 +392,9 @@ export const crewReplies: Record<string, string> = {
 export const crewFollows: Record<string, string> = {
   vega: "Done. I've also blocked two hours tomorrow for deep work.",
   scout: 'Company in Tallinn, four employees, shipping faster than Stripe did in 2012. Worth a call.',
-  maya: 'All four updated — deeper contrast, logo anchored bottom-right on every placement. Launch campaign locked.',
-  sage: "Title: 'AI Employees for Founders — Veqiro'. H1: 'Meet Your AI Employees.' Meta and content brief are ready too.",
-  lex: 'Indirect damages = lost profits, reputational harm, business interruption — uncapped. GDPR: no DPA, no sub-processor list, three critical gaps.',
+  maya: 'All four updated, deeper contrast, logo anchored bottom-right on every placement. Launch campaign locked.',
+  sage: "Title: 'AI Employees for Founders: Veqiro'. H1: 'Meet Your AI Employees.' Meta and content brief are ready too.",
+  lex: 'Indirect damages = lost profits, reputational harm, business interruption, uncapped. GDPR: no DPA, no sub-processor list, three critical gaps.',
   rex: 'All eight churned from the same January cohort on the Starter plan. Fit issue, not product. Full breakdown and three recommendations are ready.',
 };
 
@@ -407,12 +407,12 @@ export const footerColumns: FooterColumn[] = [
   {
     h: 'Agents',
     links: [
-      { label: 'Vega — Executive Assistant', href: '/agents/vega' },
-      { label: 'Scout — Research', href: '/agents/scout' },
-      { label: 'Maya — Content', href: '/agents/maya' },
-      { label: 'Sage — SEO', href: '/agents/sage' },
-      { label: 'Lex — Legal', href: '/agents/lex' },
-      { label: 'Rex — Finance', href: '/agents/rex' },
+      { label: 'Vega: Executive Assistant', href: '/agents/vega' },
+      { label: 'Scout: Research', href: '/agents/scout' },
+      { label: 'Maya: Content', href: '/agents/maya' },
+      { label: 'Sage: SEO', href: '/agents/sage' },
+      { label: 'Lex: Legal', href: '/agents/lex' },
+      { label: 'Rex: Finance', href: '/agents/rex' },
     ],
   },
   {

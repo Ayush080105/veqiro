@@ -11,8 +11,8 @@ import { JsonLd } from '@/components/veqiro/json-ld';
 import { organizationJsonLd, faqPageJsonLd } from '@/lib/jsonld';
 
 export const metadata = buildPageMetadata({
-  title: 'About Veqiro — Who We Are & What Veqiro Is',
-  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in India. Each agent billed independently starting at $9/mo — all-in-one AI platform for startups.',
+  title: 'About Veqiro: Who We Are & What Veqiro Is',
+  description: 'Veqiro is a crew of six specialized AI employees for founders and lean teams. Built in India. Each agent billed independently starting at $9/mo, all-in-one AI platform for startups.',
   path: '/about',
   keywords: [
     'who is veqiro',
@@ -30,7 +30,7 @@ export const metadata = buildPageMetadata({
 const ABOUT_FAQ = [
   {
     q: 'What is Veqiro?',
-    a: "Veqiro is an AI workforce platform that gives founders and lean teams a crew of six specialized AI employees — Vega (executive assistant), Scout (research), Maya (content), Sage (SEO), Lex (legal), and Rex (finance) — in one subscription. It's an all-in-one AI platform for startups that replaces the need to hire six separate specialists.",
+    a: "Veqiro is an AI workforce platform that gives founders and lean teams a crew of six specialized AI employees: Vega (executive assistant), Scout (research), Maya (content), Sage (SEO), Lex (legal), and Rex (finance), in one subscription. It's an all-in-one AI platform for startups that replaces the need to hire six separate specialists.",
   },
   {
     q: 'Who makes Veqiro?',
@@ -38,11 +38,11 @@ const ABOUT_FAQ = [
   },
   {
     q: 'Who is Veqiro for?',
-    a: "Veqiro is built for founders, lean teams (2–10 people), marketing teams, agencies, and growing startups who need the output of a full specialist team without the headcount. If you can't justify hiring a dedicated EA, researcher, content lead, SEO specialist, legal reviewer, and financial analyst — Veqiro is the answer.",
+    a: "Veqiro is built for founders, lean teams (2–10 people), marketing teams, agencies, and growing startups who need the output of a full specialist team without the headcount. If you can't justify hiring a dedicated EA, researcher, content lead, SEO specialist, legal reviewer, and financial analyst, Veqiro is the answer.",
   },
   {
     q: 'How is Veqiro different from ChatGPT or other AI tools?',
-    a: "ChatGPT is a general-purpose chatbot you prompt one task at a time. Veqiro is six specialized AI agents with shared memory (the Brain) — each named, each with its own role, each remembering your brand voice, goals, and context. Less prompting, more output. An AI workforce, not a tool you have to drive.",
+    a: "ChatGPT is a general-purpose chatbot you prompt one task at a time. Veqiro is six specialized AI agents with shared memory (the Brain), each named, each with its own role, each remembering your brand voice, goals, and context. Less prompting, more output. An AI workforce, not a tool you have to drive.",
   },
   {
     q: 'Is Veqiro safe to use with my business data?',
@@ -50,7 +50,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'How much does Veqiro cost?',
-    a: "Every AI employee is billed independently, starting at $9/mo — no bundle, no per-seat fees. Start with one agent or hire the whole crew; each one renews on its own. A 7-day free trial covers all six agents, no credit card required.",
+    a: "Every AI employee is billed independently, starting at $9/mo, no bundle, no per-seat fees. Start with one agent or hire the whole crew; each one renews on its own. A 7-day free trial covers all six agents, no credit card required.",
   },
 ];
 
@@ -62,7 +62,7 @@ const VALUES = [
   },
   {
     title: 'Real work, not summaries',
-    body: "Vega doesn't just tell you about your emails — she handles them. Sage doesn't suggest keywords — she writes the post. Output over observation.",
+    body: "Vega doesn't just tell you about your emails. She handles them. Sage doesn't suggest keywords. She writes the post. Output over observation.",
     color: T.red,
   },
   {
@@ -72,7 +72,7 @@ const VALUES = [
   },
   {
     title: 'Trust but verify',
-    body: "Every agent tells you what it's doing and why. Nothing gets sent without your say-so. We make them fast — you make them final.",
+    body: "Every agent tells you what it's doing and why. Nothing gets sent without your say-so. We make them fast. You make them final.",
     color: T.green,
   },
 ];
@@ -135,10 +135,10 @@ export default function AboutPage() {
             Lean teams deserve the same leverage as teams ten times their size.
           </p>
           <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: T.ink, margin: '0 0 24px' }}>
-            We built Veqiro because we kept watching great companies stall — not because the ideas were bad, but because a 3-person team can only do so much in a day. The grunt work piles up. The emails go unanswered. The blog gets abandoned. The competitor analysis never gets done.
+            We built Veqiro because we kept watching great companies stall, not because the ideas were bad, but because a 3-person team can only do so much in a day. The grunt work piles up. The emails go unanswered. The blog gets abandoned. The competitor analysis never gets done.
           </p>
           <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2.2vw, 18px)', lineHeight: 1.75, color: T.ink, margin: 0 }}>
-            So we built six. Not a chat interface with a generic prompt. Six actual AI employees — each with a name, a specialty, a personality, and a bias toward shipping. They share memory. They talk to each other. They work while you sleep.
+            So we built six. Not a chat interface with a generic prompt. Six actual AI employees, each with a name, a specialty, a personality, and a bias toward shipping. They share memory. They talk to each other. They work while you sleep.
           </p>
         </div>
       </section>
@@ -176,7 +176,7 @@ export default function AboutPage() {
               color: T.ink,
               margin: '0 0 18px',
             }}>
-              Veqiro is a team of six specialized AI employees — an executive assistant, a researcher, a content writer, an SEO specialist, a legal reviewer, and a financial analyst — bundled into a single subscription. Each agent has its own name, role, personality, and specialized skills. They share a central Brain (your brand kit, competitors, and context), so output stays consistent across everything from inbox replies to blog posts to contract reviews.
+              Veqiro is a team of six specialized AI employees: an executive assistant, a researcher, a content writer, an SEO specialist, a legal reviewer, and a financial analyst, bundled into a single subscription. Each agent has its own name, role, personality, and specialized skills. They share a central Brain (your brand kit, competitors, and context), so output stays consistent across everything from inbox replies to blog posts to contract reviews.
             </p>
             <p style={{
               fontFamily: FONT.body,
@@ -185,7 +185,7 @@ export default function AboutPage() {
               color: T.ink,
               margin: 0,
             }}>
-              Veqiro exists because most AI tools are single-purpose utilities that don&apos;t talk to each other, and most &quot;AI agent platforms&quot; require you to configure workflows before anything useful happens. We built the opposite: six AI employees that arrive pre-hired, brief themselves from your company profile, and start shipping work the same day. Think AI workforce for founders, AI team for startups, AI employees for lean teams — all the same thing, and all what Veqiro is.
+              Veqiro exists because most AI tools are single-purpose utilities that don&apos;t talk to each other, and most &quot;AI agent platforms&quot; require you to configure workflows before anything useful happens. We built the opposite: six AI employees that arrive pre-hired, brief themselves from your company profile, and start shipping work the same day. Think AI workforce for founders, AI team for startups, AI employees for lean teams, all the same thing, and all what Veqiro is.
             </p>
           </div>
 
@@ -306,7 +306,7 @@ export default function AboutPage() {
             lineHeight: 1.3,
             margin: 0,
           }}>
-            "Built in a small room, loud — India. Started because the founders were tired of copy-pasting into ChatGPT at midnight."
+            "Built in a small room, loud, in India. Started because the founders were tired of copy-pasting into ChatGPT at midnight."
           </p>
           <div style={{
             marginTop: 28,
@@ -316,7 +316,7 @@ export default function AboutPage() {
             textTransform: 'uppercase',
             color: T.ink2,
           }}>
-            — the origin story, abridged
+            the origin story, abridged
           </div>
         </div>
       </section>

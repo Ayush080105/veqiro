@@ -19,10 +19,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const agentMeta = AGENT_META[slug];
   if (!employee || !agentMeta) return {};
   return buildPageMetadata({
-    title: `${employee.name} — ${agentMeta.seoTitleSuffix}`,
+    title: `${employee.name}: ${agentMeta.seoTitleSuffix}`,
     description: agentMeta.metaDescription,
     path: `/agents/${slug}`,
-    ogImage: `/og/${slug}.png`,
     ogImageAlt: `${employee.name}, Veqiro's AI ${employee.role}`,
     keywords: agentMeta.keywords,
   });

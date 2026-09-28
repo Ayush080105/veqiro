@@ -22,7 +22,7 @@ export function PainSection() {
             Small teams don&rsquo;t have a people problem. They have a workload problem.
           </h2>
           <p className="vh-lede">
-            Every week, the same work keeps landing on the founder or a small team — research,
+            Every week, the same work keeps landing on the founder or a small team: research,
             content, follow-ups, reporting, SEO, admin and everything in between.
           </p>
         </Reveal>
@@ -71,7 +71,7 @@ export function WorkforceSection() {
           <h2 id="vh-crew-title" className="vh-h2">Six AI employees. Each one owns a real job.</h2>
           <p className="vh-lede">
             Veqiro gives lean teams specialised AI employees that own real business functions and
-            produce finished work — not suggestions.
+            produce finished work, not suggestions.
           </p>
         </Reveal>
 
@@ -231,7 +231,7 @@ export function DelegateSection() {
               ))}
             </ol>
             <p style={{ marginTop: 16, fontSize: 14, color: done >= VEQIRO_STEPS.length ? T.inkInv : T.inkInv2 }}>
-              {done >= VEQIRO_STEPS.length ? 'Publish-ready — waiting for your approval.' : 'Working…'}
+              {done >= VEQIRO_STEPS.length ? 'Publish-ready: waiting for your approval.' : 'Working…'}
             </p>
           </div>
         </div>
@@ -287,12 +287,12 @@ function Artifact({ agent }: { agent: string }) {
     const items = [
       { who: 'Priya · Saffron Packaging', what: 'Needs the order confirmed by noon', state: 'Reply drafted' },
       { who: 'Anjali · investor', what: 'Asked for the September numbers', state: 'Reply drafted' },
-      { who: 'Calendar', what: '2pm clashes with the supplier call', state: 'Move to Thu — needs your OK' },
+      { who: 'Calendar', what: '2pm clashes with the supplier call', state: 'Move to Thu, needs your OK' },
     ];
     return (
       <div>
         <div style={{ fontFamily: FONT.display, fontSize: 19, fontWeight: 600, letterSpacing: '-0.02em' }}>
-          Good morning — 3 things need you today.
+          Good morning: 3 things need you today.
         </div>
         <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
           {items.map(i => (
@@ -315,7 +315,7 @@ function Artifact({ agent }: { agent: string }) {
     return (
       <div style={{ display: 'grid', gap: 12 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[['Keyword', 'masala chai online'], ['Intent', 'Buy — commercial'], ['Length', '~1,600 words']].map(([k, v]) => (
+          {[['Keyword', 'masala chai online'], ['Intent', 'Buy: commercial'], ['Length', '~1,600 words']].map(([k, v]) => (
             <div key={k} style={{ padding: '8px 11px', borderRadius: 10, background: T.surface2 }}>
               <div style={{ fontSize: 11, color: T.ink3 }}>{k}</div>
               <div style={{ fontSize: 13.5, fontWeight: 600 }}>{v}</div>
@@ -388,7 +388,7 @@ function Artifact({ agent }: { agent: string }) {
           </div>
         ))}
         <p style={{ fontSize: 14, color: T.ink2, margin: '12px 0 0' }}>
-          Recommendation: <strong style={{ color: T.ink }}>negotiate before signing</strong> — 3 changes drafted.
+          Recommendation: <strong style={{ color: T.ink }}>negotiate before signing</strong>, 3 changes drafted.
         </p>
       </div>
     );
@@ -454,7 +454,7 @@ export function WorkExamplesSection() {
           <Kicker center>Real work, not demos</Kicker>
           <h2 id="vh-ex-title" className="vh-h2 vh-center" style={{ textAlign: 'center' }}>Watch the work get done.</h2>
           <p className="vh-lede vh-center" style={{ textAlign: 'center' }}>
-            One instruction in. A finished deliverable out — the kind you would otherwise spend the afternoon on.
+            One instruction in. A finished deliverable out, the kind you would otherwise spend the afternoon on.
           </p>
         </Reveal>
 

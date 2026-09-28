@@ -92,7 +92,7 @@ export function HeroWork() {
           fontFamily: FONT.body, fontSize: 'clamp(16px, 1.8vw, 20px)', lineHeight: 1.6, color: T.inkInv2,
           maxWidth: '58ch', margin: '20px auto 0',
         }}>
-          Veqiro gives your business AI employees that handle the work behind the scenes —
+          Veqiro gives your business AI employees that handle the work behind the scenes,
           from content and research to SEO, contracts, operations and reporting.
         </p>
 

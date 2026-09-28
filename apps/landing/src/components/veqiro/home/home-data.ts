@@ -60,7 +60,7 @@ export const WORKFORCE: WorkforceRole[] = [
   },
   {
     agent: 'scout',
-    does: 'Researches markets, profiles competitors and spots trends — from live web sources, with the sources listed.',
+    does: 'Researches markets, profiles competitors and spots trends, from live web sources, with the sources listed.',
     tasks: ['Who are we really competing with?', 'Profile these five competitors', 'What is trending in our category this month?'],
     output: 'A competitor profile: pricing, strengths, weaknesses and recent news, with sources.',
   },
@@ -150,7 +150,7 @@ export const COMPARE_ROWS: { topic: string; chat: string; veqiro: string }[] = [
   { topic: 'Your tools', chat: 'You copy and paste between them', veqiro: `Works inside ${LIVE_TOOL_COUNT} connected tools` },
   { topic: 'What you get', chat: 'An answer to act on', veqiro: 'The finished deliverable' },
   { topic: 'Who does the steps', chat: 'You do', veqiro: 'The agent does' },
-  { topic: 'Before it goes out', chat: '—', veqiro: 'Sends and posts wait for your approval' },
+  { topic: 'Before it goes out', chat: '-', veqiro: 'Sends and posts wait for your approval' },
 ];
 
 /* ── Built for teams like yours ───────────────────────────────────────────────────────────── */
@@ -159,7 +159,7 @@ export const USE_CASES: { key: string; slug: string; label: string; line: string
   {
     key: 'founders', slug: 'founders', label: 'Founders',
     line: 'Operate like a bigger team without adding headcount.',
-    pain: 'You are the marketer, the analyst, the lawyer and the assistant — usually after 10pm.',
+    pain: 'You are the marketer, the analyst, the lawyer and the assistant, usually after 10pm.',
     flow: ['Vega clears the inbox before you wake', 'Rex answers the numbers question in chat', 'Lex reads the contract before you sign'],
     outcome: 'Your hours go back to customers and product.',
   },
@@ -180,7 +180,7 @@ export const USE_CASES: { key: string; slug: string; label: string; line: string
   {
     key: 'startups', slug: 'growing-startups', label: 'Lean startups',
     line: 'Cover critical functions before you’re ready to hire.',
-    pain: 'Legal, finance and SEO all matter now — none of them justify a full-time hire yet.',
+    pain: 'Legal, finance and SEO all matter now, but none of them justify a full-time hire yet.',
     flow: ['Start with the one function that hurts most', 'Every agent shares the same company brain', 'Add the next agent when the workload grows'],
     outcome: 'Critical work covered from day one, at a fraction of a hire.',
   },
@@ -191,11 +191,11 @@ export const USE_CASES: { key: string; slug: string; label: string; line: string
 export const TRUST_FAQ: { q: string; a: string }[] = [
   {
     q: 'Can I trust it with my data?',
-    a: 'Your tools connect through OAuth, so we never see or store your passwords. Your data is used only to do the work you ask for — never to train AI models — and it is encrypted in transit and at rest.',
+    a: 'Your tools connect through OAuth, so we never see or store your passwords. Your data is used only to do the work you ask for, never to train AI models, and it is encrypted in transit and at rest.',
   },
   {
     q: 'Can I review work before it goes out?',
-    a: 'Yes. Anything that sends, posts or changes something in your connected tools — an email, a calendar invite, a message — is staged for your approval first. Drafts, campaigns and reports come back to you to review, edit or reject.',
+    a: 'Yes. Anything that sends, posts or changes something in your connected tools (an email, a calendar invite, a message) is staged for your approval first. Drafts, campaigns and reports come back to you to review, edit or reject.',
   },
   {
     q: 'What happens if it gets something wrong?',
@@ -207,7 +207,7 @@ export const TRUST_FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Does it replace my team?',
-    a: 'It takes the repetitive execution off your team — the drafting, researching, formatting and reporting — so the people you have spend their time on the decisions and relationships only they can handle.',
+    a: 'It takes the repetitive execution off your team (the drafting, researching, formatting and reporting) so the people you have spend their time on the decisions and relationships only they can handle.',
   },
   {
     q: 'How long does setup take?',
@@ -219,7 +219,7 @@ export const TRUST_FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'How is this different from ChatGPT?',
-    a: 'A general AI chat gives you an answer to act on and forgets your business between conversations. Veqiro agents read your company brain, work inside your connected tools, and return the finished work — with anything outward-facing waiting for your approval.',
+    a: 'A general AI chat gives you an answer to act on and forgets your business between conversations. Veqiro agents read your company brain, work inside your connected tools, and return the finished work, with anything outward-facing waiting for your approval.',
   },
 ];
 

@@ -616,7 +616,7 @@ export function UseCasePage({ content }: { content: UseCaseContent }) {
             marginBottom: 44,
             lineHeight: 1.6,
           }}>
-            One subscription. Six AI employees. 7-day free trial — no card needed.
+            Six AI employees, billed separately from $9/mo. 7-day free trial, no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>

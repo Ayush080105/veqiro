@@ -22,20 +22,20 @@ faq:
   - q: "What are the most important SaaS metrics for an early-stage startup?"
     a: "MRR (Monthly Recurring Revenue), Net MRR Growth Rate, Burn Rate, Runway, CAC (Customer Acquisition Cost), LTV (Lifetime Value), LTV:CAC ratio, and Churn Rate. Master these eight before adding complexity. Most investors want to see exactly these in a seed-stage deck."
   - q: "What's a good LTV:CAC ratio for a SaaS startup?"
-    a: "The benchmark is 3:1 — for every $1 spent acquiring a customer, you earn $3 in lifetime value. Under 1:1 means you're losing money on every customer. Above 5:1 sometimes signals underinvestment in growth. Most early-stage SaaS operates at 1.5–2:1 while scaling."
+    a: "The benchmark is 3:1, for every $1 spent acquiring a customer, you earn $3 in lifetime value. Under 1:1 means you're losing money on every customer. Above 5:1 sometimes signals underinvestment in growth. Most early-stage SaaS operates at 1.5–2:1 while scaling."
   - q: "How often should a founder review their SaaS metrics?"
-    a: "MRR, burn, and cash position: weekly. CAC, LTV, and churn: monthly. Revenue forecasts and runway: before every board meeting. Anomaly detection (sudden churn spike, CAC increase) should be real-time — this is where an AI finance agent adds the most value."
+    a: "MRR, burn, and cash position: weekly. CAC, LTV, and churn: monthly. Revenue forecasts and runway: before every board meeting. Anomaly detection (sudden churn spike, CAC increase) should be real-time: this is where an AI finance agent adds the most value."
   - q: "Can AI actually track SaaS metrics automatically?"
     a: "Yes, with integrations. Rex connects to Stripe (or Paddle/Chargebee), your bank feeds, and analytics platforms. It calculates key metrics daily, flags anomalies (MRR dropped 8% week-on-week), and generates a weekly financial brief. No spreadsheet maintenance required."
   - q: "What's the difference between MRR and ARR?"
-    a: "MRR (Monthly Recurring Revenue) is your normalized monthly subscription revenue. ARR (Annual Recurring Revenue) is MRR × 12. ARR is useful for investor conversations and benchmarking. For operational decisions — burn rate, hiring, runway — use MRR. Don't confuse ARR with actual annual invoices, which may differ due to annual prepays."
+    a: "MRR (Monthly Recurring Revenue) is your normalized monthly subscription revenue. ARR (Annual Recurring Revenue) is MRR × 12. ARR is useful for investor conversations and benchmarking. For operational decisions (burn rate, hiring, runway), use MRR. Don't confuse ARR with actual annual invoices, which may differ due to annual prepays."
   - q: "Can AI generate a board deck automatically?"
-    a: "Yes. Rex connects to your financial data sources and generates a board-ready deck with MRR waterfall, burn trends, runway projections, unit economics, and narrative context — formatted for presentation. You review and refine rather than building from scratch. Most founders get their board package done in under an hour instead of a weekend."
+    a: "Yes. Rex connects to your financial data sources and generates a board-ready deck with MRR waterfall, burn trends, runway projections, unit economics, and narrative context, formatted for presentation. You review and refine rather than building from scratch. Most founders get their board package done in under an hour instead of a weekend."
 ---
 
 Most founders know the feeling: your board meeting is in 48 hours and someone asks for your LTV:CAC ratio. You open four spreadsheets, do some calculations that don't quite reconcile, and present a number you're not fully confident in.
 
-This is the state of SaaS metrics at most early-stage startups. Not because founders are bad at numbers — because nobody built a system to track them automatically.
+This is the state of SaaS metrics at most early-stage startups. Not because founders are bad at numbers, because nobody built a system to track them automatically.
 
 Here are the eight metrics that actually matter, how to calculate them correctly, and how to set up [Rex](/agents/rex), Veqiro's AI finance agent, to track them without spreadsheets.
 
@@ -45,7 +45,7 @@ The problem isn't intelligence. It's infrastructure. SaaS metrics live across mu
 
 The result: founders either track metrics inconsistently, use approximate numbers, or spend hours every month doing financial reconciliation instead of running the company.
 
-Rex connects to your revenue, banking, and analytics systems. The metrics below are what it calculates, monitors, and alerts on — automatically, every day.
+Rex connects to your revenue, banking, and analytics systems. The metrics below are what it calculates, monitors, and alerts on, automatically, every day.
 
 ## The Eight Metrics
 
@@ -62,11 +62,11 @@ Annual plan at $1,200/year → contributes $100/month to MRR
 Monthly plan at $99/month → contributes $99/month to MRR
 ```
 
-**Common mistake:** Including one-time fees, professional services, or annual plans at their full invoice value. MRR is *recurring* — only subscription components count.
+**Common mistake:** Including one-time fees, professional services, or annual plans at their full invoice value. MRR is *recurring*: only subscription components count.
 
 **What to watch:** Net MRR Growth = (New MRR + Expansion MRR) − (Churned MRR + Contraction MRR). This number tells you more than gross MRR because it shows *why* revenue is moving.
 
-**Red flags:** New MRR < Churned MRR (you're contracting). Expansion MRR = 0 for months (customers aren't growing with you — a product signal).
+**Red flags:** New MRR < Churned MRR (you're contracting). Expansion MRR = 0 for months (customers aren't growing with you: a product signal).
 
 ---
 
@@ -94,7 +94,7 @@ Gross Burn = Total Cash Out (ignores revenue)
 Runway = Current Cash Balance ÷ Net Burn Rate
 ```
 
-Use **net burn** (not gross burn) for operational decisions — it reflects how your revenue is offsetting costs. Use **gross burn** when talking to investors about your spending discipline.
+Use **net burn** (not gross burn) for operational decisions: it reflects how your revenue is offsetting costs. Use **gross burn** when talking to investors about your spending discipline.
 
 **Rex tracking:** Connects to your bank feed and Stripe. Calculates net and gross burn daily. Flags weeks where burn accelerates unexpectedly (a common early signal of a payroll or vendor billing issue).
 
@@ -113,9 +113,9 @@ CAC = (Sales Costs + Marketing Costs) ÷ New Customers Acquired
          for the same time period
 ```
 
-**Fully-loaded** means including salaries, tools, ad spend, agency fees, events, and any other cost directly attributable to acquisition — not just paid ad spend.
+**Fully-loaded** means including salaries, tools, ad spend, agency fees, events, and any other cost directly attributable to acquisition: not just paid ad spend.
 
-**Blended vs. channel CAC:** Your blended CAC (all channels combined) is useful for the LTV:CAC ratio. But you also want CAC by channel to know which channels are efficient. A startup with $80 blended CAC might have $30 CAC from SEO and $200 CAC from paid social — very different strategic implications.
+**Blended vs. channel CAC:** Your blended CAC (all channels combined) is useful for the LTV:CAC ratio. But you also want CAC by channel to know which channels are efficient. A startup with $80 blended CAC might have $30 CAC from SEO and $200 CAC from paid social: very different strategic implications.
 
 **Common mistake:** Calculating CAC over a different time period than the customers acquired. If you ran a major ad campaign in January that converted customers in February, both the spend and the customers need to be in the same calculation window.
 
@@ -138,9 +138,9 @@ Example: ARPU = $99/mo, Monthly Churn = 2%
 LTV = $99 ÷ 0.02 = $4,950
 ```
 
-**The problem with this formula:** It assumes constant churn, which is rarely true. Early customers often have different retention than late cohorts. For better accuracy, use cohort-based LTV — track what each monthly cohort actually pays over 12–24 months.
+**The problem with this formula:** It assumes constant churn, which is rarely true. Early customers often have different retention than late cohorts. For better accuracy, use cohort-based LTV: track what each monthly cohort actually pays over 12–24 months.
 
-**Gross margin LTV:** For the LTV:CAC comparison, use *gross margin LTV* (LTV × gross margin %) rather than raw revenue LTV. If you're comparing $4,950 LTV to $1,500 CAC but your gross margin is 60%, your real LTV is $2,970 — a 2:1 ratio instead of 3.3:1.
+**Gross margin LTV:** For the LTV:CAC comparison, use *gross margin LTV* (LTV × gross margin %) rather than raw revenue LTV. If you're comparing $4,950 LTV to $1,500 CAC but your gross margin is 60%, your real LTV is $2,970: a 2:1 ratio instead of 3.3:1.
 
 ---
 
@@ -153,11 +153,11 @@ LTV = $99 ÷ 0.02 = $4,950
 | LTV:CAC | What it means |
 |---------|---------------|
 | < 1:1 | Losing money on every customer acquired |
-| 1:1 – 2:1 | Marginal — need improvement |
-| 3:1 | Healthy — the standard benchmark |
+| 1:1 – 2:1 | Marginal: need improvement |
+| 3:1 | Healthy: the standard benchmark |
 | > 5:1 | Either very efficient or under-investing in growth |
 
-**Important caveat:** LTV:CAC is a lagging indicator. LTV is based on historical retention; CAC is based on recent acquisition costs. The ratio tells you how *past* customers compare to *recent* acquisition spend — it doesn't predict future profitability.
+**Important caveat:** LTV:CAC is a lagging indicator. LTV is based on historical retention; CAC is based on recent acquisition costs. The ratio tells you how *past* customers compare to *recent* acquisition spend: it doesn't predict future profitability.
 
 **Rex monitoring:** Calculates LTV:CAC monthly using cohort-adjusted LTV and trailing 3-month CAC. Flags significant changes in either direction.
 
@@ -175,9 +175,9 @@ Customer Churn Rate = Customers Lost ÷ Customers at Start of Period
 Revenue Churn Rate (MRR Churn) = MRR Lost ÷ MRR at Start of Period
 ```
 
-Both matter, but they can diverge significantly. A startup that retains large customers but loses small ones has low revenue churn and high customer churn — a different story than the reverse.
+Both matter, but they can diverge significantly. A startup that retains large customers but loses small ones has low revenue churn and high customer churn: a different story than the reverse.
 
-**Net Revenue Retention (NRR):** The metric that shows whether existing customers are growing. NRR > 100% means your existing customers are expanding faster than they're churning — the holy grail.
+**Net Revenue Retention (NRR):** The metric that shows whether existing customers are growing. NRR > 100% means your existing customers are expanding faster than they're churning: the holy grail.
 
 ```
 NRR = (Starting MRR + Expansion − Contraction − Churn) ÷ Starting MRR
@@ -220,44 +220,44 @@ The manual version of all of the above takes 4–6 hours per month. Rex does it 
 
 **Setup (one-time, ~30 minutes):**
 
-1. **Connect Stripe** (or Paddle/Chargebee) — Rex pulls all subscription data, calculates MRR components (new, expansion, contraction, churn), and tracks ARR
-2. **Connect bank feed** — Links directly to your business bank account for real-time burn and cash position
-3. **Connect acquisition data** — Either your CRM (HubSpot, Attio, Salesforce) or a simple monthly CSV of acquisition costs by channel
-4. **Set alert thresholds** — Define what changes trigger a notification: "alert if MRR drops more than 5% week-on-week" or "alert if runway falls below 14 months"
+1. **Connect Stripe** (or Paddle/Chargebee): Rex pulls all subscription data, calculates MRR components (new, expansion, contraction, churn), and tracks ARR
+2. **Connect bank feed**: Links directly to your business bank account for real-time burn and cash position
+3. **Connect acquisition data**: Either your CRM (HubSpot, Attio, Salesforce) or a simple monthly CSV of acquisition costs by channel
+4. **Set alert thresholds**: Define what changes trigger a notification: "alert if MRR drops more than 5% week-on-week" or "alert if runway falls below 14 months"
 
 **What Rex delivers:**
 
 - **Daily:** Current MRR, cash balance, net burn, runway (updated each morning)
 - **Weekly:** Net MRR movement breakdown (new/expansion/contraction/churn), CAC by channel
-- **Monthly:** Full financial brief — MRR waterfall, LTV:CAC, payback period, NRR, churn cohort analysis
+- **Monthly:** Full financial brief: MRR waterfall, LTV:CAC, payback period, NRR, churn cohort analysis
 - **Ad-hoc:** Answer questions like "what's our LTV:CAC if we include only self-serve customers?" or "how has our CAC changed since we launched the PLG motion?"
 
 **The result:** Your board package takes 45 minutes instead of a weekend. Your metrics are always current, always correct, and you're never caught off guard.
 
 ## From Metrics to Board-Ready Outputs
 
-Tracking metrics is half the job. The other half is communicating them — to your board, your investors, and your team. Rex handles this too.
+Tracking metrics is half the job. The other half is communicating them: to your board, your investors, and your team. Rex handles this too.
 
 ### Board Deck Generation
 
-Ask Rex to generate your board deck for a given month and it pulls from your live financial data — MRR waterfall, burn trend, runway curve, unit economics, and key operating metrics — and assembles them into a structured deck with section headers, chart descriptions, and narrative context. You review and refine; you don't build from a blank slide.
+Ask Rex to generate your board deck for a given month and it pulls from your live financial data (MRR waterfall, burn trend, runway curve, unit economics, and key operating metrics) and assembles them into a structured deck with section headers, chart descriptions, and narrative context. You review and refine; you don't build from a blank slide.
 
 The output is print-ready HTML, ready to export or drop into your preferred format.
 
 ### Variance Analysis
 
-A variance analysis compares what actually happened against what you budgeted. Upload your budget dataset alongside your actual results and Rex runs the comparison month by month — flagging which lines are tracking ahead, behind, or off in a direction that needs explanation.
+A variance analysis compares what actually happened against what you budgeted. Upload your budget dataset alongside your actual results and Rex runs the comparison month by month: flagging which lines are tracking ahead, behind, or off in a direction that needs explanation.
 
 This is the document your CFO or board chair is going to want before every quarterly review. Rex produces it in minutes rather than a spreadsheet afternoon.
 
 ### Weekly CFO Digest
 
-Every Monday morning, Rex sends a digest: what moved week-over-week across your key metrics, what looks unusual (a CAC spike, a churn uptick, an expense line that jumped), and three focus actions for the week. It's the brief a good CFO would give you before you started your day — without the $200K salary.
+Every Monday morning, Rex sends a digest: what moved week-over-week across your key metrics, what looks unusual (a CAC spike, a churn uptick, an expense line that jumped), and three focus actions for the week. It's the brief a good CFO would give you before you started your day, without the $200K salary.
 
 To generate any of these: "Generate my board deck for [month]", "Run a variance analysis: actual results vs budget for last quarter", or "Give me my Monday CFO digest."
 
 ---
 
-The metrics above aren't theoretical — they're the exact questions every seed and Series A investor will ask. Getting comfortable with them before your next raise isn't preparation; it's table stakes.
+The metrics above aren't theoretical: they're the exact questions every seed and Series A investor will ask. Getting comfortable with them before your next raise isn't preparation; it's table stakes.
 
 [See how Rex handles financial tracking →](/agents/rex)

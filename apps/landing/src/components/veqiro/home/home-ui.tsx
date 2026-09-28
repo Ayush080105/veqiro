@@ -7,7 +7,7 @@ import { EMPLOYEES, type Employee } from '../data';
 import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 
 export const SIGNUP_HREF = isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`;
-export const PRIMARY_CTA = isPreLaunch ? 'Join the waitlist' : 'Start free — 7 days';
+export const PRIMARY_CTA = isPreLaunch ? 'Join the waitlist' : 'Start free for 7 days';
 
 const BY_KEY: Record<string, Employee> = Object.fromEntries(EMPLOYEES.map(e => [e.key, e]));
 export function agentOf(key: string): Employee {

@@ -17,12 +17,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const post = await getPostBySlug(slug);
   if (!post) return {};
+  // No ogImage/ogImageAlt here: this route has a colocated opengraph-image.tsx,
+  // and Next.js's file-based metadata always takes precedence over an explicit
+  // openGraph.images set here, so passing one would be silently ignored. A custom
+  // per-post image (post.ogImage) is served directly by that file instead.
   return buildPageMetadata({
     title: post.title,
     description: post.description,
     path: `/blog/${slug}`,
-    ogImage: post.ogImage ?? `/og/blog/${slug}.png`,
-    ogImageAlt: post.ogImageAlt ?? post.title,
     keywords: post.keywords,
     type: 'article',
   });

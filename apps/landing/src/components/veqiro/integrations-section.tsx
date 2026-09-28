@@ -63,8 +63,8 @@ export function IntegrationsSection() {
           title={<>They work where your work already happens</>}
           lede={
             <>
-              Mail, calendars, social, CRM, analytics, payments, docs and databases. Connect once
-              — your AI employees can use the tools they need, and anything that sends, posts or
+              Mail, calendars, social, CRM, analytics, payments, docs and databases. Connect once.
+              Your AI employees can use the tools they need, and anything that sends, posts or
               changes something waits for your approval.
             </>
           }

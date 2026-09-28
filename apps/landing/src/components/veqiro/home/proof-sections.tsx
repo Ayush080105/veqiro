@@ -26,7 +26,7 @@ export function BrainSection() {
             Your AI employees shouldn&rsquo;t have to meet your business every morning.
           </h2>
           <p className="vh-lede vh-center" style={{ textAlign: 'center' }}>
-            Tell Veqiro about your company once. Every agent uses the same context — so Maya writes
+            Tell Veqiro about your company once. Every agent uses the same context, so Maya writes
             in the voice Sage optimises for, and Rex reports on the goals you set.
           </p>
         </Reveal>
@@ -79,7 +79,7 @@ export function CompareSection() {
 /* ── How it works ────────────────────────────────────────────────────────────────────────── */
 
 const STEPS = [
-  { n: '01', t: 'Connect your tools', d: 'Connect the tools your business already uses — mail, calendar, social, analytics, docs.' },
+  { n: '01', t: 'Connect your tools', d: 'Connect the tools your business already uses: mail, calendar, social, analytics, docs.' },
   { n: '02', t: 'Teach Veqiro your business', d: 'Add your brand voice, goals, products, competitors and context. Once.' },
   { n: '03', t: 'Delegate', d: 'Tell your AI employee what needs to get done, the way you would tell a colleague.' },
 ];
@@ -240,7 +240,7 @@ export function CalculatorSection() {
                 </div>
               )}
               <p style={{ fontSize: 13, color: T.inkInv2, margin: '12px 0 0', lineHeight: 1.5 }}>
-                Illustrative — your numbers, not a promised saving. Veqiro is designed to take
+                Illustrative: your numbers, not a promised saving. Veqiro is designed to take
                 execution-heavy work off your team&rsquo;s plate; how much depends on your work.
               </p>
             </div>
@@ -279,7 +279,7 @@ export function PricingSection() {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 12 }}>
                   <span style={{ fontFamily: FONT.display, fontSize: 34, fontWeight: 600, letterSpacing: '-0.035em', lineHeight: 1 }}>
-                    {prices[e.key] == null ? '—' : `$${prices[e.key]}`}
+                    {prices[e.key] == null ? '-' : `$${prices[e.key]}`}
                   </span>
                   <span style={{ fontSize: 13, color: T.ink3 }}>/ month</span>
                 </div>
@@ -323,7 +323,7 @@ export function TrustSection() {
             Straight answers about your data, mistakes, and what stays in your hands.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24 }}>
-            {['OAuth — no passwords stored', 'Never used to train models', 'Approval before anything goes out'].map(t => (
+            {['OAuth: no passwords stored', 'Never used to train models', 'Approval before anything goes out'].map(t => (
               <span key={t} style={{ fontSize: 13, padding: '7px 12px', borderRadius: 999, background: T.surface, border: `1px solid ${T.line}` }}>{t}</span>
             ))}
           </div>

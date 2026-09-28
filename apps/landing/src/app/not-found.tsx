@@ -46,7 +46,7 @@ export default function NotFound() {
             margin: 0,
           }}
         >
-          This page doesn&apos;t exist — or wandered off somewhere none of our
+          This page doesn&apos;t exist, or wandered off somewhere none of our
           six AI employees could find it.
         </p>
 
