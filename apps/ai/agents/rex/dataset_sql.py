@@ -250,6 +250,16 @@ def _match(grid, sheet: dict):
 def load_file(data: bytes, file_name: str, table: dict) -> LoadedDataset:
     """Every row of the upload, typed by the preview. Raises FileUnusable when the file and its
     preview don't line up, so the caller can fall back to the preview."""
+    return _build(file_frames(data, file_name, table), whole_file=True)
+
+
+def preview_frames(table: dict) -> dict[str, object]:
+    sheets = table.get("sheets") or {"Dataset": table}
+    return {name: _preview_frame(sheet) for name, sheet in sheets.items()}
+
+
+def file_frames(data: bytes, file_name: str, table: dict) -> dict[str, object]:
+    """The typed frames of every sheet in the file, cut to the preview's columns."""
     grids = _grids(data, file_name)
     preview_sheets = table.get("sheets") or {"Dataset": table}
     frames: dict[str, object] = {}
@@ -268,7 +278,7 @@ def load_file(data: bytes, file_name: str, table: dict) -> LoadedDataset:
                 continue
         if name not in frames:
             raise FileUnusable(f"no sheet matches the columns of '{name}'")
-    return _build(frames, whole_file=True)
+    return frames
 
 
 def _describe(con, tables: dict[str, str]) -> str:
@@ -420,3 +430,159 @@ Respond with a JSON object:
   result as objects, max 20], "xKey": "<field>", "yKeys": [{{"key": "<field>", "label": "...",
   "color": "<hex from {colors}>"}}]}}
 Answer in the language the customer used (English, Hindi or Hinglish)."""
+
+
+# ── Several datasets in one DuckDB, with filters (Rex dashboards) ────────────
+#
+# A dashboard can draw on several datasets. Each one becomes a table named by its alias
+# ("revenue"), or "<alias>__<sheet>" per sheet of a workbook. The data lives in a hidden base
+# table and the model's SQL reads a view over it, so a viewer's filter is applied by redefining
+# the view — the widget SQL never changes and never contains a viewer-supplied string.
+
+DATE_PRESETS = {
+    "last_30d": "INTERVAL 30 DAY",
+    "last_90d": "INTERVAL 90 DAY",
+    "last_12m": "INTERVAL 12 MONTH",
+    "ytd": None,
+}
+
+
+@dataclass
+class MultiDataset(LoadedDataset):
+    bases: dict[str, str] | None = None   # view name → hidden base table
+
+
+def _ident(name: str) -> str:
+    return '"' + str(name).replace('"', '""') + '"'
+
+
+def _literal(value) -> str:
+    return "'" + str(value).replace("'", "''") + "'"
+
+
+def build_many(sources: list[tuple[str, dict[str, object], bool]]) -> MultiDataset:
+    """sources: (alias, {sheet name: frame}, whole_file). Aliases must already be unique and
+    SQL-safe; the server assigns them."""
+    import duckdb
+
+    con = duckdb.connect(":memory:", config={"memory_limit": "1GB", "threads": 2})
+    tables: dict[str, str] = {}
+    bases: dict[str, str] = {}
+    total, whole = 0, True
+    used: set[str] = set()
+    for alias, frames, whole_file in sources:
+        whole = whole and whole_file
+        for sheet_name, df in frames.items():
+            name = alias if len(frames) == 1 else f"{alias}__{_table_name(sheet_name, used)}"
+            base = f"_base_{name}"
+            con.register("_incoming", df)
+            con.execute(f"CREATE TABLE {_ident(base)} AS SELECT * FROM _incoming")
+            con.unregister("_incoming")
+            con.execute(f"CREATE VIEW {_ident(name)} AS SELECT * FROM {_ident(base)}")
+            tables[name] = sheet_name if len(frames) > 1 else alias
+            bases[name] = base
+            total += len(df)
+    con.execute("SET enable_external_access = false")
+    con.execute("SET lock_configuration = true")
+    return MultiDataset(con=con, tables=tables, schema_text=_describe(con, tables),
+                        total_rows=total, whole_file=whole, bases=bases)
+
+
+async def load_sources(sources: list[dict]) -> MultiDataset:
+    """sources: [{alias, table (the stored preview), file_url?, file_name?}]. Each is read from
+    its whole file when possible and from the preview otherwise."""
+    loaded = []
+    for src in sources:
+        table = src.get("table") or {}
+        frames, whole = None, False
+        if src.get("file_url"):
+            try:
+                data = await fetch_file(src["file_url"])
+                frames = await asyncio.wait_for(
+                    asyncio.to_thread(file_frames, data, src.get("file_name") or "", table),
+                    timeout=FILE_LOAD_TIMEOUT_S)
+                whole = True
+            except Exception as err:
+                logger.warning("dashboard source %s: whole file unusable, using the preview | %s: %s",
+                               src.get("alias"), type(err).__name__, err)
+        if frames is None:
+            frames = await asyncio.to_thread(preview_frames, table)
+        loaded.append((src["alias"], frames, whole))
+    return await asyncio.to_thread(build_many, loaded)
+
+
+def column_type(ds: MultiDataset, table: str, column: str) -> str | None:
+    row = ds.con.execute(
+        "SELECT data_type FROM information_schema.columns WHERE table_name = ? AND column_name = ?",
+        [table, column]).fetchone()
+    return row[0] if row else None
+
+
+def filter_options(ds: MultiDataset, flt: dict, limit: int = 25) -> list[str] | None:
+    """The values a category filter offers — None when the column has too many to list."""
+    table, column = flt.get("table"), flt.get("column")
+    if table not in (ds.bases or {}):
+        return None
+    base = ds.bases[table]
+    q = _ident(column)
+    rows = ds.con.execute(
+        f"SELECT DISTINCT CAST({q} AS VARCHAR) FROM {_ident(base)} WHERE {q} IS NOT NULL "
+        f"ORDER BY 1 LIMIT {limit + 1}").fetchall()
+    if len(rows) > limit:
+        return None
+    return [r[0] for r in rows]
+
+
+def _predicate(flt: dict, value, base: str) -> str | None:
+    col = _ident(flt["column"])
+    if flt.get("type") == "date_range":
+        if value not in DATE_PRESETS:
+            return None
+        # Anchored on the data's own latest date: a spreadsheet of last year's orders should
+        # still show "the last 30 days" of it rather than nothing.
+        latest = f"(SELECT max({col}) FROM {_ident(base)})"
+        if value == "ytd":
+            return f"date_trunc('year', {col}) = date_trunc('year', {latest})"
+        return f"{col} > {latest} - {DATE_PRESETS[value]}"
+    values = value if isinstance(value, list) else [value]
+    values = [v for v in values if v is not None][:50]
+    if not values:
+        return None
+    return f"CAST({col} AS VARCHAR) IN ({', '.join(_literal(v) for v in values)})"
+
+
+def apply_filters(ds: MultiDataset, filters: list[dict], state: dict) -> None:
+    """Redefine each view so it only shows the rows the filter state allows. An empty state
+    shows everything."""
+    by_table: dict[str, list[str]] = {}
+    for flt in filters:
+        if flt.get("id") not in state or flt.get("table") not in (ds.bases or {}):
+            continue
+        pred = _predicate(flt, state[flt["id"]], ds.bases[flt["table"]])
+        if pred:
+            by_table.setdefault(flt["table"], []).append(pred)
+    for view, base in (ds.bases or {}).items():
+        where = " AND ".join(by_table.get(view, []))
+        ds.con.execute(f"CREATE OR REPLACE VIEW {_ident(view)} AS SELECT * FROM {_ident(base)}"
+                       + (f" WHERE {where}" if where else ""))
+
+
+def json_value(v):
+    """DuckDB result cell → something JSON can carry."""
+    import datetime
+    import decimal
+    import math
+
+    if isinstance(v, (datetime.date, datetime.datetime)):
+        return v.isoformat()
+    if isinstance(v, decimal.Decimal):
+        return float(v)
+    if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+        return None
+    if isinstance(v, (int, float, str, bool)) or v is None:
+        return v
+    return str(v)
+
+
+def result_records(res: QueryResult) -> list[dict]:
+    return [{c: json_value(v) for c, v in zip(res.columns, row)} for row in res.rows]

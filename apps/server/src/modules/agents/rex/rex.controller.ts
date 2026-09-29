@@ -235,6 +235,13 @@ const saveDatasetBodySchema = z.object({
     })
     .optional(),
   rawTable: rawTableSchema,
+  // Present when the data came from a pasted share link (see rex.links.ts). The link is
+  // re-resolved and re-checked on every sync, so nothing here is trusted as a fetch target.
+  source: z.object({
+    sourceUrl: z.string().url().max(2000),
+    downloadUrl: z.string().url().max(2000),
+    contentHash: z.string().max(128),
+  }).optional(),
 });
 
 export const listDatasets = async (req: Request, res: Response) => {
@@ -252,7 +259,7 @@ export const parseDataset = async (req: Request, res: Response) => {
 
 export const saveDatasets = async (req: Request, res: Response) => {
   const { userId, organizationId } = requireAuthContext(req);
-  const { datasets, mapping, rawTable } = saveDatasetBodySchema.parse(req.body);
+  const { datasets, mapping, rawTable, source } = saveDatasetBodySchema.parse(req.body);
   // The file key comes back from the client, so only keep it if it is this org's own upload.
   if (rawTable?.fileKey && !keyBelongsToOrg(rawTable.fileKey, organizationId)) {
     delete rawTable.fileKey;
@@ -262,7 +269,7 @@ export const saveDatasets = async (req: Request, res: Response) => {
     ...d,
     meta: rawTable ? { rawTable } : undefined,
   }));
-  const result = await rexService.saveDatasets(userId, organizationId, datasetsWithMeta, mapping);
+  const result = await rexService.saveDatasets(userId, organizationId, datasetsWithMeta, mapping, source);
   res.status(StatusCodes.CREATED).json(result);
 };
 

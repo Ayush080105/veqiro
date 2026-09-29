@@ -92,6 +92,9 @@ export const ModelName = {
   LexActivity: 'LexActivity',
   LexSettings: 'LexSettings',
   RexDataset: 'RexDataset',
+  RexDashboard: 'RexDashboard',
+  RexDashboardWidget: 'RexDashboardWidget',
+  RexDashboardResult: 'RexDashboardResult',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
   VegaFollowUp: 'VegaFollowUp',
@@ -841,11 +844,74 @@ export const RexDatasetScalarFieldEnum = {
   purpose: 'purpose',
   points: 'points',
   meta: 'meta',
+  sourceKind: 'sourceKind',
+  sourceUrl: 'sourceUrl',
+  downloadUrl: 'downloadUrl',
+  contentHash: 'contentHash',
+  lastSyncedAt: 'lastSyncedAt',
+  syncError: 'syncError',
+  syncEnabled: 'syncEnabled',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type RexDatasetScalarFieldEnum = (typeof RexDatasetScalarFieldEnum)[keyof typeof RexDatasetScalarFieldEnum]
+
+
+export const RexDashboardScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  title: 'title',
+  description: 'description',
+  prompt: 'prompt',
+  datasetIds: 'datasetIds',
+  datasetAliases: 'datasetAliases',
+  filters: 'filters',
+  isPublic: 'isPublic',
+  shareToken: 'shareToken',
+  dataVersion: 'dataVersion',
+  refreshStatus: 'refreshStatus',
+  refreshStartedAt: 'refreshStartedAt',
+  refreshError: 'refreshError',
+  lastRefreshedAt: 'lastRefreshedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDashboardScalarFieldEnum = (typeof RexDashboardScalarFieldEnum)[keyof typeof RexDashboardScalarFieldEnum]
+
+
+export const RexDashboardWidgetScalarFieldEnum = {
+  id: 'id',
+  dashboardId: 'dashboardId',
+  organizationId: 'organizationId',
+  kind: 'kind',
+  title: 'title',
+  sql: 'sql',
+  spec: 'spec',
+  layout: 'layout',
+  filterIds: 'filterIds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDashboardWidgetScalarFieldEnum = (typeof RexDashboardWidgetScalarFieldEnum)[keyof typeof RexDashboardWidgetScalarFieldEnum]
+
+
+export const RexDashboardResultScalarFieldEnum = {
+  id: 'id',
+  dashboardId: 'dashboardId',
+  widgetId: 'widgetId',
+  filterKey: 'filterKey',
+  dataVersion: 'dataVersion',
+  columns: 'columns',
+  rows: 'rows',
+  error: 'error',
+  computedAt: 'computedAt'
+} as const
+
+export type RexDashboardResultScalarFieldEnum = (typeof RexDashboardResultScalarFieldEnum)[keyof typeof RexDashboardResultScalarFieldEnum]
 
 
 export const RexPinnedCardScalarFieldEnum = {

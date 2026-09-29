@@ -101,10 +101,20 @@ export const createDataset = (data: {
   sourceId?: string | null;
   meta?: unknown;
   purpose?: string;
+  sourceKind?: string;
+  sourceUrl?: string;
+  downloadUrl?: string;
+  contentHash?: string;
+  lastSyncedAt?: Date;
 }) =>
   prisma.rexDataset
     .create({
       data: {
+        sourceKind: data.sourceKind,
+        sourceUrl: data.sourceUrl,
+        downloadUrl: data.downloadUrl,
+        contentHash: data.contentHash,
+        lastSyncedAt: data.lastSyncedAt,
         organizationId: data.organizationId,
         userId: data.userId,
         name: data.name,

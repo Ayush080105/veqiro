@@ -1669,6 +1669,20 @@ model RexDataset {
   points         Json
   /// Parsed raw table and import metadata.
   meta           Json?
+  /// Where the data comes from: "upload" (a file) or "link" (a shared spreadsheet kept in sync).
+  sourceKind     String    @default("upload")
+  /// The share link as the customer pasted it (link sources only).
+  sourceUrl      String?
+  /// The direct download URL the share link resolves to.
+  downloadUrl    String?
+  /// sha256 of the last fetched file, so an unchanged sheet costs no parsing or queries.
+  contentHash    String?
+  /// Last successful check of a linked sheet.
+  lastSyncedAt   DateTime?
+  /// Why the last sync failed, shown to the customer; null when it worked.
+  syncError      String?
+  /// Whether a linked sheet is re-fetched on the schedule.
+  syncEnabled    Boolean   @default(true)
   /// Creation timestamp.
   createdAt      DateTime @default(now())
   /// Update timestamp.
@@ -1676,7 +1690,112 @@ model RexDataset {
 
   @@index([organizationId, updatedAt])
   @@index([organizationId, metricKey, purpose, updatedAt])
+  @@index([sourceKind, syncEnabled])
   @@map("rex_dataset")
+}
+
+/// A Rex dashboard: widgets computed by SQL over one or more datasets, editable on a grid
+/// canvas and publishable at a public link.
+model RexDashboard {
+  /// Dashboard id.
+  id              String    @id @default(cuid())
+  /// Owning organization id.
+  organizationId  String
+  /// Creator user id.
+  userId          String
+  /// Title shown on the dashboard and its public page.
+  title           String
+  /// One-line description.
+  description     String?
+  /// The prompt the dashboard was first built from.
+  prompt          String?
+  /// Source datasets. Each is a SQL table named by its alias.
+  datasetIds      String[]
+  /// { datasetId: alias } — stable table names for the widget SQL.
+  datasetAliases  Json
+  /// Viewer filters: [{id, label, table, column, type, options?}].
+  filters         Json      @default("[]")
+  /// Whether the dashboard is reachable at its public link.
+  isPublic        Boolean   @default(false)
+  /// Public share token when sharing is enabled.
+  shareToken      String?   @unique
+  /// Hash of the source data + widget queries the stored results belong to.
+  dataVersion     String?
+  /// idle | running | error.
+  refreshStatus   String    @default("idle")
+  /// When refreshStatus became running — a stale lock is ignored.
+  refreshStartedAt DateTime?
+  /// Why the last refresh failed.
+  refreshError    String?
+  /// Last successful refresh.
+  lastRefreshedAt DateTime?
+  /// Creation timestamp.
+  createdAt       DateTime  @default(now())
+  /// Update timestamp.
+  updatedAt       DateTime  @updatedAt
+
+  widgets         RexDashboardWidget[]
+
+  @@index([organizationId, updatedAt])
+  @@map("rex_dashboard")
+}
+
+/// One tile on a Rex dashboard.
+model RexDashboardWidget {
+  /// Widget id (also the id the model refers to it by).
+  id             String       @id
+  /// Parent dashboard.
+  dashboardId    String
+  /// Owning organization id.
+  organizationId String
+  /// kpi | chart | table | text.
+  kind           String
+  /// Tile title.
+  title          String
+  /// The read-only query behind the tile; null for text tiles.
+  sql            String?
+  /// Display settings: {size, chart?, kpi?, text?}.
+  spec           Json
+  /// Grid position {x, y, w, h} on a 12-column grid.
+  layout         Json
+  /// Dashboard filters this tile responds to.
+  filterIds      String[]
+  /// Creation timestamp.
+  createdAt      DateTime     @default(now())
+  /// Update timestamp.
+  updatedAt      DateTime     @updatedAt
+
+  dashboard      RexDashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@index([dashboardId])
+  @@map("rex_dashboard_widget")
+}
+
+/// A computed result for one tile under one filter state. Public links read only these, so an
+/// anonymous view never runs a query unless it asks for a filter combination not yet computed.
+model RexDashboardResult {
+  /// Result id.
+  id          String   @id @default(cuid())
+  /// Parent dashboard.
+  dashboardId String
+  /// Widget the result belongs to.
+  widgetId    String
+  /// "all", or the canonical JSON of the filter state.
+  filterKey   String
+  /// The dashboard dataVersion this was computed for.
+  dataVersion String
+  /// Result column names in order.
+  columns     Json
+  /// Result rows as objects (at most 200).
+  rows        Json
+  /// The query error, when it failed on this data.
+  error       String?
+  /// When it was computed.
+  computedAt  DateTime @default(now())
+
+  @@unique([widgetId, filterKey, dataVersion])
+  @@index([dashboardId, dataVersion])
+  @@map("rex_dashboard_result")
 }
 
 /// Rex result card pinned to the Today/dashboard surface.

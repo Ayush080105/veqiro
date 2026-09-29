@@ -425,6 +425,9 @@ export const ModelName = {
   LexActivity: 'LexActivity',
   LexSettings: 'LexSettings',
   RexDataset: 'RexDataset',
+  RexDashboard: 'RexDashboard',
+  RexDashboardWidget: 'RexDashboardWidget',
+  RexDashboardResult: 'RexDashboardResult',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
   VegaFollowUp: 'VegaFollowUp',
@@ -473,7 +476,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign" | "researchProject" | "researchSource" | "researchFinding" | "memoryItem" | "seoPage" | "seoIssue"
+    modelProps: "user" | "session" | "account" | "verification" | "organization" | "subscription" | "entitlement" | "billingSubscription" | "pendingCheckout" | "billingWebhookEvent" | "activityLog" | "member" | "invitation" | "brandKit" | "brandImage" | "message" | "agentMemory" | "orgMemory" | "socialAccount" | "mcpConnection" | "mcpPendingAction" | "mcpToolPreference" | "mcpActionLog" | "mcpDashboardTile" | "mcpTriggerSubscription" | "mcpTriggerEvent" | "mcpApprovalPolicy" | "mcpPlay" | "mcpToolCatalog" | "mcpTriggerCatalog" | "mayaContentPlan" | "publishedPost" | "mayaContentIdea" | "sageSavedKeyword" | "lexSource" | "lexFinding" | "lexObligation" | "lexPreference" | "lexActivity" | "lexSettings" | "rexDataset" | "rexDashboard" | "rexDashboardWidget" | "rexDashboardResult" | "rexPinnedCard" | "rexSettings" | "vegaFollowUp" | "vIPContact" | "vegaBriefingCache" | "vegaLabel" | "vegaInboxSnapshot" | "feedbackPost" | "feedbackVote" | "feedbackComment" | "upcomingAgent" | "upcomingAgentVote" | "waitlistEntry" | "task" | "expenseGroup" | "expenseGroupMember" | "expense" | "expenseSplit" | "mayaUsage" | "settlement" | "agentRun" | "agentRunStep" | "activityEvent" | "workObjectIndex" | "insight" | "handoff" | "campaign" | "researchProject" | "researchSource" | "researchFinding" | "memoryItem" | "seoPage" | "seoIssue"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -3508,6 +3511,228 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.RexDatasetCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.RexDatasetCountAggregateOutputType> | number
+        }
+      }
+    }
+    RexDashboard: {
+      payload: Prisma.$RexDashboardPayload<ExtArgs>
+      fields: Prisma.RexDashboardFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RexDashboardFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RexDashboardFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>
+        }
+        findFirst: {
+          args: Prisma.RexDashboardFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RexDashboardFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>
+        }
+        findMany: {
+          args: Prisma.RexDashboardFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>[]
+        }
+        create: {
+          args: Prisma.RexDashboardCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>
+        }
+        createMany: {
+          args: Prisma.RexDashboardCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RexDashboardCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>[]
+        }
+        delete: {
+          args: Prisma.RexDashboardDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>
+        }
+        update: {
+          args: Prisma.RexDashboardUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>
+        }
+        deleteMany: {
+          args: Prisma.RexDashboardDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RexDashboardUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RexDashboardUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>[]
+        }
+        upsert: {
+          args: Prisma.RexDashboardUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardPayload>
+        }
+        aggregate: {
+          args: Prisma.RexDashboardAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRexDashboard>
+        }
+        groupBy: {
+          args: Prisma.RexDashboardGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDashboardGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RexDashboardCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDashboardCountAggregateOutputType> | number
+        }
+      }
+    }
+    RexDashboardWidget: {
+      payload: Prisma.$RexDashboardWidgetPayload<ExtArgs>
+      fields: Prisma.RexDashboardWidgetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RexDashboardWidgetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RexDashboardWidgetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>
+        }
+        findFirst: {
+          args: Prisma.RexDashboardWidgetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RexDashboardWidgetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>
+        }
+        findMany: {
+          args: Prisma.RexDashboardWidgetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>[]
+        }
+        create: {
+          args: Prisma.RexDashboardWidgetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>
+        }
+        createMany: {
+          args: Prisma.RexDashboardWidgetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RexDashboardWidgetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>[]
+        }
+        delete: {
+          args: Prisma.RexDashboardWidgetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>
+        }
+        update: {
+          args: Prisma.RexDashboardWidgetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>
+        }
+        deleteMany: {
+          args: Prisma.RexDashboardWidgetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RexDashboardWidgetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RexDashboardWidgetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>[]
+        }
+        upsert: {
+          args: Prisma.RexDashboardWidgetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardWidgetPayload>
+        }
+        aggregate: {
+          args: Prisma.RexDashboardWidgetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRexDashboardWidget>
+        }
+        groupBy: {
+          args: Prisma.RexDashboardWidgetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDashboardWidgetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RexDashboardWidgetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDashboardWidgetCountAggregateOutputType> | number
+        }
+      }
+    }
+    RexDashboardResult: {
+      payload: Prisma.$RexDashboardResultPayload<ExtArgs>
+      fields: Prisma.RexDashboardResultFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.RexDashboardResultFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.RexDashboardResultFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>
+        }
+        findFirst: {
+          args: Prisma.RexDashboardResultFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.RexDashboardResultFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>
+        }
+        findMany: {
+          args: Prisma.RexDashboardResultFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>[]
+        }
+        create: {
+          args: Prisma.RexDashboardResultCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>
+        }
+        createMany: {
+          args: Prisma.RexDashboardResultCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.RexDashboardResultCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>[]
+        }
+        delete: {
+          args: Prisma.RexDashboardResultDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>
+        }
+        update: {
+          args: Prisma.RexDashboardResultUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>
+        }
+        deleteMany: {
+          args: Prisma.RexDashboardResultDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.RexDashboardResultUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.RexDashboardResultUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>[]
+        }
+        upsert: {
+          args: Prisma.RexDashboardResultUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$RexDashboardResultPayload>
+        }
+        aggregate: {
+          args: Prisma.RexDashboardResultAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateRexDashboardResult>
+        }
+        groupBy: {
+          args: Prisma.RexDashboardResultGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDashboardResultGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.RexDashboardResultCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.RexDashboardResultCountAggregateOutputType> | number
         }
       }
     }
@@ -6690,11 +6915,74 @@ export const RexDatasetScalarFieldEnum = {
   purpose: 'purpose',
   points: 'points',
   meta: 'meta',
+  sourceKind: 'sourceKind',
+  sourceUrl: 'sourceUrl',
+  downloadUrl: 'downloadUrl',
+  contentHash: 'contentHash',
+  lastSyncedAt: 'lastSyncedAt',
+  syncError: 'syncError',
+  syncEnabled: 'syncEnabled',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type RexDatasetScalarFieldEnum = (typeof RexDatasetScalarFieldEnum)[keyof typeof RexDatasetScalarFieldEnum]
+
+
+export const RexDashboardScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  title: 'title',
+  description: 'description',
+  prompt: 'prompt',
+  datasetIds: 'datasetIds',
+  datasetAliases: 'datasetAliases',
+  filters: 'filters',
+  isPublic: 'isPublic',
+  shareToken: 'shareToken',
+  dataVersion: 'dataVersion',
+  refreshStatus: 'refreshStatus',
+  refreshStartedAt: 'refreshStartedAt',
+  refreshError: 'refreshError',
+  lastRefreshedAt: 'lastRefreshedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDashboardScalarFieldEnum = (typeof RexDashboardScalarFieldEnum)[keyof typeof RexDashboardScalarFieldEnum]
+
+
+export const RexDashboardWidgetScalarFieldEnum = {
+  id: 'id',
+  dashboardId: 'dashboardId',
+  organizationId: 'organizationId',
+  kind: 'kind',
+  title: 'title',
+  sql: 'sql',
+  spec: 'spec',
+  layout: 'layout',
+  filterIds: 'filterIds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDashboardWidgetScalarFieldEnum = (typeof RexDashboardWidgetScalarFieldEnum)[keyof typeof RexDashboardWidgetScalarFieldEnum]
+
+
+export const RexDashboardResultScalarFieldEnum = {
+  id: 'id',
+  dashboardId: 'dashboardId',
+  widgetId: 'widgetId',
+  filterKey: 'filterKey',
+  dataVersion: 'dataVersion',
+  columns: 'columns',
+  rows: 'rows',
+  error: 'error',
+  computedAt: 'computedAt'
+} as const
+
+export type RexDashboardResultScalarFieldEnum = (typeof RexDashboardResultScalarFieldEnum)[keyof typeof RexDashboardResultScalarFieldEnum]
 
 
 export const RexPinnedCardScalarFieldEnum = {
@@ -8036,6 +8324,9 @@ export type GlobalOmitConfig = {
   lexActivity?: Prisma.LexActivityOmit
   lexSettings?: Prisma.LexSettingsOmit
   rexDataset?: Prisma.RexDatasetOmit
+  rexDashboard?: Prisma.RexDashboardOmit
+  rexDashboardWidget?: Prisma.RexDashboardWidgetOmit
+  rexDashboardResult?: Prisma.RexDashboardResultOmit
   rexPinnedCard?: Prisma.RexPinnedCardOmit
   rexSettings?: Prisma.RexSettingsOmit
   vegaFollowUp?: Prisma.VegaFollowUpOmit

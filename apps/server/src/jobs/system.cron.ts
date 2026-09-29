@@ -4,6 +4,7 @@ import { runDailyAlertsNow } from "../modules/agents/rex/rex.cron.js";
 import { startMayaScheduledPostsCron } from "../modules/agents/maya/maya.cron.js";
 import { sweepExpiredEntitlements } from "./entitlementSweeper.job.js";
 import { runWeeklyLegalBrief } from "../modules/agents/lex/lex.cron.js";
+import { syncAllLinkedSources } from "../modules/agents/rex/rex.dashboards.service.js";
 
 export function startSystemCrons() {
   // Vega follow-up overdue check — 09:00 UTC daily
@@ -36,6 +37,14 @@ export function startSystemCrons() {
   cron.schedule("30 3 * * 1", () => {
     void runWeeklyLegalBrief().catch((err) => {
       console.error("[system-cron] Lex legal brief failed", err);
+    });
+  });
+
+  // Rex linked spreadsheets — every 15 min. Only sheets a dashboard uses; an unchanged sheet
+  // costs one plain download and nothing else.
+  cron.schedule("*/15 * * * *", () => {
+    void syncAllLinkedSources().catch((err) => {
+      console.error("[system-cron] Rex linked sheet sync failed", err);
     });
   });
 

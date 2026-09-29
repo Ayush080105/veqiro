@@ -34,6 +34,13 @@ export type RexDatasetMinAggregateOutputType = {
   unit: string | null
   period: string | null
   purpose: string | null
+  sourceKind: string | null
+  sourceUrl: string | null
+  downloadUrl: string | null
+  contentHash: string | null
+  lastSyncedAt: Date | null
+  syncError: string | null
+  syncEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -48,6 +55,13 @@ export type RexDatasetMaxAggregateOutputType = {
   unit: string | null
   period: string | null
   purpose: string | null
+  sourceKind: string | null
+  sourceUrl: string | null
+  downloadUrl: string | null
+  contentHash: string | null
+  lastSyncedAt: Date | null
+  syncError: string | null
+  syncEnabled: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -64,6 +78,13 @@ export type RexDatasetCountAggregateOutputType = {
   purpose: number
   points: number
   meta: number
+  sourceKind: number
+  sourceUrl: number
+  downloadUrl: number
+  contentHash: number
+  lastSyncedAt: number
+  syncError: number
+  syncEnabled: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -80,6 +101,13 @@ export type RexDatasetMinAggregateInputType = {
   unit?: true
   period?: true
   purpose?: true
+  sourceKind?: true
+  sourceUrl?: true
+  downloadUrl?: true
+  contentHash?: true
+  lastSyncedAt?: true
+  syncError?: true
+  syncEnabled?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -94,6 +122,13 @@ export type RexDatasetMaxAggregateInputType = {
   unit?: true
   period?: true
   purpose?: true
+  sourceKind?: true
+  sourceUrl?: true
+  downloadUrl?: true
+  contentHash?: true
+  lastSyncedAt?: true
+  syncError?: true
+  syncEnabled?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -110,6 +145,13 @@ export type RexDatasetCountAggregateInputType = {
   purpose?: true
   points?: true
   meta?: true
+  sourceKind?: true
+  sourceUrl?: true
+  downloadUrl?: true
+  contentHash?: true
+  lastSyncedAt?: true
+  syncError?: true
+  syncEnabled?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -199,6 +241,13 @@ export type RexDatasetGroupByOutputType = {
   purpose: string
   points: runtime.JsonValue
   meta: runtime.JsonValue | null
+  sourceKind: string
+  sourceUrl: string | null
+  downloadUrl: string | null
+  contentHash: string | null
+  lastSyncedAt: Date | null
+  syncError: string | null
+  syncEnabled: boolean
   createdAt: Date
   updatedAt: Date
   _count: RexDatasetCountAggregateOutputType | null
@@ -236,6 +285,13 @@ export type RexDatasetWhereInput = {
   purpose?: Prisma.StringFilter<"RexDataset"> | string
   points?: Prisma.JsonFilter<"RexDataset">
   meta?: Prisma.JsonNullableFilter<"RexDataset">
+  sourceKind?: Prisma.StringFilter<"RexDataset"> | string
+  sourceUrl?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  downloadUrl?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  contentHash?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  lastSyncedAt?: Prisma.DateTimeNullableFilter<"RexDataset"> | Date | string | null
+  syncError?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  syncEnabled?: Prisma.BoolFilter<"RexDataset"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
 }
@@ -252,6 +308,13 @@ export type RexDatasetOrderByWithRelationInput = {
   purpose?: Prisma.SortOrder
   points?: Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceKind?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  downloadUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  contentHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  syncError?: Prisma.SortOrderInput | Prisma.SortOrder
+  syncEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -271,6 +334,13 @@ export type RexDatasetWhereUniqueInput = Prisma.AtLeast<{
   purpose?: Prisma.StringFilter<"RexDataset"> | string
   points?: Prisma.JsonFilter<"RexDataset">
   meta?: Prisma.JsonNullableFilter<"RexDataset">
+  sourceKind?: Prisma.StringFilter<"RexDataset"> | string
+  sourceUrl?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  downloadUrl?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  contentHash?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  lastSyncedAt?: Prisma.DateTimeNullableFilter<"RexDataset"> | Date | string | null
+  syncError?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  syncEnabled?: Prisma.BoolFilter<"RexDataset"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
 }, "id">
@@ -287,6 +357,13 @@ export type RexDatasetOrderByWithAggregationInput = {
   purpose?: Prisma.SortOrder
   points?: Prisma.SortOrder
   meta?: Prisma.SortOrderInput | Prisma.SortOrder
+  sourceKind?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  downloadUrl?: Prisma.SortOrderInput | Prisma.SortOrder
+  contentHash?: Prisma.SortOrderInput | Prisma.SortOrder
+  lastSyncedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  syncError?: Prisma.SortOrderInput | Prisma.SortOrder
+  syncEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.RexDatasetCountOrderByAggregateInput
@@ -309,6 +386,13 @@ export type RexDatasetScalarWhereWithAggregatesInput = {
   purpose?: Prisma.StringWithAggregatesFilter<"RexDataset"> | string
   points?: Prisma.JsonWithAggregatesFilter<"RexDataset">
   meta?: Prisma.JsonNullableWithAggregatesFilter<"RexDataset">
+  sourceKind?: Prisma.StringWithAggregatesFilter<"RexDataset"> | string
+  sourceUrl?: Prisma.StringNullableWithAggregatesFilter<"RexDataset"> | string | null
+  downloadUrl?: Prisma.StringNullableWithAggregatesFilter<"RexDataset"> | string | null
+  contentHash?: Prisma.StringNullableWithAggregatesFilter<"RexDataset"> | string | null
+  lastSyncedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"RexDataset"> | Date | string | null
+  syncError?: Prisma.StringNullableWithAggregatesFilter<"RexDataset"> | string | null
+  syncEnabled?: Prisma.BoolWithAggregatesFilter<"RexDataset"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"RexDataset"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"RexDataset"> | Date | string
 }
@@ -325,6 +409,13 @@ export type RexDatasetCreateInput = {
   purpose?: string
   points: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  sourceKind?: string
+  sourceUrl?: string | null
+  downloadUrl?: string | null
+  contentHash?: string | null
+  lastSyncedAt?: Date | string | null
+  syncError?: string | null
+  syncEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -341,6 +432,13 @@ export type RexDatasetUncheckedCreateInput = {
   purpose?: string
   points: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  sourceKind?: string
+  sourceUrl?: string | null
+  downloadUrl?: string | null
+  contentHash?: string | null
+  lastSyncedAt?: Date | string | null
+  syncError?: string | null
+  syncEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -357,6 +455,13 @@ export type RexDatasetUpdateInput = {
   purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  sourceKind?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  syncError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -373,6 +478,13 @@ export type RexDatasetUncheckedUpdateInput = {
   purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  sourceKind?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  syncError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -389,6 +501,13 @@ export type RexDatasetCreateManyInput = {
   purpose?: string
   points: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  sourceKind?: string
+  sourceUrl?: string | null
+  downloadUrl?: string | null
+  contentHash?: string | null
+  lastSyncedAt?: Date | string | null
+  syncError?: string | null
+  syncEnabled?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -405,6 +524,13 @@ export type RexDatasetUpdateManyMutationInput = {
   purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  sourceKind?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  syncError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -421,6 +547,13 @@ export type RexDatasetUncheckedUpdateManyInput = {
   purpose?: Prisma.StringFieldUpdateOperationsInput | string
   points?: Prisma.JsonNullValueInput | runtime.InputJsonValue
   meta?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  sourceKind?: Prisma.StringFieldUpdateOperationsInput | string
+  sourceUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  downloadUrl?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  contentHash?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lastSyncedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  syncError?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  syncEnabled?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -437,6 +570,13 @@ export type RexDatasetCountOrderByAggregateInput = {
   purpose?: Prisma.SortOrder
   points?: Prisma.SortOrder
   meta?: Prisma.SortOrder
+  sourceKind?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrder
+  downloadUrl?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
+  lastSyncedAt?: Prisma.SortOrder
+  syncError?: Prisma.SortOrder
+  syncEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -451,6 +591,13 @@ export type RexDatasetMaxOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   period?: Prisma.SortOrder
   purpose?: Prisma.SortOrder
+  sourceKind?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrder
+  downloadUrl?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
+  lastSyncedAt?: Prisma.SortOrder
+  syncError?: Prisma.SortOrder
+  syncEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -465,6 +612,13 @@ export type RexDatasetMinOrderByAggregateInput = {
   unit?: Prisma.SortOrder
   period?: Prisma.SortOrder
   purpose?: Prisma.SortOrder
+  sourceKind?: Prisma.SortOrder
+  sourceUrl?: Prisma.SortOrder
+  downloadUrl?: Prisma.SortOrder
+  contentHash?: Prisma.SortOrder
+  lastSyncedAt?: Prisma.SortOrder
+  syncError?: Prisma.SortOrder
+  syncEnabled?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -483,6 +637,13 @@ export type RexDatasetSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   purpose?: boolean
   points?: boolean
   meta?: boolean
+  sourceKind?: boolean
+  sourceUrl?: boolean
+  downloadUrl?: boolean
+  contentHash?: boolean
+  lastSyncedAt?: boolean
+  syncError?: boolean
+  syncEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexDataset"]>
@@ -499,6 +660,13 @@ export type RexDatasetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   purpose?: boolean
   points?: boolean
   meta?: boolean
+  sourceKind?: boolean
+  sourceUrl?: boolean
+  downloadUrl?: boolean
+  contentHash?: boolean
+  lastSyncedAt?: boolean
+  syncError?: boolean
+  syncEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexDataset"]>
@@ -515,6 +683,13 @@ export type RexDatasetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   purpose?: boolean
   points?: boolean
   meta?: boolean
+  sourceKind?: boolean
+  sourceUrl?: boolean
+  downloadUrl?: boolean
+  contentHash?: boolean
+  lastSyncedAt?: boolean
+  syncError?: boolean
+  syncEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexDataset"]>
@@ -531,11 +706,18 @@ export type RexDatasetSelectScalar = {
   purpose?: boolean
   points?: boolean
   meta?: boolean
+  sourceKind?: boolean
+  sourceUrl?: boolean
+  downloadUrl?: boolean
+  contentHash?: boolean
+  lastSyncedAt?: boolean
+  syncError?: boolean
+  syncEnabled?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type RexDatasetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "sourceId" | "name" | "metricKey" | "unit" | "period" | "purpose" | "points" | "meta" | "createdAt" | "updatedAt", ExtArgs["result"]["rexDataset"]>
+export type RexDatasetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "sourceId" | "name" | "metricKey" | "unit" | "period" | "purpose" | "points" | "meta" | "sourceKind" | "sourceUrl" | "downloadUrl" | "contentHash" | "lastSyncedAt" | "syncError" | "syncEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["rexDataset"]>
 
 export type $RexDatasetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "RexDataset"
@@ -585,6 +767,34 @@ export type $RexDatasetPayload<ExtArgs extends runtime.Types.Extensions.Internal
      * Parsed raw table and import metadata.
      */
     meta: runtime.JsonValue | null
+    /**
+     * Where the data comes from: "upload" (a file) or "link" (a shared spreadsheet kept in sync).
+     */
+    sourceKind: string
+    /**
+     * The share link as the customer pasted it (link sources only).
+     */
+    sourceUrl: string | null
+    /**
+     * The direct download URL the share link resolves to.
+     */
+    downloadUrl: string | null
+    /**
+     * sha256 of the last fetched file, so an unchanged sheet costs no parsing or queries.
+     */
+    contentHash: string | null
+    /**
+     * Last successful check of a linked sheet.
+     */
+    lastSyncedAt: Date | null
+    /**
+     * Why the last sync failed, shown to the customer; null when it worked.
+     */
+    syncError: string | null
+    /**
+     * Whether a linked sheet is re-fetched on the schedule.
+     */
+    syncEnabled: boolean
     /**
      * Creation timestamp.
      */
@@ -1027,6 +1237,13 @@ export interface RexDatasetFieldRefs {
   readonly purpose: Prisma.FieldRef<"RexDataset", 'String'>
   readonly points: Prisma.FieldRef<"RexDataset", 'Json'>
   readonly meta: Prisma.FieldRef<"RexDataset", 'Json'>
+  readonly sourceKind: Prisma.FieldRef<"RexDataset", 'String'>
+  readonly sourceUrl: Prisma.FieldRef<"RexDataset", 'String'>
+  readonly downloadUrl: Prisma.FieldRef<"RexDataset", 'String'>
+  readonly contentHash: Prisma.FieldRef<"RexDataset", 'String'>
+  readonly lastSyncedAt: Prisma.FieldRef<"RexDataset", 'DateTime'>
+  readonly syncError: Prisma.FieldRef<"RexDataset", 'String'>
+  readonly syncEnabled: Prisma.FieldRef<"RexDataset", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"RexDataset", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"RexDataset", 'DateTime'>
 }

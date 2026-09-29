@@ -11,7 +11,7 @@ import {
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as rexRepository from "./rex.repository.js";
 import * as mcpService from "../../mcp/mcp.service.js";
-import { parseUploaded } from "./rex.csv.js";
+import { parseBuffer, parseUploaded } from "./rex.csv.js";
 import type {
   SendMessageInput,
   QueryDatasetInput,
@@ -46,7 +46,7 @@ type RexDatasetRow = Awaited<ReturnType<typeof rexRepository.findDataset>> & obj
 /** What the AI service needs to answer a question about one dataset: the stored preview (column
  *  names, types, fallback rows, every sheet) and, when the upload is on R2, a short-lived link so
  *  every row of the file is used. Null when the dataset has nothing to query. */
-async function datasetPayloadForAI(
+export async function datasetPayloadForAI(
   dataset: RexDatasetRow,
   organizationId: string,
 ): Promise<{ name: string; table: Record<string, unknown>; file: { file_url: string; file_name: string } | Record<string, never> } | null> {
@@ -883,11 +883,17 @@ export const patchSettings = (
 export const listDatasets = (organizationId: string) =>
   rexRepository.findDatasets(organizationId);
 
-export const parseDataset = async (organizationId: string, r2Key: string) => {
+/** Parse a file already on R2. `buffer` skips the download when the caller has the bytes
+ *  (a linked sheet that was just fetched). */
+export const parseDataset = async (
+  organizationId: string,
+  r2Key: string,
+  buffer?: { data: Buffer; ext: string },
+) => {
   if (!keyBelongsToOrg(r2Key, organizationId)) {
     throw new ForbiddenError("That file belongs to another workspace.");
   }
-  const result = await parseUploaded(r2Key);
+  const result = buffer ? parseBuffer(buffer.data, buffer.ext) : await parseUploaded(r2Key);
   // The stored table is a preview; questions are answered over the whole file.
   if (result.rawTable.headers.length > 0) result.rawTable.fileKey = r2Key;
   // C7: surface saved column mapping from prior uploads — and apply it
@@ -939,11 +945,15 @@ export const saveDatasets = async (
     meta?: unknown;
     purpose?: string;
   }>,
-  mapping?: { dateColumn: string; valueColumns: Array<{ column: string; metricKey: string }> }
+  mapping?: { dateColumn: string; valueColumns: Array<{ column: string; metricKey: string }> },
+  source?: { sourceUrl: string; downloadUrl: string; contentHash: string },
 ) => {
   const created = await Promise.all(
     datasets.map((d) =>
-      rexRepository.createDataset({ organizationId, userId, ...d })
+      rexRepository.createDataset({
+        organizationId, userId, ...d,
+        ...(source ? { sourceKind: "link", ...source, lastSyncedAt: new Date() } : {}),
+      })
     )
   );
   // C7: persist the mapping so the next upload can auto-apply

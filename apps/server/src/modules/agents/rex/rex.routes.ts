@@ -33,12 +33,14 @@ import {
   analyzeDataset,
   generateDatasetReport,
 } from "./rex.controller.js";
+import * as dashboards from "./rex.dashboards.controller.js";
 
 const router = Router();
 // Public webhook routes — no auth (validated by API key body field)
 export const publicRouter = Router();
 publicRouter.post("/agents/rex/ingest", ingest);
 publicRouter.get("/agents/rex/pins/public/:token", getSharedPin);
+publicRouter.get("/agents/rex/dashboards/public/:token", dashboards.getPublic);
 
 router.post("/chat", msgRex);
 router.post("/chat/stream", msgRexStream);
@@ -80,5 +82,23 @@ router.delete("/datasets/:id", deleteDataset);
 router.post("/datasets/:id/query", queryDataset);
 router.post("/datasets/:id/analyze", analyzeDataset);
 router.post("/datasets/:id/report", generateDatasetReport);
+
+// Linked spreadsheets (Google Sheets, OneDrive, Dropbox, direct URLs) kept in sync
+router.post("/datasets/link/parse", dashboards.parseLink);
+router.post("/datasets/link/sync", dashboards.syncLink);
+
+// Dashboards
+router.get("/dashboards", dashboards.list);
+router.post("/dashboards", dashboards.create);
+router.get("/dashboards/:id", dashboards.get);
+router.patch("/dashboards/:id", dashboards.patch);
+router.delete("/dashboards/:id", dashboards.remove);
+router.post("/dashboards/:id/prompt", dashboards.edit);
+router.patch("/dashboards/:id/layout", dashboards.layout);
+router.post("/dashboards/:id/refresh", dashboards.refresh);
+router.patch("/dashboards/:id/share", dashboards.share);
+router.patch("/dashboards/:id/widgets/:wid", dashboards.patchWidget);
+router.delete("/dashboards/:id/widgets/:wid", dashboards.removeWidget);
+router.post("/dashboards/:id/widgets/:wid/duplicate", dashboards.duplicateWidget);
 
 export default router;

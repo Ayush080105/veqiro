@@ -84,6 +84,8 @@ Analyses business metrics, forecasts trends, models scenarios, and generates inv
 - `investor-update` — subject line, exec summary, full email body
 - `variance` — budget vs actual with direction and narrative
 - `board-deck` — full HTML board presentation
+- **Dashboards** (workspace → Work → Dashboards) — built from a prompt over up to 5 datasets. Each tile is one read-only DuckDB query that is validated before it's kept. Tiles can be edited on a 12-column grid, by prompt, or in a per-tile settings panel, and a dashboard can be published at `/share/rex/dashboard/<token>`. Public views read stored results (`rex_dashboard_result`) and never run queries, except that a filter combination nobody has asked for yet is computed once, rate-limited, and then stored. Code: `apps/ai/agents/rex/dashboards.py`, `apps/server/src/modules/agents/rex/rex.dashboards.*`, `apps/main/src/components/agents/rex/dashboards/`.
+- **Linked spreadsheets** — a pasted Google Sheets / OneDrive / SharePoint / Dropbox / direct CSV-XLSX link becomes a dataset. It is re-fetched every 15 minutes, but only when a dashboard uses it; an unchanged file costs no parsing or queries. It works through a plain download, not Composio, so the file must be shared "anyone with the link". Code: `rex.links.ts`, which includes the SSRF guard.
 
 **Hands off to →**
 

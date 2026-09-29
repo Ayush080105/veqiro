@@ -2,10 +2,11 @@
 
 import * as React from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Upload, Trash2, BarChart2, CheckCircle, AlertCircle, Loader2, TrendingUp, LineChart, DollarSign, MessageSquare, Send, FileDown } from "lucide-react"
+import { Upload, Trash2, BarChart2, CheckCircle, AlertCircle, Loader2, TrendingUp, LineChart, DollarSign, MessageSquare, Send, FileDown, Link2, RefreshCw } from "lucide-react"
 import { apiFetch } from "@/lib/api/client"
 import { uploadToR2 } from "@/lib/api/uploads"
 import { queryDataset, generateDatasetReport } from "@/lib/api/rex"
+import { parseSpreadsheetLink, syncSpreadsheetLink, type LinkSource } from "@/lib/api/rexDashboards"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -51,6 +52,10 @@ export interface RexDataset {
   points: DataPoint[]
   createdAt: string
   updatedAt: string
+  sourceKind?: string
+  sourceUrl?: string | null
+  lastSyncedAt?: string | null
+  syncError?: string | null
 }
 
 // ── API helpers ───────────────────────────────────────────────────────────────
@@ -74,10 +79,11 @@ const saveDatasets = (
   }>,
   mapping?: ColumnMapping,
   rawTable?: RexRawTable,
+  source?: Omit<LinkSource, "provider">,
 ) =>
   apiFetch<RexDataset[]>("/agents/rex/datasets", {
     method: "POST",
-    body: { datasets, mapping, rawTable },
+    body: { datasets, mapping, rawTable, source },
   })
 
 const deleteDataset = (id: string) =>
@@ -109,6 +115,9 @@ export function RexDataTab({
   const [queryingDatasetId, setQueryingDatasetId] = React.useState<string | null>(null)
   const [generatingReportId, setGeneratingReportId] = React.useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<RexDataset | null>(null)
+  const [linkUrl, setLinkUrl] = React.useState("")
+  const [linkSource, setLinkSource] = React.useState<LinkSource | null>(null)
+  const [syncingUrl, setSyncingUrl] = React.useState<string | null>(null)
 
   const { data: datasets = [], isLoading } = useQuery({
     queryKey: qk.rexDatasets(organizationId),
@@ -131,31 +140,69 @@ export function RexDataTab({
     },
   })
 
+  const showParsed = (result: ParseResult, label: string) => {
+    setParseResult(result)
+    setEditableDatasets(
+      result.datasets.map((d) => ({
+        metricKey: d.metricKey,
+        // For the single "table" fallback dataset, use a friendlier name
+        name: d.metricKey === "table"
+          ? `${label} — ${new Date().toLocaleDateString()}`
+          : `${d.metricKey} — ${new Date().toLocaleDateString()}`,
+        period: "monthly",
+        points: d.points,
+        purpose: "actual" as const,
+      }))
+    )
+  }
+
   const handleFile = async (file: File) => {
     setUploadError(null)
     setParseResult(null)
+    setLinkSource(null)
     setUploading(true)
     try {
       const r2 = await uploadToR2("rex-dataset", file)
       if (!r2.ok) { setUploadError(r2.message); return }
-      const result = await parseDataset(r2.key)
-      setParseResult(result)
-      setEditableDatasets(
-        result.datasets.map((d) => ({
-          metricKey: d.metricKey,
-          // For the single "table" fallback dataset, use a friendlier name
-          name: d.metricKey === "table"
-            ? `Dataset — ${new Date().toLocaleDateString()}`
-            : `${d.metricKey} — ${new Date().toLocaleDateString()}`,
-          period: "monthly",
-          points: d.points,
-          purpose: "actual" as const,
-        }))
-      )
+      showParsed(await parseDataset(r2.key), "Dataset")
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : "Upload failed.")
     } finally {
       setUploading(false)
+    }
+  }
+
+  // A pasted share link: fetched and parsed like an upload, then kept in sync by the server.
+  const handleLink = async () => {
+    const url = linkUrl.trim()
+    if (!url) return
+    setUploadError(null)
+    setParseResult(null)
+    setUploading(true)
+    try {
+      const { source, ...result } = await parseSpreadsheetLink<ParseResult>(url)
+      setLinkSource(source)
+      showParsed(result, "Linked sheet")
+      setLinkUrl("")
+    } catch (err) {
+      setLinkSource(null)
+      setUploadError(err instanceof Error ? err.message : "Couldn't read that link.")
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleSync = async (sourceUrl: string) => {
+    setSyncingUrl(sourceUrl)
+    try {
+      const res = await syncSpreadsheetLink(sourceUrl)
+      if (res.error) setUploadError(res.error)
+      invalidateAllDatasetKeys()
+      void qc.invalidateQueries({ queryKey: ["rex", "dashboard"] })
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Sync failed.")
+    } finally {
+      setSyncingUrl(null)
     }
   }
 
@@ -173,7 +220,9 @@ export function RexDataTab({
         editableDatasets,
         parseResult?.candidate_mapping,
         parseResult?.rawTable,
+        linkSource ? { sourceUrl: linkSource.sourceUrl, downloadUrl: linkSource.downloadUrl, contentHash: linkSource.contentHash } : undefined,
       )
+      setLinkSource(null)
       setSavedRecords(records)
       setSavedRawTable(parseResult?.rawTable ?? null)
       setQuickQuery("")
@@ -264,6 +313,31 @@ export function RexDataTab({
           CSV or Excel · max 10 MB 
         </p>
       </div>
+
+      {/* Or a live link: the dataset follows the sheet as it changes. */}
+      <form
+        className="flex flex-col gap-1.5"
+        onSubmit={(e) => { e.preventDefault(); void handleLink() }}
+      >
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Link2 className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="Or paste a Google Sheets, Excel Online, Dropbox or CSV link"
+              className="pl-8 text-xs"
+              disabled={uploading}
+            />
+          </div>
+          <Button type="submit" size="sm" variant="outline" disabled={uploading || !linkUrl.trim()}>
+            Connect
+          </Button>
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          Share the file as &quot;anyone with the link can view&quot;. Rex checks it every 15 minutes and updates your dashboards when it changes.
+        </p>
+      </form>
 
       {uploadError && (
         <div className="flex items-center gap-2 border border-destructive/30 bg-destructive/5 p-3 text-[11px] text-destructive">
@@ -549,8 +623,25 @@ export function RexDataTab({
                   <p className="truncate text-[12px] font-medium">{ds.name}</p>
                   <p className="text-[10px] text-muted-foreground">
                     {ds.metricKey} · {rowCount} {hasTimeSeries ? "pts" : "rows"} · {ds.period}
+                    {ds.sourceKind === "link" && (
+                      <span className={cn("ml-1", ds.syncError ? "text-destructive" : "text-chart-2")}>
+                        · {ds.syncError ? "sync failed" : "live link"}
+                      </span>
+                    )}
                   </p>
+                  {ds.syncError && <p className="truncate text-[10px] text-destructive" title={ds.syncError}>{ds.syncError}</p>}
                 </div>
+                {ds.sourceKind === "link" && ds.sourceUrl && (
+                  <button
+                    type="button"
+                    title="Check the linked sheet for changes now"
+                    onClick={() => void handleSync(ds.sourceUrl!)}
+                    disabled={syncingUrl === ds.sourceUrl}
+                    className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50"
+                  >
+                    <RefreshCw className={cn("size-2.5", syncingUrl === ds.sourceUrl && "animate-spin")} /> Sync
+                  </button>
+                )}
                 <button
                   type="button"
                   title="Ask REX about this dataset"

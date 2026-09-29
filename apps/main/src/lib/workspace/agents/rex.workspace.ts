@@ -9,6 +9,22 @@ export const rexWorkspace: AgentWorkspaceSpec = {
 
   workTypes: [
     {
+      slug: "dashboards",
+      label: "Dashboards",
+      labelSingular: "Dashboard",
+      kind: "rex.dashboard",
+      List: lazy(() =>
+        import("@/components/workspace/agents/rex/RexDashboardsWork").then((m) => ({
+          default: m.RexDashboardsWork,
+        })),
+      ),
+      Detail: lazy(() =>
+        import("@/components/workspace/agents/rex/RexDashboardsWork").then((m) => ({
+          default: m.RexDashboardDetail,
+        })),
+      ),
+    },
+    {
       slug: "datasets",
       label: "Datasets",
       labelSingular: "Dataset",

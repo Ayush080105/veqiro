@@ -330,6 +330,23 @@ export type LexSettings = Prisma.LexSettingsModel
  */
 export type RexDataset = Prisma.RexDatasetModel
 /**
+ * Model RexDashboard
+ * A Rex dashboard: widgets computed by SQL over one or more datasets, editable on a grid
+ * canvas and publishable at a public link.
+ */
+export type RexDashboard = Prisma.RexDashboardModel
+/**
+ * Model RexDashboardWidget
+ * One tile on a Rex dashboard.
+ */
+export type RexDashboardWidget = Prisma.RexDashboardWidgetModel
+/**
+ * Model RexDashboardResult
+ * A computed result for one tile under one filter state. Public links read only these, so an
+ * anonymous view never runs a query unless it asks for a filter combination not yet computed.
+ */
+export type RexDashboardResult = Prisma.RexDashboardResultModel
+/**
  * Model RexPinnedCard
  * Rex result card pinned to the Today/dashboard surface.
  */
