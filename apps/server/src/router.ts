@@ -3,6 +3,7 @@ import authMiddleware from "./middlewares/auth.middleware.js";
 import { entitlementMiddleware, entitlementMiddlewareForAgent } from "./middlewares/entitlement.middleware.js";
 import { Agent } from "../prisma/generated/prisma/client.js";
 import { internalKeyMiddleware } from "./middlewares/internal.middleware.js";
+import { activePreferences as activeLexPreferences } from "./modules/agents/lex/lex.memory.js";
 import sageRouter from "./modules/agents/sage/sage.routes.js";
 import rexRouter, { publicRouter as rexPublicRouter } from "./modules/agents/rex/rex.routes.js";
 import scoutRouter from "./modules/agents/scout/scout.routes.js";
@@ -19,10 +20,12 @@ import integrationsProtectedRouter, {
   integrationsPublicRouter,
 } from "./modules/integrations/integrations.routes.js";
 import mcpRouter, { mcpInternalRouter } from "./modules/mcp/mcp.routes.js";
+import workspaceRouter, { workspaceInternalRouter } from "./modules/workspace/workspace.routes.js";
 import brandKitRouter from "./modules/brand-kit/brand-kit.routes.js";
 import { getBrandKitInternal } from "./modules/brand-kit/brand-kit.controller.js";
 import brandImagesRouter from "./modules/brand-images/brand-images.routes.js";
 import { runWeeklyDigestNow, runDailyAlertsNow } from "./modules/agents/rex/rex.cron.js";
+import { getDatasetForAI as getRexDatasetForAI } from "./modules/agents/rex/rex.service.js";
 import messagesRouter from "./modules/messages/messages.routes.js";
 import dashboardRouter from "./modules/dashboard/dashboard.routes.js";
 import uploadsRouter from "./modules/uploads/uploads.routes.js";
@@ -66,6 +69,19 @@ router.use("/brand-kit", authMiddleware, brandKitRouter);
 router.use("/brand-images", authMiddleware, brandImagesRouter);
 router.use("/internal/runs", runsInternalRouter);
 router.get("/internal/brand-kit/:organizationId", internalKeyMiddleware, getBrandKitInternal);
+router.get("/internal/lex/preferences/:organizationId", internalKeyMiddleware, async (req, res) => {
+  res.json(await activeLexPreferences(String(req.params.organizationId)));
+});
+// Rex's chat answering from an uploaded file (query_uploaded_data): the stored preview plus a
+// short-lived link to the whole upload, scoped to the org.
+router.get("/internal/rex/datasets/:organizationId/:datasetId", internalKeyMiddleware, async (req, res) => {
+  const dataset = await getRexDatasetForAI(String(req.params.organizationId), String(req.params.datasetId));
+  if (!dataset) {
+    res.status(404).json({ message: "Dataset not found" });
+    return;
+  }
+  res.json(dataset);
+});
 router.post("/internal/cron/rex-weekly-digest", internalKeyMiddleware, (_req, res) => {
   void runWeeklyDigestNow().then(() => res.json({ ok: true }));
 });
@@ -86,5 +102,11 @@ router.use("/integrations", integrationsProtectedRouter);
 router.use("/mcp", mcpRouter);
 // apps/ai's only path to Composio — Node holds the master API key exclusively.
 router.use("/internal/mcp", mcpInternalRouter);
+
+// Agent workspaces. Auth and per-agent entitlement are applied inside this
+// router rather than here, because the agent is a URL parameter rather than
+// fixed at mount time the way every /agents/* mount above is.
+router.use("/workspace", workspaceRouter);
+router.use("/internal", workspaceInternalRouter);
 
 export default router;

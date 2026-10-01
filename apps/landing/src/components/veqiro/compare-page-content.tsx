@@ -246,7 +246,7 @@ const VERDICTS = [
     tagColor: T.surface2,
     highlight: false,
     color: T.inkInv2,
-    position: 'Widest breadth — 12 helpers covering sales, support, recruiting, and eCommerce. No dedicated legal or CFO agent.',
+    position: 'Widest breadth: 12 helpers covering sales, support, recruiting, and eCommerce. No dedicated legal or CFO agent.',
     price: '$97/mo',
     priceNote: 'monthly · all 12 included',
     coverage: { count: '12 helpers', roles: 'Sales · Support · Social · Recruiting · eCommerce + more' },
@@ -649,7 +649,7 @@ export function ComparePageContent() {
                 period: '/mo',
                 note: 'per agent, billed independently',
                 highlight: true,
-                what: 'Every AI employee billed on its own, starting at $9/mo — no bundle, no per-seat nonsense.',
+                what: 'Every AI employee billed on its own, starting at $9/mo, no bundle, no per-seat nonsense.',
                 color: T.amber,
               },
               {
@@ -748,7 +748,7 @@ export function ComparePageContent() {
                 textDecoration: 'none', boxShadow: T.shadow,
               }}
             >
-              {isPreLaunch ? 'Join the waitlist →' : 'Start free — 7 days on us →'}
+              {isPreLaunch ? 'Join the waitlist →' : 'Start free for 7 days, on us →'}
             </a>
             <Link
               href="/pricing"

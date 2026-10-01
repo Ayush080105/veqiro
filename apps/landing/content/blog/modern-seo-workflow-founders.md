@@ -2,7 +2,7 @@
 title: "The Modern SEO Workflow for Founders (With an AI SEO Agent)"
 slug: modern-seo-workflow-founders
 date: "2026-05-19"
-description: "How founders at lean startups can build and maintain a real SEO strategy using an AI SEO agent — without hiring an agency or spending months learning Ahrefs."
+description: "How founders at lean startups can build and maintain a real SEO strategy using an AI SEO agent, without hiring an agency or spending months learning Ahrefs."
 category: agents
 agentKey: sage
 keywords:
@@ -23,20 +23,20 @@ faq:
   - q: "Can AI actually handle SEO for a startup, or do you still need an agency?"
     a: "AI handles the execution layer of SEO: keyword research, content briefs, on-page audits, and publishing cadence. What it can't replace is strategic positioning decisions and link-building relationships. For most early-stage startups, AI-driven execution plus a quarterly human SEO review beats an agency retainer on both cost and speed."
   - q: "What's the most important SEO task a founder should prioritise first?"
-    a: "Technical foundation first: sitemap, canonical tags, correct meta descriptions, Core Web Vitals. Then keyword-to-URL mapping. Then content creation. Most founders skip the foundation and start writing content — this is why they don't rank."
+    a: "Technical foundation first: sitemap, canonical tags, correct meta descriptions, Core Web Vitals. Then keyword-to-URL mapping. Then content creation. Most founders skip the foundation and start writing content. This is why they don't rank."
   - q: "How long does SEO take to show results?"
     a: "Realistic timeline: 3–6 months to see movement for low-competition terms; 6–12 months for medium-competition terms. SEO compounds. The content you publish today earns traffic for 3–5 years. The founders who abandon SEO at month 4 are the ones who pay for ads forever."
   - q: "How does Sage compare to tools like Ahrefs or Semrush?"
-    a: "Ahrefs and Semrush are data tools — they give you numbers. Sage is an agent — she interprets those numbers, creates content briefs, writes the posts, and monitors your rankings. They're complementary: Sage can pull Ahrefs data and turn it into an action plan."
+    a: "Ahrefs and Semrush are data tools: they give you numbers. Sage is an agent: she interprets those numbers, creates content briefs, writes the posts, and monitors your rankings. They're complementary: Sage can pull Ahrefs data and turn it into an action plan."
   - q: "What is a keyword cluster and why does it matter for SEO?"
     a: "A keyword cluster is a group of related search queries that share the same search intent and can be served by the same page. Instead of creating one page per keyword, you create one authoritative page per topic cluster. This is how modern SEO builds topical authority rather than thin, fragmented content."
   - q: "What does an AI site audit actually check?"
-    a: "A comprehensive AI site audit checks HTTP status codes for broken pages, identifies orphan pages with no internal links, detects keyword cannibalization across multiple URLs, and surfaces technical SEO issues at scale — duplicate titles, missing schema, thin content patterns. It produces a domain health overview with prioritized fixes, not a 200-line data export you have to interpret yourself."
+    a: "A comprehensive AI site audit checks HTTP status codes for broken pages, identifies orphan pages with no internal links, detects keyword cannibalization across multiple URLs, and surfaces technical SEO issues at scale: duplicate titles, missing schema, thin content patterns. It produces a domain health overview with prioritized fixes, not a 200-line data export you have to interpret yourself."
 ---
 
-Most startups treat SEO as a later problem. They're wrong, but the instinct is understandable: SEO feels slow, technical, and opaque — and when you have 40 other things on fire, it's easy to say "we'll get to it after the next milestone."
+Most startups treat SEO as a later problem. They're wrong, but the instinct is understandable: SEO feels slow, technical, and opaque, and when you have 40 other things on fire, it's easy to say "we'll get to it after the next milestone."
 
-The problem is that SEO is a compounding asset. The startups that start early don't just get more traffic — they get traffic that costs less each month, from pages that continue working long after the work was done. The ones that wait are buying ads forever.
+The problem is that SEO is a compounding asset. The startups that start early don't just get more traffic: they get traffic that costs less each month, from pages that continue working long after the work was done. The ones that wait are buying ads forever.
 
 This is the workflow that lets founders build real SEO without a 20-person content team or a $5,000/month agency retainer. [Sage](/agents/sage) handles the execution; you handle the strategy.
 
@@ -48,7 +48,7 @@ SEO has three distinct layers, and they must be built in order. Founders who ski
 The infrastructure that allows search engines to correctly crawl, index, and understand your site. Without this, the other two layers don't work.
 
 **Layer 2: Keyword Architecture**
-The mapping of specific keywords to specific pages. This determines which pages you're trying to rank for which terms — before you write a single word of content.
+The mapping of specific keywords to specific pages. This determines which pages you're trying to rank for which terms, before you write a single word of content.
 
 **Layer 3: Content Execution**
 The actual writing, publishing, and optimising of content against your keyword architecture. This is the work most people think of as "doing SEO."
@@ -57,22 +57,22 @@ The actual writing, publishing, and optimising of content against your keyword a
 
 Run this checklist once, fix any gaps, then move to Layer 2. Sage can audit all of these:
 
-- [ ] **Sitemap exists and is submitted** — `yourdomain.com/sitemap.xml` exists and is registered in Google Search Console
-- [ ] **Canonical tags correct** — every page declares its own canonical URL, not the homepage
-- [ ] **Meta descriptions present** — every page has a unique meta description under 158 characters
-- [ ] **Title tags unique** — no two pages share the same title tag
-- [ ] **Core Web Vitals passing** — LCP under 2.5s, INP under 200ms, CLS under 0.1
-- [ ] **Mobile-friendly** — passes Google's Mobile-Friendly Test
-- [ ] **HTTPS everywhere** — no mixed content errors
-- [ ] **No broken internal links** — all internal links resolve correctly
-- [ ] **robots.txt correct** — not accidentally blocking important pages
-- [ ] **Structured data (JSON-LD)** — Organisation, WebSite, and page-specific schema in place
+- [ ] **Sitemap exists and is submitted**: `yourdomain.com/sitemap.xml` exists and is registered in Google Search Console
+- [ ] **Canonical tags correct**: every page declares its own canonical URL, not the homepage
+- [ ] **Meta descriptions present**: every page has a unique meta description under 158 characters
+- [ ] **Title tags unique**: no two pages share the same title tag
+- [ ] **Core Web Vitals passing**: LCP under 2.5s, INP under 200ms, CLS under 0.1
+- [ ] **Mobile-friendly**: passes Google's Mobile-Friendly Test
+- [ ] **HTTPS everywhere**: no mixed content errors
+- [ ] **No broken internal links**: all internal links resolve correctly
+- [ ] **robots.txt correct**: not accidentally blocking important pages
+- [ ] **Structured data (JSON-LD)**: Organisation, WebSite, and page-specific schema in place
 
 Most well-built modern frameworks (Next.js, Astro, SvelteKit) handle the technical basics. The gaps are usually in canonical tags, meta descriptions, and structured data.
 
 ## Layer 2: Keyword Architecture
 
-Before Sage writes a single piece of content, you need a keyword map — a document that says: "This URL is targeting this primary keyword, with these secondary keywords, serving this search intent."
+Before Sage writes a single piece of content, you need a keyword map, a document that says: "This URL is targeting this primary keyword, with these secondary keywords, serving this search intent."
 
 ### Step 1: Identify Your Core Keyword Clusters
 
@@ -87,7 +87,7 @@ Your clusters should map to your actual product architecture. Don't create a key
 
 ### Step 2: Assign One Primary Keyword Per URL
 
-The rule is one primary keyword per page — and it must be a term that's actually searched by people who'd want to buy what you're selling.
+The rule is one primary keyword per page, and it must be a term that's actually searched by people who'd want to buy what you're selling.
 
 The primary keyword goes in:
 - The page title (H1)
@@ -102,9 +102,9 @@ Secondary keywords (related terms, long-tails) are woven naturally into the body
 ### Step 3: Calculate Keyword Difficulty vs. Value
 
 Sage's keyword research output includes:
-- **Estimated monthly search volume** — how many people search this per month
-- **Keyword difficulty (KD)** — how hard it is to rank, based on who's currently ranking
-- **Search intent** — informational, commercial, transactional, or navigational
+- **Estimated monthly search volume**: how many people search this per month
+- **Keyword difficulty (KD)**: how hard it is to rank, based on who's currently ranking
+- **Search intent**: informational, commercial, transactional, or navigational
 
 For early-stage startups (no domain authority yet), the winning strategy is: **start with low-KD terms that still have commercial intent**. Win the easy ones first, build authority, then attack the competitive terms.
 
@@ -123,7 +123,7 @@ Brief Sage on the week's content target. The brief includes:
 - Desired word count range
 
 **Tuesday (automated):**
-Sage produces a content brief: an outline with headers, target keywords per section, suggested word counts, and reference sources. Review this — it takes 10 minutes and catching a wrong angle now saves a full rewrite later.
+Sage produces a content brief: an outline with headers, target keywords per section, suggested word counts, and reference sources. Review this: it takes 10 minutes and catching a wrong angle now saves a full rewrite later.
 
 **Wednesday–Thursday (automated):**
 Sage writes the full post to the brief. You receive a draft ready for editorial review.
@@ -133,7 +133,7 @@ Editorial pass: structure check, voice check, fact check. One round of revisions
 
 ### The Content Brief Template
 
-Sage generates content briefs in this format — and you can request them for any target keyword:
+Sage generates content briefs in this format, and you can request them for any target keyword:
 
 ```
 Target keyword: [primary keyword]
@@ -173,20 +173,20 @@ The audit produces a prioritised fix list. Updating and improving existing conte
 
 ## Going Deeper: Page Audits and Site-Wide Crawls
 
-The content audit cycle above focuses on existing content performance. Two additional audit types cover the technical and structural side — and both are things Sage can run on demand.
+The content audit cycle above focuses on existing content performance. Two additional audit types cover the technical and structural side, and both are things Sage can run on demand.
 
 ### Page SEO Audit
 
 A page-level audit goes well beyond checking if your meta description exists. For any single URL, Sage returns:
 
-- **Technical SEO issues** — missing canonical, slow page load signals, render-blocking resources, crawl directives
-- **On-page factors** — keyword placement, heading hierarchy, internal link density
-- **Image SEO** — alt text gaps, file size flags, lazy-loading status
-- **E-E-A-T signals** — author attribution, expertise indicators, trust signals that influence how Google evaluates the page
-- **Featured snippet opportunities** — whether the content structure positions you to win a snippet for the target keyword
-- **Competitor comparison** — how the page stacks up against the #1 ranking result for the same keyword
+- **Technical SEO issues**: missing canonical, slow page load signals, render-blocking resources, crawl directives
+- **On-page factors**: keyword placement, heading hierarchy, internal link density
+- **Image SEO**: alt text gaps, file size flags, lazy-loading status
+- **E-E-A-T signals**: author attribution, expertise indicators, trust signals that influence how Google evaluates the page
+- **Featured snippet opportunities**: whether the content structure positions you to win a snippet for the target keyword
+- **Competitor comparison**: how the page stacks up against the #1 ranking result for the same keyword
 
-The output is a **prioritised 30/60/90-day action plan** — not a list of 47 vague recommendations. The 30-day items are the fixes with the highest rank-impact-to-effort ratio.
+The output is a **prioritised 30/60/90-day action plan**: not a list of 47 vague recommendations. The 30-day items are the fixes with the highest rank-impact-to-effort ratio.
 
 Run a page audit whenever you want to understand why a specific page isn't moving, or before investing in a content refresh.
 
@@ -194,14 +194,14 @@ Run a page audit whenever you want to understand why a specific page isn't movin
 
 A site-wide audit crawls your full sitemap and surfaces issues across the entire domain:
 
-- **HTTP status codes** — 4xx and 5xx pages that are wasting crawl budget
-- **Orphan pages** — pages with no internal links pointing to them (invisible to Google and users)
-- **Keyword cannibalization** — multiple pages targeting the same keyword, splitting authority and confusing the algorithm
-- **Technical drag** — patterns across the site pulling ranking potential down (duplicate title tags, thin content across a section, missing structured data at scale)
+- **HTTP status codes**: 4xx and 5xx pages that are wasting crawl budget
+- **Orphan pages**: pages with no internal links pointing to them (invisible to Google and users)
+- **Keyword cannibalization**: multiple pages targeting the same keyword, splitting authority and confusing the algorithm
+- **Technical drag**: patterns across the site pulling ranking potential down (duplicate title tags, thin content across a section, missing structured data at scale)
 
 The output is a **domain health overview**: total pages audited, count of critical issues, and a priority-ranked issue list. Running this once a quarter is standard practice for any site with 20+ indexed pages.
 
-To trigger either audit: ask Sage directly — "Run a full page audit on [URL]" or "Audit my entire site — sitemap is at [url]."
+To trigger either audit, ask Sage directly: "Run a full page audit on [URL]" or "Audit my entire site, sitemap is at [url]."
 
 ## The Results Timeline
 
@@ -213,7 +213,7 @@ Set realistic expectations:
 | Month 3–4 | First low-KD terms start appearing in positions 10–30 |
 | Month 5–6 | First terms reach positions 5–10; measurable organic traffic begins |
 | Month 7–12 | Authority builds; medium-KD terms start moving |
-| Year 2+ | Compounding effect — earlier posts continue generating traffic while new ones add |
+| Year 2+ | Compounding effect: earlier posts continue generating traffic while new ones add |
 
 The founders who quit at month 4 are looking at a graph with no results yet and making decisions based on incomplete data.
 

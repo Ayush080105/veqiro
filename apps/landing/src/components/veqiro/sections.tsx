@@ -141,7 +141,7 @@ export function Pricing() {
                   fontFamily: FONT.display, fontSize: 30, fontWeight: 600,
                   letterSpacing: '-0.035em', color: T.ink, lineHeight: 1,
                 }}>
-                  {priceByAgent[emp.key] == null ? '—' : `$${priceByAgent[emp.key]}`}
+                  {priceByAgent[emp.key] == null ? '-' : `$${priceByAgent[emp.key]}`}
                 </span>
                 <span style={{ fontFamily: FONT.body, fontSize: 13, color: T.ink3 }}>/mo</span>
               </div>
@@ -173,7 +173,7 @@ export function Pricing() {
               fontFamily: FONT.body, fontSize: 15, lineHeight: 1.65,
               color: T.inkInv2, margin: '10px 0 0',
             }}>
-              {enterpriseTier.tag} — custom SLAs, dedicated onboarding, bespoke
+              {enterpriseTier.tag}: custom SLAs, dedicated onboarding, bespoke
               integrations, and volume pricing.
             </p>
           </div>
@@ -338,7 +338,7 @@ export function FinalCTA() {
           margin: '20px auto 0',
           maxWidth: '54ch',
         }}>
-          Seven days free on every agent. No credit card, no onboarding call —
+          Seven days free on every agent. No credit card, no onboarding call,
           connect a tool and give one of them something to do.
         </p>
 
@@ -357,7 +357,7 @@ export function FinalCTA() {
             onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
             onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
-            {isPreLaunch ? 'Join the waitlist' : 'Start free — 7 days'}
+            {isPreLaunch ? 'Join the waitlist' : 'Start free for 7 days'}
           </a>
           <button
             type="button"

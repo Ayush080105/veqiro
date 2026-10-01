@@ -19,7 +19,7 @@ export function organizationJsonLd(): object {
     url: SITE_URL,
     logo: `${SITE_URL}/logo.png`,
     description:
-      'Veqiro provides AI employees — autonomous AI agents that handle executive assistance, research, content, SEO, legal review, and financial analysis for founders and lean teams.',
+      'Veqiro provides AI employees, autonomous AI agents that handle executive assistance, research, content, SEO, legal review, and financial analysis for founders and lean teams.',
     email: contact.email,
     address: {
       '@type': 'PostalAddress',
@@ -63,7 +63,7 @@ export function softwareApplicationJsonLd(): object {
     operatingSystem: 'Web',
     applicationCategory: 'BusinessApplication',
     description:
-      'Veqiro is an AI workforce platform that gives founders and small teams a full crew of autonomous AI agents — covering executive assistance, research, content, SEO, legal, and finance.',
+      'Veqiro is an AI workforce platform that gives founders and small teams a full crew of autonomous AI agents, covering executive assistance, research, content, SEO, legal, and finance.',
     offers: {
       '@type': 'Offer',
       price: 9.0,
@@ -87,7 +87,7 @@ export function productJsonLd(tiers: PricingTier[]): object {
   const offers = tiers.filter((tier) => !tier.custom).flatMap((tier) => {
     const monthlyOffer = {
       '@type': 'Offer',
-      name: `${tier.name} — Monthly`,
+      name: `${tier.name}: Monthly`,
       price: tier.monthly,
       priceCurrency: 'USD',
       availability: 'https://schema.org/InStock',
@@ -108,7 +108,7 @@ export function productJsonLd(tiers: PricingTier[]): object {
       monthlyOffer,
       {
         '@type': 'Offer',
-        name: `${tier.name} — Annual`,
+        name: `${tier.name}: Annual`,
         price: tier.yearly * 12,
         priceCurrency: 'USD',
         availability: 'https://schema.org/InStock',
@@ -126,7 +126,7 @@ export function productJsonLd(tiers: PricingTier[]): object {
     '@type': 'Product',
     name: 'Veqiro AI Employees',
     description:
-      'Six specialized AI employees — executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst — each billed independently, starting at $9/mo.',
+      'Six specialized AI employees: executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst, each billed independently, starting at $9/mo.',
     brand: {
       '@id': ORG_ID,
     },
@@ -229,7 +229,7 @@ export function articleJsonLd(post: ArticleJsonLdInput): object {
     },
     image: {
       '@type': 'ImageObject',
-      url: `${SITE_URL}${post.ogImage ?? `/og/blog/${post.slug}.png`}`,
+      url: post.ogImage ? `${SITE_URL}${post.ogImage}` : `${SITE_URL}/blog/${post.slug}/opengraph-image`,
       width: 1200,
       height: 630,
     },

@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 from core.config import settings
 from core.conversation_memory import store_turn, retrieve_relevant
 from core.llm import LLMClient
+from core.memory_block import build_facts_section
 from core.models import Message
 from core.utils import safe_json_loads
 
@@ -83,10 +84,10 @@ async def build_context(request: BuildContextRequest) -> BuildContextResponse:
     if request.org_shared_context:
         parts.append(f"## Organization Goals & Decisions\n{request.org_shared_context}")
     if request.long_term_facts:
-        # Show the 12 most recent facts (tail of array = most recently added)
-        recent_facts = request.long_term_facts[-12:]
-        facts_lines = "\n".join(f"• {f}" for f in recent_facts)
-        parts.append(f"## Established Facts\n{facts_lines}")
+        # The tail of the array is highest priority: the server orders customer-stated
+        # and confirmed facts last, unconfirmed guesses first. See core/memory_block.py
+        # for the limit and for why this section is never trimmed afterwards.
+        parts.append(build_facts_section(request.long_term_facts))
     memory_block = "\n\n".join(parts)
 
     return BuildContextResponse(
@@ -138,7 +139,7 @@ async def summarize_conversation(request: SummarizeRequest) -> SummarizeResponse
     llm = LLMClient()
     raw = await llm.complete(
         provider="openai",
-        model="gpt-5.6-luna",
+        model="gpt-6-luna",
         system=system,
         messages=[{"role": "user", "content": user_prompt}],
         temperature=0.2,

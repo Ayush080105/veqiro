@@ -15,22 +15,22 @@ keywords:
 readingTime: 9
 faq:
   - q: "Is an AI employee cheaper than a freelancer?"
-    a: "Almost always, for high-volume execution tasks. A freelance content writer costs $500–$2,000/month for 4–8 posts. An AI content agent produces unlimited drafts for a flat $39/mo on a platform like Veqiro. The tradeoff is judgment and creativity — AI handles execution at scale, humans handle strategic nuance."
+    a: "Almost always, for high-volume execution tasks. A freelance content writer costs $500–$2,000/month for 4–8 posts. An AI content agent produces unlimited drafts for a flat $39/mo on a platform like Veqiro. The tradeoff is judgment and creativity: AI handles execution at scale, humans handle strategic nuance."
   - q: "What can an AI employee do that a freelancer can't?"
     a: "Work 24/7 with zero latency. Respond within minutes. Maintain perfect consistency across 1,000 outputs. An AI employee never goes on holiday, never misses a deadline, and charges the same rate whether you give it 2 tasks or 200."
   - q: "What can a freelancer do that an AI employee can't?"
     a: "Exercise genuine creative judgment, build authentic relationships, read nuanced social cues, and make strategic calls requiring lived experience. For work requiring deep human intuition or relationship management, humans win every time."
   - q: "When should a startup hire a full-time employee instead of using AI?"
-    a: "When the role requires daily real-time judgment, external relationship management (investors, enterprise clients), or leadership accountability. AI employees aren't managers — they execute. If you need someone making strategic calls with accountability, hire a human."
+    a: "When the role requires daily real-time judgment, external relationship management (investors, enterprise clients), or leadership accountability. AI employees aren't managers, they execute. If you need someone making strategic calls with accountability, hire a human."
   - q: "What is the best AI platform for a startup that needs multiple functions covered?"
-    a: "Veqiro gives lean startups six AI employees in one subscription — exec assistant, research, content, SEO, legal, and finance — for $39/mo. For startups needing only one function, point solutions (Jasper for content, Ahrefs for SEO) may be more cost-effective."
+    a: "Veqiro gives lean startups six AI employees: exec assistant, research, content, SEO, legal, and finance, for $39/mo. For startups needing only one function, point solutions (Jasper for content, Ahrefs for SEO) may be more cost-effective."
 ---
 
 Most founders have an intuitive sense that AI is getting cheaper and more capable. What they don't have is a spreadsheet.
 
 So let's build one.
 
-This is a real cost breakdown across the six functions most startups need covered: executive assistance, research, content, SEO, legal, and finance. Three staffing models — AI employee, freelancer, full-time hire — with actual numbers, honest trade-offs, and a decision framework you can use this week.
+This is a real cost breakdown across the six functions most startups need covered: executive assistance, research, content, SEO, legal, and finance. Three staffing models: AI employee, freelancer, full-time hire, with actual numbers, honest trade-offs, and a decision framework you can use this week.
 
 ## The Six Functions and What They Actually Cost
 
@@ -44,7 +44,7 @@ This is a real cost breakdown across the six functions most startups need covere
 | Freelance VA | $800–$2,200 | 3–7 days | Medium |
 | AI EA ([Vega](/agents/vega)) | ~$39 (bundled) | Same day | High for execution |
 
-The freelance VA market is inconsistent — quality variance is massive and turnover is high. AI executive assistants like Vega handle the execution volume (processing 200 emails, drafting 15 replies, blocking focus time) without the management overhead, but won't make calls on which investor relationship to prioritise.
+The freelance VA market is inconsistent: quality variance is massive and turnover is high. AI executive assistants like Vega handle the execution volume (processing 200 emails, drafting 15 replies, blocking focus time) without the management overhead, but won't make calls on which investor relationship to prioritise.
 
 **Best play for lean startups:** AI for 80% of execution; part-time VA for high-touch strategic scheduling if you're actively closing deals.
 
@@ -78,7 +78,7 @@ The ROI calculation here is lopsided: a full-time researcher costs more per mont
 
 This is where the economics become genuinely disruptive. A freelance writer at $1,500/month produces 6 blog posts and maybe 20 social posts. Maya produces unlimited first drafts, across all channels, in your brand voice, with no turnaround time.
 
-The caveat everyone should understand: Maya's output needs editorial review. Quality flows from your inputs (brand voice, strategic direction, topic briefs) and your editing. Think of Maya as a very fast, very consistent junior writer — not a senior content strategist.
+The caveat everyone should understand: Maya's output needs editorial review. Quality flows from your inputs (brand voice, strategic direction, topic briefs) and your editing. Think of Maya as a very fast, very consistent junior writer, not a senior content strategist.
 
 **Best play for early-stage:** AI content agent for volume; freelance editor for quality control at high-stakes moments.
 
@@ -128,7 +128,7 @@ The agency model is notoriously slow: you get a 60-page PDF every quarter and a 
 | Bookkeeper + spreadsheets | $800–$2,000 | Monthly | None |
 | AI finance agent ([Rex](/agents/rex)) | ~$39 (bundled) | Real-time | Good for monitoring |
 
-Rex connects to your Stripe, QuickBooks, or bank feeds and runs your standard startup metrics automatically. You get MRR, burn, CAC, LTV, and runway updated daily — with anomaly flags when numbers go sideways. The forecasting layer (market assumptions, hiring plans, fundraising timelines) requires human judgment.
+Rex connects to your Stripe, QuickBooks, or bank feeds and runs your standard startup metrics automatically. You get MRR, burn, CAC, LTV, and runway updated daily, with anomaly flags when numbers go sideways. The forecasting layer (market assumptions, hiring plans, fundraising timelines) requires human judgment.
 
 **Best play:** AI for daily monitoring and metric tracking; fractional CFO for board prep and fundraising strategy.
 
@@ -145,7 +145,7 @@ Staffing all six functions with different models:
 | All AI employees (Veqiro) | $39 | $468 |
 | **Hybrid (AI execution + humans for strategy)** | **$3,000–$8,000** | **$36,000–$96,000** |
 
-The hybrid model is the correct answer for most startups. AI employees handle the execution layer — the 70–80% of work that doesn't require senior judgment. Human specialists handle the strategic 20–30%.
+The hybrid model is the correct answer for most startups. AI employees handle the execution layer, the 70–80% of work that doesn't require senior judgment. Human specialists handle the strategic 20–30%.
 
 ## The Decision Framework
 
@@ -176,4 +176,4 @@ Reclaim 10–15 hours a week from execution work. Put it into the things only yo
 
 That's the ROI that doesn't fit neatly in a spreadsheet.
 
-[See Veqiro's pricing — one subscription, all six AI employees →](/pricing)
+[See Veqiro's pricing: one subscription, all six AI employees →](/pricing)

@@ -362,33 +362,33 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       id: "lex:upload-source",
       agent: "lex",
       endpoint: "sources/upload",
-      label: "Upload a document",
-      description: "Upload a PDF — stored in R2 and indexed for analysis.",
-      icon: "Upload",
-    },
-    {
-      id: "lex:analyze-contract",
-      agent: "lex",
-      endpoint: "analyze-contract",
-      label: "Analyze a contract",
-      description: "Risk analysis, unusual clauses, missing protections.",
+      label: "Review a contract",
+      description: "Upload a PDF — Lex tells you what needs attention before you sign.",
       icon: "ShieldAlert",
-    },
-    {
-      id: "lex:query-document",
-      agent: "lex",
-      endpoint: "query-document",
-      label: "Ask a document",
-      description: "Ask a question about an uploaded document.",
-      icon: "MessageCircleQuestion",
     },
     {
       id: "lex:draft-document",
       agent: "lex",
       endpoint: "draft-document",
-      label: "Draft a document",
-      description: "Generate a legal template — NDA, SaaS MSA, offer letter…",
+      label: "Create a document",
+      description: "NDA, service or vendor agreement, notice, privacy policy…",
       icon: "FileSignature",
+    },
+    {
+      id: "lex:query-document",
+      agent: "lex",
+      endpoint: "query-document",
+      label: "Ask about a document",
+      description: "Find clauses, dates and obligations — with the source quoted.",
+      icon: "MessageCircleQuestion",
+    },
+    {
+      id: "lex:analyze-contract",
+      agent: "lex",
+      endpoint: "analyze-contract",
+      label: "Re-review a document",
+      description: "Run a fresh review of a document you've already uploaded.",
+      icon: "FileSearch",
     },
     {
       id: "lex:explain",
@@ -403,7 +403,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       agent: "lex",
       endpoint: "legal-research",
       label: "Research a legal question",
-      description: "Applicable laws, cases, and practical guidance for a jurisdiction.",
+      description: "Answers from current sources, with links — India by default.",
       icon: "Scale",
     },
     {
@@ -411,7 +411,7 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       agent: "lex",
       endpoint: "compliance-check",
       label: "Compliance check",
-      description: "Evaluate practice or doc against GDPR, CCPA, SOC2, HIPAA.",
+      description: "Describe what you do — Lex works out which laws apply.",
       icon: "ShieldCheck",
     },
     {
@@ -422,8 +422,88 @@ export const AGENT_ACTIONS: Record<AgentSlug, AgentActionMeta[]> = {
       description: "Stamp your company letterhead onto any PDF or Word document.",
       icon: "Stamp",
     },
+    {
+      id: "lex:draft-reply",
+      agent: "lex",
+      endpoint: "draft-reply",
+      label: "Draft changes",
+      description: "An email to the other side with the changes to request.",
+      icon: "Mail",
+      hideFromMenu: true,
+    },
   ],
-  vega: [],
+  vega: [
+    {
+      id: "vega:daily-briefing",
+      agent: "vega",
+      endpoint: "briefing",
+      label: "Daily briefing",
+      description:
+        "What every employee is sitting on, what needs a decision today, and what just happened.",
+      icon: "Sunrise",
+      example: "Brief me on this morning",
+    },
+    {
+      id: "vega:compose-email",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Compose an email",
+      description:
+        "Draft a new email from a few instructions. Saved as a Gmail draft, never sent.",
+      icon: "Mail",
+      example: "Email Priya about Thursday's launch",
+    },
+    {
+      id: "vega:draft-reply",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Draft a reply",
+      description:
+        "Reply in your voice to a specific email in your inbox.",
+      icon: "Reply",
+      example: "Reply to the investor intro from Monday",
+    },
+    {
+      id: "vega:process-inbox",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Triage inbox",
+      description:
+        "Sort unread email by urgency, with a summary and a suggested next step for each.",
+      icon: "Inbox",
+      example: "What needs me in my inbox?",
+    },
+    {
+      id: "vega:calendar-summary",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Calendar summary",
+      description:
+        "Your agenda, conflicts and free slots for a day or the coming week.",
+      icon: "CalendarDays",
+      example: "What does my week look like?",
+    },
+    {
+      id: "vega:create-event",
+      agent: "vega",
+      // Not an endpoint: these are requests to Vega's chat, built by
+      // lib/agents/prompt-actions.ts. See the note there.
+      endpoint: "chat",
+      label: "Schedule an event",
+      description:
+        "Describe an event in plain English; Vega checks conflicts and creates it once you confirm.",
+      icon: "CalendarPlus",
+      example: "30 min sync with Priya next Tuesday",
+    },
+  ],
 }
 
 export function findAction(id: AgentActionId): AgentActionMeta | undefined {

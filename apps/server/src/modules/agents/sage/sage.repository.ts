@@ -1,6 +1,8 @@
 import { prisma } from "../../../config/prisma.js";
 import { Agent, Prisma } from "../../../../prisma/generated/prisma/client.js";
 import { recordDirectActionContextForAssistantMessage } from "../../../common/utils/contextService.js";
+import { SIMPLE_KINDS, projectSageKeyword } from "../../workspace/simple-agents.workspace.js";
+import { unprojectWorkObject } from "../../workspace/work-objects.projector.js";
 
 export const createUserMessage = (data: {
   organizationId: string;
@@ -66,6 +68,8 @@ export const findAllSageMessages = (
       where: {
         organizationId,
         agent: Agent.SAGE,
+        // The team room lives in the same table; its messages are not this chat's.
+        isTeam: false,
         ...(before ? { createdAt: { lt: new Date(before) } } : {}),
       },
       orderBy: { createdAt: "desc" },
@@ -101,17 +105,25 @@ export const upsertSavedKeyword = (data: {
   searchVolumeEstimate?: string | null;
   suggestedContentType: string;
 }) =>
-  prisma.sageSavedKeyword.upsert({
-    where: { organizationId_keyword: { organizationId: data.organizationId, keyword: data.keyword } },
-    create: data,
-    update: {
-      searchIntent: data.searchIntent,
-      estimatedDifficulty: data.estimatedDifficulty,
-      relevanceScore: data.relevanceScore,
-      searchVolumeEstimate: data.searchVolumeEstimate,
-      suggestedContentType: data.suggestedContentType,
-    },
-  });
+  prisma.sageSavedKeyword
+    .upsert({
+      where: { organizationId_keyword: { organizationId: data.organizationId, keyword: data.keyword } },
+      create: data,
+      update: {
+        searchIntent: data.searchIntent,
+        estimatedDifficulty: data.estimatedDifficulty,
+        relevanceScore: data.relevanceScore,
+        searchVolumeEstimate: data.searchVolumeEstimate,
+        suggestedContentType: data.suggestedContentType,
+      },
+    })
+    .then(async (row) => {
+      await projectSageKeyword(row.id);
+      return row;
+    });
 
-export const deleteSavedKeyword = (id: string, organizationId: string) =>
-  prisma.sageSavedKeyword.deleteMany({ where: { id, organizationId } });
+export const deleteSavedKeyword = async (id: string, organizationId: string) => {
+  const result = await prisma.sageSavedKeyword.deleteMany({ where: { id, organizationId } });
+  await unprojectWorkObject(SIMPLE_KINDS.sageKeyword, id);
+  return result;
+};

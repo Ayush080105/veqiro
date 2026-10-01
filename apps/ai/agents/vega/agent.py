@@ -15,7 +15,7 @@ class VegaAgent(BaseAgent):
         "Always calm, always a step ahead, and genuinely happy to help."
     )
     default_provider = "openai"
-    default_model = "gpt-5.6-luna"
+    default_model = "gpt-6-luna"
 
     # ── Tool-use instructions ────────────────────────────────────────────
 
@@ -143,7 +143,8 @@ class VegaAgent(BaseAgent):
             "'Scout researches markets and competitors.'\n"
             "- Legal contracts, compliance reviews → "
             "'Lex handles legal matters. Take that to Lex.'\n"
-            "Never fabricate email content, financial data, or calendar events from memory. "
+            "Never fabricate email content, financial data, or calendar events. Facts the customer "
+            "saved (under 'Established Facts') are not fabrication — use them. "
             "If Google is not connected, say so clearly and tell the user to connect their account.\n"
             "\n## Connected Tools\n"
             "You have no native tools at all — see the CRITICAL note in Tool Usage Rules. Gmail and "

@@ -38,11 +38,40 @@ export interface ContentPlanItem {
   formatReason?: string;
 }
 
+export type SignalKind = "own_post" | "event" | "trend" | "editorial";
+
+/**
+ * One thing the plan was based on, in a shape a chart can use. The prose `note`
+ * holds the same findings as a paragraph nobody can scan; this is that
+ * paragraph taken apart. Numbers are only ever ones the model read from a tool
+ * result this run — null otherwise — so a bar on the chart is always a real
+ * measurement.
+ */
+export interface PlanSignal {
+  kind: SignalKind;
+  /** Short title, e.g. "Dadar exhibition Reel". */
+  label: string;
+  /** One sentence on what it shows. */
+  detail: string;
+  /** For own_post signals: which format the post was. */
+  format: ContentFormat | null;
+  likes: number | null;
+  comments: number | null;
+  /** Where it was read, e.g. "Instagram insights". */
+  source: string | null;
+}
+
 export interface ContentPlan {
   id: string;
   weekStart: string;
   note: string | null;
   items: ContentPlanItem[] | null;
+  /** The week's strategy in one sentence. Null on plans made before this existed. */
+  headline: string | null;
+  /** Null on plans made before this existed; the UI falls back to `note`. */
+  signals: PlanSignal[] | null;
+  /** Plain limits on the data, one per entry. */
+  limits: string[] | null;
   rawText: string;
   createdAt: string;
 }
@@ -79,9 +108,28 @@ const buildPrompt = (weekStart: Date): string => {
     "trends or news to justify a slot — an honest gap tells the owner where to",
     "weigh in, an invented trend quietly misleads them.",
     "",
+    "Also break down the evidence so it can be charted. Every entry in `signals`",
+    "must be something you actually read this run. Give likes and comments ONLY",
+    "when you read those exact numbers from a tool result; otherwise use null.",
+    "Never estimate or round a number into existence. Use at most 8 signals and 4",
+    "limits.",
+    "",
     "Reply with ONLY a JSON object, no prose around it, in this exact shape:",
     "{",
+    '  "headline": "the week\'s strategy in one sentence, 140 characters at most",',
     '  "note": "what signal you found, including any limits on the data",',
+    '  "signals": [',
+    "    {",
+    '      "kind": "own_post" | "event" | "trend" | "editorial",',
+    '      "label": "short title",',
+    '      "detail": "one sentence on what it shows",',
+    '      "format": "post" | "reel" | null,',
+    '      "likes": 83 | null,',
+    '      "comments": 6 | null,',
+    '      "source": "where you read it"',
+    "    }",
+    "  ],",
+    '  "limits": ["one plain limit on the data, e.g. reach was not available"],',
     '  "items": [',
     "    {",
     '      "date": "YYYY-MM-DD",',
@@ -149,6 +197,61 @@ const parseItems = (parsed: unknown): { note: string | null; items: ContentPlanI
   };
 };
 
+const SIGNAL_KINDS: SignalKind[] = ["own_post", "event", "trend", "editorial"];
+
+const cleanText = (value: unknown, max: number): string | null => {
+  const s = typeof value === "string" ? value.trim() : "";
+  return s ? s.slice(0, max) : null;
+};
+
+/** A count the model read, or null. Anything that is not a plain non-negative number is dropped. */
+const cleanCount = (value: unknown): number | null =>
+  typeof value === "number" && Number.isFinite(value) && value >= 0 ? Math.round(value) : null;
+
+/**
+ * The structured evidence, read back out of the stored model response. Lenient
+ * by design: a malformed entry is skipped rather than costing the plan its
+ * calendar, and a plan made before signals existed simply yields nulls.
+ */
+export const parseExtras = (
+  parsed: unknown,
+): { headline: string | null; signals: PlanSignal[] | null; limits: string[] | null } => {
+  if (!parsed || typeof parsed !== "object") return { headline: null, signals: null, limits: null };
+  const obj = parsed as Record<string, unknown>;
+
+  const signals = Array.isArray(obj.signals)
+    ? obj.signals
+        .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === "object")
+        .flatMap((r): PlanSignal[] => {
+          const label = cleanText(r.label, 90);
+          if (!label) return [];
+          const kind = SIGNAL_KINDS.includes(r.kind as SignalKind) ? (r.kind as SignalKind) : "trend";
+          return [
+            {
+              kind,
+              label,
+              detail: cleanText(r.detail, 280) ?? "",
+              format: r.format == null ? null : asFormat(r.format),
+              likes: cleanCount(r.likes),
+              comments: cleanCount(r.comments),
+              source: cleanText(r.source, 80),
+            },
+          ];
+        })
+        .slice(0, 8)
+    : [];
+
+  const limits = Array.isArray(obj.limits)
+    ? obj.limits.flatMap((l) => cleanText(l, 200) ?? []).slice(0, 4)
+    : [];
+
+  return {
+    headline: cleanText(obj.headline, 160),
+    signals: signals.length > 0 ? signals : null,
+    limits: limits.length > 0 ? limits : null,
+  };
+};
+
 const toContentPlan = (row: {
   id: string;
   weekStart: Date;
@@ -161,6 +264,7 @@ const toContentPlan = (row: {
   weekStart: row.weekStart.toISOString(),
   note: row.note,
   items: (row.items as ContentPlanItem[] | null) ?? null,
+  ...parseExtras(extractJson(row.rawText)),
   rawText: row.rawText,
   createdAt: row.createdAt.toISOString(),
 });

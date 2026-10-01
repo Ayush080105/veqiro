@@ -59,6 +59,12 @@
   --vq-violet: #9a7be8;
   --vq-blue: #1677d2;
 
+  /* Chart pair for "post vs reel". --vq-blue/--vq-violet are too close to tell
+     apart in a chart (CVD ΔE 5.5, normal-vision ΔE 14.9), so charts that need
+     two categories use this pair instead. Both themes pass validate_palette. */
+  --vq-chart-post: #1677d2;
+  --vq-chart-reel: #d9730d;
+
   /* Surfaces (professional B2B pass — see apps/landing/src/app/globals.css) */
   --vq-surface: #ffffff;
   --vq-surface-2: #efeeeb;
@@ -133,6 +139,10 @@
   --vq-pink: #ff8fd1;
   --vq-violet: #b7a1ff;
   --vq-blue: #78bdf8;
+  /* Dark steps are darker than the brand pastels: the chart lightness band is
+     narrower on a dark surface, and the pastels fall outside it. */
+  --vq-chart-post: #3f92e0;
+  --vq-chart-reel: #d4741c;
   --vq-surface: #1d1c1a;
   --vq-surface-2: #2a2824;
   --vq-ink-2: #d4cec4;

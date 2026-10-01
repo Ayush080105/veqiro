@@ -6,7 +6,7 @@ import { JsonLd } from '@/components/veqiro/json-ld';
 import { breadcrumbJsonLd } from '@/lib/jsonld';
 
 export const metadata: Metadata = buildPageMetadata({
-  title: 'Blog — AI Employees, Founders & the Future of Work',
+  title: 'Blog: AI Employees, Founders & the Future of Work',
   description:
     'Guides, how-tos, and founder playbooks on AI employees, startup operations, SEO, legal, and finance from the Veqiro team.',
   path: '/blog',

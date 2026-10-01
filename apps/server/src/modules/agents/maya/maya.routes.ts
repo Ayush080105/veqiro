@@ -28,6 +28,13 @@ import {
   listContentPlans,
   generateContentPlan,
 } from "./maya.controller.js";
+import {
+  approveCampaign,
+  archiveCampaign,
+  getCampaign,
+  listCampaigns,
+  scheduleCampaign,
+} from "./maya.campaigns.js";
 
 const router = Router();
 
@@ -49,6 +56,11 @@ router.post("/schedule-carousel", scheduleCarousel);
 router.post("/scheduled-posts/:id/cancel", cancelScheduledPost);
 router.get("/published-posts", getPublishedPosts);
 router.post("/campaign", createCampaign);
+router.get("/campaigns", listCampaigns);
+router.get("/campaigns/:id", getCampaign);
+router.post("/campaigns/:id/approve", approveCampaign);
+router.post("/campaigns/:id/schedule", scheduleCampaign);
+router.post("/campaigns/:id/archive", archiveCampaign);
 router.post("/expand-brief", expandBrief);
 router.post("/generate-video", generateVideo);
 router.post("/campaign-video", createCampaignVideo);

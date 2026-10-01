@@ -89,6 +89,8 @@ export const findAllMayaMessages = (
       where: {
         organizationId,
         agent: Agent.MAYA,
+        // The team room lives in the same table; its messages are not this chat's.
+        isTeam: false,
         ...(before ? { createdAt: { lt: new Date(before) } } : {}),
       },
       orderBy: { createdAt: "desc" },
@@ -113,6 +115,9 @@ const publishedPostSelect = {
   caption: true,
   hashtags: true,
   imageUrl: true,
+  imageUrls: true,
+  videoUrl: true,
+  postType: true,
   status: true,
   error: true,
   publishedAt: true,

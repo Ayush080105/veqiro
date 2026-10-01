@@ -1,6 +1,8 @@
 import { prisma } from "../../../config/prisma.js";
 import { Agent, Prisma } from "../../../../prisma/generated/prisma/client.js";
 import { recordDirectActionContextForAssistantMessage } from "../../../common/utils/contextService.js";
+import { SIMPLE_KINDS, projectRexDataset } from "../../workspace/simple-agents.workspace.js";
+import { unprojectWorkObject } from "../../workspace/work-objects.projector.js";
 
 export const createUserMessage = (data: {
   organizationId: string;
@@ -66,6 +68,8 @@ export const findAllRexMessages = (
       where: {
         organizationId,
         agent: Agent.REX,
+        // The team room lives in the same table; its messages are not this chat's.
+        isTeam: false,
         ...(before ? { createdAt: { lt: new Date(before) } } : {}),
       },
       orderBy: { createdAt: "desc" },
@@ -97,21 +101,39 @@ export const createDataset = (data: {
   sourceId?: string | null;
   meta?: unknown;
   purpose?: string;
+  sourceKind?: string;
+  sourceUrl?: string;
+  downloadUrl?: string;
+  contentHash?: string;
+  lastSyncedAt?: Date;
 }) =>
-  prisma.rexDataset.create({
-    data: {
-      organizationId: data.organizationId,
-      userId: data.userId,
-      name: data.name,
-      metricKey: data.metricKey,
-      period: data.period,
-      points: data.points as Prisma.InputJsonValue,
-      unit: data.unit,
-      sourceId: data.sourceId,
-      purpose: data.purpose ?? "actual",
-      meta: data.meta as Prisma.InputJsonValue | undefined,
-    },
-  });
+  prisma.rexDataset
+    .create({
+      data: {
+        sourceKind: data.sourceKind,
+        sourceUrl: data.sourceUrl,
+        downloadUrl: data.downloadUrl,
+        contentHash: data.contentHash,
+        lastSyncedAt: data.lastSyncedAt,
+        organizationId: data.organizationId,
+        userId: data.userId,
+        name: data.name,
+        metricKey: data.metricKey,
+        period: data.period,
+        points: data.points as Prisma.InputJsonValue,
+        unit: data.unit,
+        sourceId: data.sourceId,
+        purpose: data.purpose ?? "actual",
+        meta: data.meta as Prisma.InputJsonValue | undefined,
+      },
+    })
+    // Project after the row exists so a new dataset shows up in Work
+    // immediately. Projection swallows its own failures, so this cannot
+    // turn a successful upload into an error.
+    .then(async (row) => {
+      await projectRexDataset(row.id);
+      return row;
+    });
 
 export const findDatasets = (organizationId: string) =>
   prisma.rexDataset.findMany({
@@ -122,8 +144,11 @@ export const findDatasets = (organizationId: string) =>
 export const findDataset = (id: string, organizationId: string) =>
   prisma.rexDataset.findFirst({ where: { id, organizationId } });
 
-export const deleteDataset = (id: string, organizationId: string) =>
-  prisma.rexDataset.deleteMany({ where: { id, organizationId } });
+export const deleteDataset = async (id: string, organizationId: string) => {
+  const result = await prisma.rexDataset.deleteMany({ where: { id, organizationId } });
+  await unprojectWorkObject(SIMPLE_KINDS.rexDataset, id);
+  return result;
+};
 
 // ── RexPinnedCard ──────────────────────────────────────────────────────────────
 

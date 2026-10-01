@@ -1,5 +1,7 @@
 import asyncio
 import json
+import logging
+import re
 import uuid
 from datetime import datetime, timedelta, timezone
 
@@ -26,6 +28,32 @@ _llm = LLMClient()
 _rag = RAGService()
 _agent = VegaAgent(_llm, _rag)
 register_agent(_agent)
+
+logger = logging.getLogger("agents")
+
+_HEADER_LINE = re.compile(r"^\s*(?:\*\*|__)?\s*(to|from|cc|bcc|subject|re)\s*:\s*(?:\*\*|__)?\s*(.*)$", re.I)
+
+
+def _clean_email(subject: str, body: str) -> tuple[str, str]:
+    """Make a model-written email safe to put straight into a Gmail draft.
+
+    Gmail shows markdown literally, and models like to open with "**To:** … **Subject:** …".
+    Leading header lines are stripped (a Subject: line becomes the subject if none was set),
+    and bold/heading markup is removed. Evals: vega.compose.* in apps/ai/evals.
+    """
+    lines = (body or "").strip().splitlines()
+    while lines:
+        m = _HEADER_LINE.match(lines[0])
+        if not m and lines[0].strip():
+            break
+        lines.pop(0)
+        if m and m.group(1).lower() == "subject" and not subject:
+            subject = m.group(2).strip().strip("*_ ")
+    text = "\n".join(lines)
+    text = re.sub(r"\*\*(.+?)\*\*|__(.+?)__", lambda m: m.group(1) or m.group(2), text)
+    text = re.sub(r"^#{2,6}\s+", "", text, flags=re.M)  # '## Ask'; a lone '#' is often '# of boxes'
+    text = re.sub(r"[ \t]+$", "", text, flags=re.M)  # markdown line-break double spaces
+    return subject.strip(), text.strip()
 
 
 # ── Models ───────────────────────────────────────────────────────────────────
@@ -583,6 +611,7 @@ async def draft_reply(request: DraftReplyRequest) -> DraftReplyResponse:
         )}],
     )
     tokens_used = _llm.count_tokens(raw)
+    _, raw = _clean_email("", raw)
     node_action = {
         "node_action": "create_gmail_draft",
         "to": email.get("from", ""),
@@ -925,27 +954,42 @@ async def compose_email(request: ComposeEmailRequest) -> ComposeEmailResponse:
     memory_context = request.metadata.get("memory_context", "")
     if memory_context:
         system += f"\n\n## Memory Context\n{memory_context}"
-    raw = await _llm.complete(
-        provider=_agent.default_provider, model=_agent.default_model,
-        system=system,
-        messages=[{"role": "user", "content": (
-            f"Compose a {request.tone} email.\n\n"
-            f"To: {request.to}\nSubject: {request.subject}\n"
-            f"Instructions: {request.instructions}\n"
-            f"{'Include a clear call-to-action.' if request.include_cta else 'No CTA needed.'}"
-        )}],
+    prompt = (
+        f"Compose a {request.tone} email.\n\n"
+        f"To: {request.to}\n"
+        f"Subject: {request.subject or '(not given — write one)'}\n"
+        f"Instructions: {request.instructions}\n"
+        f"{'Include a clear call-to-action.' if request.include_cta else 'No CTA needed.'}\n\n"
+        "Return ONLY a JSON object: {\"subject\": \"...\", \"body\": \"...\"}.\n"
+        "- subject: short and specific. Keep the given subject if there is one.\n"
+        "- body: exactly what goes in the email, starting at the greeting. Plain text only — "
+        "Gmail shows markdown literally, so no **bold**, no # headings. Do not repeat To:/Subject: "
+        "lines. Write in clear English unless the instructions ask for another language."
     )
-    tokens_used = _llm.count_tokens(raw)
+    try:
+        data = await _llm.complete_json(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system, messages=[{"role": "user", "content": prompt}],
+        )
+        subject, body = str(data.get("subject") or ""), str(data.get("body") or "")
+    except Exception as err:
+        logger.warning("compose-email JSON failed, falling back to plain text | %s", err)
+        subject, body = "", await _llm.complete(
+            provider=_agent.default_provider, model=_agent.default_model,
+            system=system, messages=[{"role": "user", "content": prompt}],
+        )
+    subject, body = _clean_email(request.subject or subject, body)
+    tokens_used = _llm.count_tokens(body)
     node_action = {
         "node_action": "create_gmail_draft",
         "to": request.to,
-        "subject": request.subject,
-        "body": raw,
+        "subject": subject,
+        "body": body,
         "reply_to_message_id": None,
         "reply_to_thread_id": None,
     }
     return ComposeEmailResponse(
-        draft={"to": request.to, "subject": request.subject, "body": raw},
+        draft={"to": request.to, "subject": subject, "body": body},
         node_actions=[node_action],
         tokens_used=tokens_used,
         model_used=_agent.default_model,
@@ -1087,6 +1131,9 @@ async def post_meeting_followup(request: PostMeetingFollowUpRequest) -> PostMeet
             },
             "action_items": [],
         }
+    follow_up = data.get("follow_up")
+    if isinstance(follow_up, dict) and isinstance(follow_up.get("body"), str):
+        follow_up["subject"], follow_up["body"] = _clean_email(str(follow_up.get("subject") or ""), follow_up["body"])
     return PostMeetingFollowUpResponse(
         follow_up=data.get("follow_up", {}),
         action_items=data.get("action_items", []),
@@ -1142,6 +1189,8 @@ async def reschedule_draft(request: RescheduleDraftRequest) -> RescheduleDraftRe
             "subject": f"Re: {request.event_title} — New time",
             "body": raw[:500],
         }
+    if isinstance(data, dict) and isinstance(data.get("body"), str):
+        data["subject"], data["body"] = _clean_email(str(data.get("subject") or ""), data["body"])
     return RescheduleDraftResponse(
         email=data,
         tokens_used=tokens_used,

@@ -56,7 +56,7 @@ export default function GlobalErrorBoundary({
             margin: 0,
           }}
         >
-          That wasn&apos;t supposed to happen. Try again — if it keeps
+          That wasn&apos;t supposed to happen. Try again, if it keeps
           happening, our team has already been notified.
         </p>
 

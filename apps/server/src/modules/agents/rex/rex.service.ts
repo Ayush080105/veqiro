@@ -1,5 +1,7 @@
 import { aiService } from "../../../common/utils/aiService.js";
 import { BadRequestError } from "../../../common/errors/badRequest.js";
+import { ForbiddenError } from "../../../common/errors/forbidden.js";
+import { getPresignedGetUrl, keyBelongsToOrg } from "../../../common/utils/r2.js";
 import { CONTEXT_HISTORY_LIMIT } from "../../../config/constants.js";
 import {
   callAgentWithContext,
@@ -9,7 +11,7 @@ import {
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as rexRepository from "./rex.repository.js";
 import * as mcpService from "../../mcp/mcp.service.js";
-import { parseUploaded } from "./rex.csv.js";
+import { parseBuffer, parseUploaded } from "./rex.csv.js";
 import type {
   SendMessageInput,
   QueryDatasetInput,
@@ -37,6 +39,90 @@ import type {
 } from "./rex.types.js";
 import type { RawTable } from "./rex.csv.js";
 import { maybeStartPlannedRun } from "../../agent-runs/agent-runs.planner.js";
+
+
+type RexDatasetRow = Awaited<ReturnType<typeof rexRepository.findDataset>> & object;
+
+/** What the AI service needs to answer a question about one dataset: the stored preview (column
+ *  names, types, fallback rows, every sheet) and, when the upload is on R2, a short-lived link so
+ *  every row of the file is used. Null when the dataset has nothing to query. */
+export async function datasetPayloadForAI(
+  dataset: RexDatasetRow,
+  organizationId: string,
+): Promise<{ name: string; table: Record<string, unknown>; file: { file_url: string; file_name: string } | Record<string, never> } | null> {
+  const meta = dataset.meta as Record<string, unknown> | null;
+  const rawTable = meta?.rawTable as RawTable | undefined;
+  const points = dataset.points as Array<{ date: string; value: number }>;
+
+  if (rawTable && rawTable.headers.length > 0) {
+    let file: { file_url: string; file_name: string } | Record<string, never> = {};
+    if (rawTable.fileKey && keyBelongsToOrg(rawTable.fileKey, organizationId)) {
+      try {
+        file = { file_url: await getPresignedGetUrl(rawTable.fileKey), file_name: rawTable.fileKey };
+      } catch (err) {
+        console.error("[rex] could not presign dataset file, answering from the preview", err);
+      }
+    }
+    return {
+      name: dataset.name,
+      table: {
+        headers: rawTable.headers,
+        rows: rawTable.rows,
+        columnTypes: rawTable.columnTypes,
+        ...(rawTable.sheets ? { sheets: rawTable.sheets } : {}),
+      },
+      file,
+    };
+  }
+  if (points.length > 0) {
+    // Legacy dataset — synthesize a table from time-series points
+    return {
+      name: dataset.name,
+      table: {
+        headers: ["date", dataset.metricKey],
+        rows: points.map((p) => ({ date: p.date, [dataset.metricKey]: p.value })),
+        columnTypes: { date: "date", [dataset.metricKey]: "numeric" },
+      },
+      file: {},
+    };
+  }
+  return null;
+}
+
+/** For the AI service's internal call when Rex's chat queries a dataset (query_uploaded_data). */
+export const getDatasetForAI = async (organizationId: string, datasetId: string) => {
+  const dataset = await rexRepository.findDataset(datasetId, organizationId);
+  if (!dataset) return null;
+  const payload = await datasetPayloadForAI(dataset, organizationId);
+  return payload ? { name: payload.name, table: payload.table, ...payload.file } : null;
+};
+
+/** The uploaded files Rex's chat can answer from: every sheet and column, one entry per file
+ *  (the per-metric datasets one upload used to create share a table, so they collapse). */
+export function datasetsForChat(datasets: RexDatasetRow[]) {
+  const seen = new Set<string>();
+  const out: Array<{ id: string; name: string; sheets: Record<string, Array<{ name: string; type: string }>> }> = [];
+  for (const ds of datasets) {
+    const rawTable = (ds.meta as Record<string, unknown> | null)?.rawTable as RawTable | undefined;
+    const cols = (t: { headers: string[]; columnTypes: Record<string, string> }) =>
+      t.headers.map((h) => ({ name: h, type: t.columnTypes[h] ?? "text" }));
+    let sheets: Record<string, Array<{ name: string; type: string }>>;
+    if (rawTable && rawTable.headers.length > 0) {
+      sheets = rawTable.sheets
+        ? Object.fromEntries(Object.entries(rawTable.sheets).map(([name, t]) => [name, cols(t)]))
+        : { Data: cols(rawTable) };
+    } else if ((ds.points as unknown[]).length > 0) {
+      sheets = { Data: [{ name: "date", type: "date" }, { name: ds.metricKey, type: "numeric" }] };
+    } else {
+      continue;
+    }
+    const key = rawTable?.fileKey ?? JSON.stringify(sheets) + (rawTable ? "" : ds.id);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push({ id: ds.id, name: ds.name, sheets });
+  }
+  return out;
+}
 
 export const sendMessage = async (
   userId: string,
@@ -86,6 +172,9 @@ export const sendMessage = async (
     agentApiPath: "/ai/rex/chat",
     agentEnum: Agent.REX,
     agentRole: `Rex: Data analytics and reporting assistant.${datasetContext}`,
+    // Every uploaded file, sheet and column, so a question typed in chat is answered from the
+    // file (query_uploaded_data) — the agentRole text above only feeds memory summaries.
+    extraPayload: { rex_datasets: datasetsForChat(datasets) },
     userId,
     organizationId,
     conversationId: input.conversationId ?? userMessage.id,
@@ -181,6 +270,9 @@ export async function* streamMessage(
     agentApiPath: "/ai/rex/chat",
     agentEnum: Agent.REX,
     agentRole: `Rex: Data analytics and reporting assistant.${datasetContext}`,
+    // Every uploaded file, sheet and column, so a question typed in chat is answered from the
+    // file (query_uploaded_data) — the agentRole text above only feeds memory summaries.
+    extraPayload: { rex_datasets: datasetsForChat(datasets) },
     userId,
     organizationId,
     conversationId: input.conversationId ?? userMessage.id,
@@ -249,28 +341,8 @@ export const queryDataset = async (
     throw new BadRequestError("Dataset not found");
   }
 
-  // Extract table data: prefer rawTable from meta, fall back to points for legacy datasets
-  const meta = dataset.meta as Record<string, unknown> | null;
-  const rawTable = meta?.rawTable as RawTable | undefined;
-  const points = dataset.points as Array<{ date: string; value: number }>;
-
-  let tableForAI: Record<string, unknown>;
-  if (rawTable && rawTable.headers.length > 0) {
-    tableForAI = {
-      headers: rawTable.headers,
-      rows: rawTable.rows.slice(0, 300),
-      columnTypes: rawTable.columnTypes,
-    };
-  } else if (points.length > 0) {
-    // Legacy dataset — synthesize a table from time-series points
-    tableForAI = {
-      headers: ["date", dataset.metricKey],
-      rows: points.map((p) => ({ date: p.date, [dataset.metricKey]: p.value })),
-      columnTypes: { date: "date", [dataset.metricKey]: "numeric" },
-    };
-  } else {
-    throw new BadRequestError("Dataset has no data to query");
-  }
+  const payload = await datasetPayloadForAI(dataset, organizationId);
+  if (!payload) throw new BadRequestError("Dataset has no data to query");
 
   await rexRepository.createUserMessage({
     organizationId,
@@ -284,7 +356,8 @@ export const queryDataset = async (
     organization_id: organizationId,
     dataset_name: dataset.name,
     query: input.query,
-    table: tableForAI,
+    table: payload.table,
+    ...payload.file,
   });
 
   // Embed dataset name and original query inside result so the chat card can display them
@@ -810,8 +883,19 @@ export const patchSettings = (
 export const listDatasets = (organizationId: string) =>
   rexRepository.findDatasets(organizationId);
 
-export const parseDataset = async (organizationId: string, r2Key: string) => {
-  const result = await parseUploaded(r2Key);
+/** Parse a file already on R2. `buffer` skips the download when the caller has the bytes
+ *  (a linked sheet that was just fetched). */
+export const parseDataset = async (
+  organizationId: string,
+  r2Key: string,
+  buffer?: { data: Buffer; ext: string },
+) => {
+  if (!keyBelongsToOrg(r2Key, organizationId)) {
+    throw new ForbiddenError("That file belongs to another workspace.");
+  }
+  const result = buffer ? parseBuffer(buffer.data, buffer.ext) : await parseUploaded(r2Key);
+  // The stored table is a preview; questions are answered over the whole file.
+  if (result.rawTable.headers.length > 0) result.rawTable.fileKey = r2Key;
   // C7: surface saved column mapping from prior uploads — and apply it
   // when the headers match, so column → metricKey is stable across uploads.
   try {
@@ -861,11 +945,15 @@ export const saveDatasets = async (
     meta?: unknown;
     purpose?: string;
   }>,
-  mapping?: { dateColumn: string; valueColumns: Array<{ column: string; metricKey: string }> }
+  mapping?: { dateColumn: string; valueColumns: Array<{ column: string; metricKey: string }> },
+  source?: { sourceUrl: string; downloadUrl: string; contentHash: string },
 ) => {
   const created = await Promise.all(
     datasets.map((d) =>
-      rexRepository.createDataset({ organizationId, userId, ...d })
+      rexRepository.createDataset({
+        organizationId, userId, ...d,
+        ...(source ? { sourceKind: "link", ...source, lastSyncedAt: new Date() } : {}),
+      })
     )
   );
   // C7: persist the mapping so the next upload can auto-apply

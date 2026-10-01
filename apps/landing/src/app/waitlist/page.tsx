@@ -3,7 +3,7 @@ import { serverUrl, maxWaitlistSlots } from '@/lib/site-config';
 import WaitlistPageContent from '@/components/veqiro/waitlist-page-content';
 
 export const metadata = buildPageMetadata({
-  title: 'Join the Waitlist — Veqiro',
+  title: 'Join the Waitlist: Veqiro',
   description: 'Veqiro launches soon. Join the waitlist and get 30% off on your first plan as a founding member.',
   path: '/waitlist',
 });

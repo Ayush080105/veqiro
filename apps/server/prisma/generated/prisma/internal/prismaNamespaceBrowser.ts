@@ -86,7 +86,15 @@ export const ModelName = {
   MayaContentIdea: 'MayaContentIdea',
   SageSavedKeyword: 'SageSavedKeyword',
   LexSource: 'LexSource',
+  LexFinding: 'LexFinding',
+  LexObligation: 'LexObligation',
+  LexPreference: 'LexPreference',
+  LexActivity: 'LexActivity',
+  LexSettings: 'LexSettings',
   RexDataset: 'RexDataset',
+  RexDashboard: 'RexDashboard',
+  RexDashboardWidget: 'RexDashboardWidget',
+  RexDashboardResult: 'RexDashboardResult',
   RexPinnedCard: 'RexPinnedCard',
   RexSettings: 'RexSettings',
   VegaFollowUp: 'VegaFollowUp',
@@ -108,7 +116,18 @@ export const ModelName = {
   MayaUsage: 'MayaUsage',
   Settlement: 'Settlement',
   AgentRun: 'AgentRun',
-  AgentRunStep: 'AgentRunStep'
+  AgentRunStep: 'AgentRunStep',
+  ActivityEvent: 'ActivityEvent',
+  WorkObjectIndex: 'WorkObjectIndex',
+  Insight: 'Insight',
+  Handoff: 'Handoff',
+  Campaign: 'Campaign',
+  ResearchProject: 'ResearchProject',
+  ResearchSource: 'ResearchSource',
+  ResearchFinding: 'ResearchFinding',
+  MemoryItem: 'MemoryItem',
+  SeoPage: 'SeoPage',
+  SeoIssue: 'SeoIssue'
 } as const
 
 export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -200,6 +219,7 @@ export const OrganizationScalarFieldEnum = {
   metadata: 'metadata',
   onboarded: 'onboarded',
   plannedRunsEnabled: 'plannedRunsEnabled',
+  workspaceUiEnabled: 'workspaceUiEnabled',
   subscriptionStatus: 'subscriptionStatus',
   entitlementExpiresAt: 'entitlementExpiresAt',
   unlockedAgents: 'unlockedAgents',
@@ -469,9 +489,13 @@ export const McpPendingActionScalarFieldEnum = {
   userId: 'userId',
   agent: 'agent',
   messageId: 'messageId',
+  kind: 'kind',
   connectionId: 'connectionId',
   integrationSlug: 'integrationSlug',
   toolName: 'toolName',
+  actionId: 'actionId',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
   arguments: 'arguments',
   summary: 'summary',
   source: 'source',
@@ -569,6 +593,7 @@ export const McpApprovalPolicyScalarFieldEnum = {
   organizationId: 'organizationId',
   integrationSlug: 'integrationSlug',
   toolName: 'toolName',
+  agentScope: 'agentScope',
   mode: 'mode',
   createdByUserId: 'createdByUserId',
   createdAt: 'createdAt',
@@ -648,6 +673,7 @@ export const PublishedPostScalarFieldEnum = {
   publishedAt: 'publishedAt',
   scheduledAt: 'scheduledAt',
   failureNotifiedAt: 'failureNotifiedAt',
+  campaignId: 'campaignId',
   createdAt: 'createdAt'
 } as const
 
@@ -698,10 +724,112 @@ export const LexSourceScalarFieldEnum = {
   chunksCreated: 'chunksCreated',
   summary: 'summary',
   keyTopics: 'keyTopics',
-  createdAt: 'createdAt'
+  createdAt: 'createdAt',
+  status: 'status',
+  counterparty: 'counterparty',
+  perspective: 'perspective',
+  effectiveDate: 'effectiveDate',
+  expiryDate: 'expiryDate',
+  renewalDate: 'renewalDate',
+  noticeDeadline: 'noticeDeadline',
+  autoRenewal: 'autoRenewal',
+  contractValue: 'contractValue',
+  currency: 'currency',
+  paymentTerms: 'paymentTerms',
+  governingLaw: 'governingLaw',
+  jurisdiction: 'jurisdiction',
+  disputeResolution: 'disputeResolution',
+  review: 'review',
+  reviewHeadline: 'reviewHeadline',
+  reviewAction: 'reviewAction',
+  riskLevel: 'riskLevel',
+  criticalCount: 'criticalCount',
+  highCount: 'highCount',
+  lastReviewedAt: 'lastReviewedAt',
+  version: 'version',
+  previousVersionId: 'previousVersionId',
+  versionComparison: 'versionComparison',
+  versionComparisonSeen: 'versionComparisonSeen'
 } as const
 
 export type LexSourceScalarFieldEnum = (typeof LexSourceScalarFieldEnum)[keyof typeof LexSourceScalarFieldEnum]
+
+
+export const LexFindingScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  severity: 'severity',
+  category: 'category',
+  kind: 'kind',
+  title: 'title',
+  section: 'section',
+  quote: 'quote',
+  explanation: 'explanation',
+  suggestedWording: 'suggestedWording',
+  preference: 'preference',
+  createdAt: 'createdAt'
+} as const
+
+export type LexFindingScalarFieldEnum = (typeof LexFindingScalarFieldEnum)[keyof typeof LexFindingScalarFieldEnum]
+
+
+export const LexObligationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  owner: 'owner',
+  description: 'description',
+  whenText: 'whenText',
+  section: 'section',
+  recurrence: 'recurrence',
+  dueDate: 'dueDate',
+  status: 'status',
+  reminderOn: 'reminderOn',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexObligationScalarFieldEnum = (typeof LexObligationScalarFieldEnum)[keyof typeof LexObligationScalarFieldEnum]
+
+
+export const LexPreferenceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  category: 'category',
+  key: 'key',
+  label: 'label',
+  value: 'value',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexPreferenceScalarFieldEnum = (typeof LexPreferenceScalarFieldEnum)[keyof typeof LexPreferenceScalarFieldEnum]
+
+
+export const LexActivityScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  sourceRowId: 'sourceRowId',
+  actor: 'actor',
+  actorName: 'actorName',
+  action: 'action',
+  detail: 'detail',
+  createdAt: 'createdAt'
+} as const
+
+export type LexActivityScalarFieldEnum = (typeof LexActivityScalarFieldEnum)[keyof typeof LexActivityScalarFieldEnum]
+
+
+export const LexSettingsScalarFieldEnum = {
+  organizationId: 'organizationId',
+  weeklyBrief: 'weeklyBrief',
+  lastBriefAt: 'lastBriefAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type LexSettingsScalarFieldEnum = (typeof LexSettingsScalarFieldEnum)[keyof typeof LexSettingsScalarFieldEnum]
 
 
 export const RexDatasetScalarFieldEnum = {
@@ -716,11 +844,74 @@ export const RexDatasetScalarFieldEnum = {
   purpose: 'purpose',
   points: 'points',
   meta: 'meta',
+  sourceKind: 'sourceKind',
+  sourceUrl: 'sourceUrl',
+  downloadUrl: 'downloadUrl',
+  contentHash: 'contentHash',
+  lastSyncedAt: 'lastSyncedAt',
+  syncError: 'syncError',
+  syncEnabled: 'syncEnabled',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type RexDatasetScalarFieldEnum = (typeof RexDatasetScalarFieldEnum)[keyof typeof RexDatasetScalarFieldEnum]
+
+
+export const RexDashboardScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  title: 'title',
+  description: 'description',
+  prompt: 'prompt',
+  datasetIds: 'datasetIds',
+  datasetAliases: 'datasetAliases',
+  filters: 'filters',
+  isPublic: 'isPublic',
+  shareToken: 'shareToken',
+  dataVersion: 'dataVersion',
+  refreshStatus: 'refreshStatus',
+  refreshStartedAt: 'refreshStartedAt',
+  refreshError: 'refreshError',
+  lastRefreshedAt: 'lastRefreshedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDashboardScalarFieldEnum = (typeof RexDashboardScalarFieldEnum)[keyof typeof RexDashboardScalarFieldEnum]
+
+
+export const RexDashboardWidgetScalarFieldEnum = {
+  id: 'id',
+  dashboardId: 'dashboardId',
+  organizationId: 'organizationId',
+  kind: 'kind',
+  title: 'title',
+  sql: 'sql',
+  spec: 'spec',
+  layout: 'layout',
+  filterIds: 'filterIds',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDashboardWidgetScalarFieldEnum = (typeof RexDashboardWidgetScalarFieldEnum)[keyof typeof RexDashboardWidgetScalarFieldEnum]
+
+
+export const RexDashboardResultScalarFieldEnum = {
+  id: 'id',
+  dashboardId: 'dashboardId',
+  widgetId: 'widgetId',
+  filterKey: 'filterKey',
+  dataVersion: 'dataVersion',
+  columns: 'columns',
+  rows: 'rows',
+  error: 'error',
+  computedAt: 'computedAt'
+} as const
+
+export type RexDashboardResultScalarFieldEnum = (typeof RexDashboardResultScalarFieldEnum)[keyof typeof RexDashboardResultScalarFieldEnum]
 
 
 export const RexPinnedCardScalarFieldEnum = {
@@ -1063,6 +1254,219 @@ export const AgentRunStepScalarFieldEnum = {
 } as const
 
 export type AgentRunStepScalarFieldEnum = (typeof AgentRunStepScalarFieldEnum)[keyof typeof AgentRunStepScalarFieldEnum]
+
+
+export const ActivityEventScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  actorKind: 'actorKind',
+  actorUserId: 'actorUserId',
+  verb: 'verb',
+  summary: 'summary',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
+  runId: 'runId',
+  playId: 'playId',
+  pendingActionId: 'pendingActionId',
+  messageId: 'messageId',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+} as const
+
+export type ActivityEventScalarFieldEnum = (typeof ActivityEventScalarFieldEnum)[keyof typeof ActivityEventScalarFieldEnum]
+
+
+export const WorkObjectIndexScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  kind: 'kind',
+  sourceId: 'sourceId',
+  title: 'title',
+  status: 'status',
+  dueAt: 'dueAt',
+  ownerUserId: 'ownerUserId',
+  preview: 'preview',
+  sourceUpdatedAt: 'sourceUpdatedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type WorkObjectIndexScalarFieldEnum = (typeof WorkObjectIndexScalarFieldEnum)[keyof typeof WorkObjectIndexScalarFieldEnum]
+
+
+export const InsightScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  dedupeKey: 'dedupeKey',
+  kind: 'kind',
+  title: 'title',
+  body: 'body',
+  severity: 'severity',
+  status: 'status',
+  suggestedActionId: 'suggestedActionId',
+  suggestedArgs: 'suggestedArgs',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
+  runId: 'runId',
+  expiresAt: 'expiresAt',
+  acknowledgedAt: 'acknowledgedAt',
+  acknowledgedByUserId: 'acknowledgedByUserId',
+  metadata: 'metadata',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type InsightScalarFieldEnum = (typeof InsightScalarFieldEnum)[keyof typeof InsightScalarFieldEnum]
+
+
+export const HandoffScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  fromAgent: 'fromAgent',
+  toAgent: 'toAgent',
+  createdByUserId: 'createdByUserId',
+  requestedActionId: 'requestedActionId',
+  requestedArgs: 'requestedArgs',
+  note: 'note',
+  objectKind: 'objectKind',
+  objectId: 'objectId',
+  status: 'status',
+  runId: 'runId',
+  sourceMessageId: 'sourceMessageId',
+  resultMessageId: 'resultMessageId',
+  dueAt: 'dueAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type HandoffScalarFieldEnum = (typeof HandoffScalarFieldEnum)[keyof typeof HandoffScalarFieldEnum]
+
+
+export const CampaignScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  name: 'name',
+  brief: 'brief',
+  objective: 'objective',
+  audience: 'audience',
+  platform: 'platform',
+  status: 'status',
+  productImageUrls: 'productImageUrls',
+  assets: 'assets',
+  caption: 'caption',
+  approvedAt: 'approvedAt',
+  approvedByUserId: 'approvedByUserId',
+  scheduledFor: 'scheduledFor',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type CampaignScalarFieldEnum = (typeof CampaignScalarFieldEnum)[keyof typeof CampaignScalarFieldEnum]
+
+
+export const ResearchProjectScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  title: 'title',
+  question: 'question',
+  brief: 'brief',
+  status: 'status',
+  subjectCompany: 'subjectCompany',
+  summary: 'summary',
+  monitored: 'monitored',
+  lastResearchedAt: 'lastResearchedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type ResearchProjectScalarFieldEnum = (typeof ResearchProjectScalarFieldEnum)[keyof typeof ResearchProjectScalarFieldEnum]
+
+
+export const ResearchSourceScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  title: 'title',
+  url: 'url',
+  publisher: 'publisher',
+  publishedAt: 'publishedAt',
+  snippet: 'snippet',
+  retrievedAt: 'retrievedAt'
+} as const
+
+export type ResearchSourceScalarFieldEnum = (typeof ResearchSourceScalarFieldEnum)[keyof typeof ResearchSourceScalarFieldEnum]
+
+
+export const ResearchFindingScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  projectId: 'projectId',
+  sourceId: 'sourceId',
+  statement: 'statement',
+  confidence: 'confidence',
+  category: 'category',
+  createdAt: 'createdAt'
+} as const
+
+export type ResearchFindingScalarFieldEnum = (typeof ResearchFindingScalarFieldEnum)[keyof typeof ResearchFindingScalarFieldEnum]
+
+
+export const MemoryItemScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  agent: 'agent',
+  kind: 'kind',
+  content: 'content',
+  origin: 'origin',
+  sourceKind: 'sourceKind',
+  sourceId: 'sourceId',
+  confirmed: 'confirmed',
+  confirmedAt: 'confirmedAt',
+  confirmedByUserId: 'confirmedByUserId',
+  retiredAt: 'retiredAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type MemoryItemScalarFieldEnum = (typeof MemoryItemScalarFieldEnum)[keyof typeof MemoryItemScalarFieldEnum]
+
+
+export const SeoPageScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  url: 'url',
+  title: 'title',
+  targetKeyword: 'targetKeyword',
+  score: 'score',
+  previousScore: 'previousScore',
+  summary: 'summary',
+  nextMove: 'nextMove',
+  lastAuditedAt: 'lastAuditedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type SeoPageScalarFieldEnum = (typeof SeoPageScalarFieldEnum)[keyof typeof SeoPageScalarFieldEnum]
+
+
+export const SeoIssueScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  pageId: 'pageId',
+  severity: 'severity',
+  description: 'description',
+  status: 'status',
+  firstSeenAt: 'firstSeenAt',
+  lastSeenAt: 'lastSeenAt',
+  resolvedAt: 'resolvedAt'
+} as const
+
+export type SeoIssueScalarFieldEnum = (typeof SeoIssueScalarFieldEnum)[keyof typeof SeoIssueScalarFieldEnum]
 
 
 export const SortOrder = {

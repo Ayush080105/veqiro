@@ -27,7 +27,7 @@ import type { ActionResultContext } from "@/components/chat/ActionDialog"
 
 import type { ContentPlanItem } from "@/lib/api/assistants"
 import { getBillingStatus } from "@/lib/api/billing"
-import type { LexSource, SageSavedKeyword } from "@/lib/types/agents"
+import type { SageSavedKeyword } from "@/lib/types/agents"
 import { qk } from "@/lib/query-keys"
 
 import { UpgradeRequiredCard } from "@/components/billing/UpgradeRequiredCard"
@@ -59,6 +59,7 @@ import { expandTemplate } from "@/lib/agents/maya/videoTemplates"
 const AgentInfoPanel = dynamic(() => import("@/components/assistants/AgentInfoPanel"))
 const HelpSheet = dynamic(() => import("@/components/chat/HelpSheet").then((module) => module.HelpSheet))
 const LexDocumentsTab = dynamic(() => import("@/components/agents/lex/documents-tab").then((module) => module.LexDocumentsTab))
+const LexHome = dynamic(() => import("@/components/agents/lex/home").then((module) => module.LexHome))
 const MayaContentPlanTab = dynamic(() => import("@/components/agents/maya/content-plan-tab").then((module) => module.MayaContentPlanTab))
 const MayaPublishedPostsTab = dynamic(() => import("@/components/agents/maya/published-posts-tab").then((module) => module.MayaPublishedPostsTab))
 const OnboardMeModal = dynamic(() => import("@/components/assistants/OnboardMeModal").then((module) => module.OnboardMeModal))
@@ -463,6 +464,9 @@ export default function AssistantChatPage() {
     (ctx: ActionResultContext<unknown, unknown>) => {
       const meta = findAction(ctx.actionId)
       const now = new Date().toISOString()
+      if (ctx.actionId.startsWith("lex:")) {
+        void queryClient.invalidateQueries({ queryKey: ["lex"] })
+      }
 
       // ── maya:regenerate-image ─────────────────────────────────────────────
       // Patches the source message in-place so the image swaps where it lives.
@@ -711,6 +715,14 @@ export default function AssistantChatPage() {
   // params rather than remounting the page, so this must react to the param
   // values themselves — not just historyLoaded — or a second search jump
   // while already on this agent's chat would silently no-op.
+  const promptParam = searchParams.get("prompt")
+  useEffect(() => {
+    if (!promptParam) return
+    setContent(promptParam)
+    router.replace(`/assistants/${id}`)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [promptParam])
+
   const jumpParam = searchParams.get("jump")
   const atParam = searchParams.get("at")
   useEffect(() => {
@@ -782,20 +794,30 @@ export default function AssistantChatPage() {
     }
   }
 
-  const openAnalyzeForSource = useCallback((source: LexSource) => {
-    setLexTab("chat")
-    openAction("lex:analyze-contract", { source_id: source.sourceId })
-  }, [openAction])
-
-  const openQueryForSource = useCallback((source: LexSource) => {
-    setLexTab("chat")
-    openAction("lex:query-document", { sourceId: source.sourceId })
-  }, [openAction])
-
   const openUploadAction = useCallback(() => {
     setLexTab("chat")
     openAction("lex:upload-source")
   }, [openAction])
+
+  const [lexOpenDocumentId, setLexOpenDocumentId] = useState<string | null>(null)
+
+  // Lex follow-ups: "lex:ask-about" isn't a dialog — it attaches the document to the composer
+  // (so the chat answer is grounded in its full text) and pre-fills a question. Everything else
+  // opens its action dialog in the chat tab.
+  const handleAgentFollowUp = useCallback(
+    (actionId: AgentActionId, prefill?: Record<string, unknown>) => {
+      if (actionId === "lex:ask-about") {
+        const sourceId = typeof prefill?.sourceId === "string" ? prefill.sourceId : ""
+        setLexTab("chat")
+        if (sourceId) setAttachedSourceIds((prev) => (prev.includes(sourceId) ? prev : [...prev, sourceId]))
+        setContent(typeof prefill?.prompt === "string" && prefill.prompt ? prefill.prompt : "")
+        return
+      }
+      if (actionId.startsWith("lex:")) setLexTab("chat")
+      handleFollowUp(actionId, prefill)
+    },
+    [handleFollowUp, setAttachedSourceIds, setContent],
+  )
 
   const agentColor = useMemo(() => agent?.color ?? "var(--vq-yellow)", [agent])
   const agentPhotoUrl = AGENT_PHOTOS[agent?.id ?? ""] ?? undefined
@@ -1155,8 +1177,9 @@ export default function AssistantChatPage() {
         <div className="flex-1 min-h-0 overflow-y-auto">
           <LexDocumentsTab
             onUpload={openUploadAction}
-            onAnalyze={openAnalyzeForSource}
-            onQuery={openQueryForSource}
+            onFollowUpAction={handleAgentFollowUp}
+            openDocumentId={lexOpenDocumentId}
+            onOpenDocumentChange={setLexOpenDocumentId}
           />
         </div>
       ) : isSage && sageTab === "favourites" ? (
@@ -1180,7 +1203,20 @@ export default function AssistantChatPage() {
           />
         </div>
       ) : historyLoaded && !hasMessages && !isBusy ? (
-        <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
+        isLex ? (
+          <LexHome
+            photo={AGENT_PHOTOS.lex}
+            onAction={(actionId) => openAction(actionId)}
+            onPrompt={(p) => setContent(p)}
+            onOpenDocument={(sourceRowId) => {
+              setLexTab("documents")
+              setLexOpenDocumentId(sourceRowId)
+            }}
+            onViewAll={() => setLexTab("documents")}
+          />
+        ) : (
+          <EmptyState agent={agent} onPrompt={(p) => setContent(p)} />
+        )
       ) : (
         <div
           className="vq-chat-bg relative flex-1 min-h-0"
@@ -1233,7 +1269,7 @@ export default function AssistantChatPage() {
                   agentPhoto={agentPhotoUrl}
                   showAvatar={msg.role !== "assistant" || i === 0 || displayMessages[i - 1]?.role !== "assistant"}
                   marginTop={i === 0 ? 0 : displayMessages[i - 1]?.role === msg.role ? 4 : 12}
-                  onFollowUpAction={handleFollowUp}
+                  onFollowUpAction={handleAgentFollowUp}
                   onRevertImage={handleRevertImage}
                   onRestoreDraft={handleRestoreDraft}
                   onTogglePin={handleTogglePin}

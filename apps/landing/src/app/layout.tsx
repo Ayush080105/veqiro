@@ -29,16 +29,20 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#EFE7D6" },
+    { media: "(prefers-color-scheme: dark)", color: "#14120E" },
+  ],
 };
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "Veqiro — Hire Your AI Crew",
+    default: "Veqiro: Hire Your AI Crew",
     template: "%s · Veqiro",
   },
   description:
-    "Veqiro gives you six AI employees — an exec assistant, SEO, content, research, legal, and finance — each billed independently starting at $9/mo. Hire your AI crew today.",
+    "Veqiro gives you six AI employees: an exec assistant, SEO, content, research, legal, and finance, each billed independently starting at $9/mo. Hire your AI crew today.",
   keywords: SITE_KEYWORDS,
   authors: [{ name: "Veqiro" }],
   creator: "Veqiro",
@@ -57,25 +61,17 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: SITE_URL,
-    title: "Veqiro — Hire Your AI Crew",
+    title: "Veqiro: Hire Your AI Crew",
     description:
       "AI employees with real jobs, real personalities, and zero chill.",
     siteName: "Veqiro",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Veqiro — Hire your AI crew",
-      },
-    ],
+    // No explicit images: the root opengraph-image.tsx file convention supplies this.
   },
   twitter: {
     card: "summary_large_image",
-    title: "Veqiro — Hire Your AI Crew",
+    title: "Veqiro: Hire Your AI Crew",
     description:
       "AI employees with real jobs, real personalities, and zero chill.",
-    images: ["/og-image.png"],
   },
   robots: {
     index: true,

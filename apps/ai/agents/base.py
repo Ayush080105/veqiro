@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from typing import AsyncGenerator
 
 from core.llm import LLMClient
+from core.memory_block import fit_memory_block
 from core.observability import set_llm_context
 from core.rag import RAGService
 from core.models import ChatRequest, ChatSyncResponse
@@ -212,7 +213,6 @@ class CrossAgentSink:
     tool_trace: list[dict] = field(default_factory=list)
     rich_results: list[tuple[str, dict]] = field(default_factory=list)
 _TOOL_TIMEOUT = 300.0       # seconds — safety net for tools with no internal timeout
-_MEMORY_HARD_CAP = 8000     # chars (~2k tokens) — prevents context overflow on any message
 
 # Maps AI tool names to frontend AgentActionId values for rich card rendering
 RICH_TOOL_TO_ACTION_ID: dict[str, str] = {
@@ -334,7 +334,7 @@ class BaseAgent(ABC):
     slug: str = "base"
     name: str = "Base Agent"
     default_provider: str = "openai"
-    default_model: str = "gpt-5.6-luna"
+    default_model: str = "gpt-6-luna"
     personality: str = "Helpful AI assistant"
 
     MAX_TOOL_CALLS = 5  # Circuit breaker for tool-calling loop
@@ -388,7 +388,17 @@ class BaseAgent(ABC):
             "If a question is clearly outside your domain, redirect the user to the right team member "
             "instead of guessing. Say which agent handles it and why.\n"
             "It's better to redirect cleanly than to give a mediocre or made-up answer.\n"
+            "EXCEPTION — saved facts: anything under 'Established Facts' is what the customer told the "
+            "team to remember, and it is true. If the question is answered there, answer it directly "
+            "with that fact, even when the topic belongs to another agent — never send the customer "
+            "elsewhere for something you already know. Mention the other agent only as the place for "
+            "deeper or fresher analysis.\n"
         )
+
+    def request_context_block(self, metadata: dict) -> str:
+        """Context this agent builds from the request's metadata, appended to the system
+        prompt on every chat path. None by default; see RexAgent for the uploaded datasets."""
+        return ""
 
     def _current_date_block(self) -> str:
         """Universal grounding for 'today' — injected by every agent. Without
@@ -564,13 +574,12 @@ class BaseAgent(ABC):
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
 
+        # Per-request context an agent adds from metadata (e.g. Rex: the files uploaded).
+        system_prompt += self.request_context_block(request.metadata)
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
-            word_count = len(request.message.split())
-            if word_count <= 5 and len(memory_context) > 1200:
-                memory_context = memory_context[:1200].rstrip()
-            elif len(memory_context) > _MEMORY_HARD_CAP:
-                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
+            # By section, never a character cut: the saved facts always reach the agent.
+            memory_context = fit_memory_block(memory_context, request.message)
             system_prompt += f"\n\n{memory_context}"
 
         messages = [
@@ -760,18 +769,16 @@ class BaseAgent(ABC):
             else:
                 print(f"  {_DIM}[ctx] rag=0 chunks{_X}")
 
+        # Per-request context an agent adds from metadata (e.g. Rex: the files uploaded).
+        system_prompt += self.request_context_block(request.metadata)
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
             original_len = len(memory_context)
-            word_count = len(request.message.split())
-            # Short messages only need the summary section (~1200 chars)
-            if word_count <= 5 and original_len > 1200:
-                memory_context = memory_context[:1200].rstrip()
-                print(f"  {_DIM}[ctx] memory_block trimmed {original_len}→1200 chars (short msg){_X}")
-            # Hard cap for all messages — prevents context overflow regardless of length
-            elif original_len > _MEMORY_HARD_CAP:
-                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
-                print(f"  {_DIM}[ctx] memory_block hard-capped {original_len}→{_MEMORY_HARD_CAP} chars{_X}")
+            # Long summaries give way for short messages and for the hard cap; the saved
+            # facts never do (core/memory_block.py).
+            memory_context = fit_memory_block(memory_context, request.message)
+            if len(memory_context) < original_len:
+                print(f"  {_DIM}[ctx] memory_block fitted {original_len}→{len(memory_context)} chars (facts kept whole){_X}")
             else:
                 print(f"  {_DIM}[ctx] memory_block injected ({original_len} chars){_X}")
             system_prompt += f"\n\n{memory_context}"
@@ -1112,13 +1119,11 @@ class BaseAgent(ABC):
         if rag_chunks:
             rag_context = "\n\n".join(c.get("content", "") for c in rag_chunks)
             system_prompt += f"\n\nRelevant context from knowledge base:\n{rag_context}"
+        # Per-request context an agent adds from metadata (e.g. Rex: the files uploaded).
+        system_prompt += self.request_context_block(request.metadata)
         memory_context = request.metadata.get("memory_context", "")
         if memory_context:
-            word_count = len(request.message.split())
-            if word_count <= 5 and len(memory_context) > 1200:
-                memory_context = memory_context[:1200].rstrip()
-            elif len(memory_context) > _MEMORY_HARD_CAP:
-                memory_context = memory_context[:_MEMORY_HARD_CAP].rstrip()
+            memory_context = fit_memory_block(memory_context, request.message)
             system_prompt += f"\n\n{memory_context}"
 
         # Add tool-use instructions to system prompt

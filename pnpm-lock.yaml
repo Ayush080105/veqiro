@@ -244,6 +244,9 @@ importers:
       react-dom:
         specifier: 19.2.4
         version: 19.2.4(react@19.2.4)
+      react-grid-layout:
+        specifier: ^2.2.4
+        version: 2.2.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       react-hook-form:
         specifier: ^7.72.0
         version: 7.72.0(react@19.2.4)
@@ -5182,6 +5185,9 @@ packages:
   fast-deep-equal@3.1.3:
     resolution: {integrity: sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==}
 
+  fast-equals@4.0.3:
+    resolution: {integrity: sha512-G3BSX9cfKttjr+2o1O22tYMLq0DPluZnYtq1rXumE1SpL/F/SLIfHx08WYQoWSIpeMYf8sRbJ8++71+v6Pnxfg==}
+
   fast-glob@3.3.1:
     resolution: {integrity: sha512-kNFPyjhh5cKjrUltxs+wFx+ZkbRaxxmZ+X0ZU31SOsxCEtP9VPgtq2teZw1DebupL5GmDaNQ6yKMMVcM41iqDg==}
     engines: {node: '>=8.6.0'}
@@ -6838,10 +6844,22 @@ packages:
     peerDependencies:
       react: ^19.2.4
 
+  react-draggable@4.7.2:
+    resolution: {integrity: sha512-pmqDx72EqhMGoJe/x42ZO2wJ9TIz7qJ5OPnFu6lVWWznEuJumlSjR+J0V4tNyDFhUo6dVvv56FeiTqN+arTgnw==}
+    peerDependencies:
+      react: '>= 16.3.0'
+      react-dom: '>= 16.3.0'
+
   react-email@5.0.7:
     resolution: {integrity: sha512-JsWzxl3O82Gw9HRRNJm8VjQLB8c7R5TGbP89Ffj+/Qdb2H2N4J0XRXkhqiucMvmucuqNqe9mNndZkh3jh638xA==}
     engines: {node: '>=20.0.0'}
     hasBin: true
+
+  react-grid-layout@2.2.4:
+    resolution: {integrity: sha512-Eb57FsgOMYOfsUGrMI1ku/FFR+dPNPrE8qo+3hwZubpqVSy4GO9v52DeX50Tl3JDYAlCypP4rmw7Vrqk/zOIvA==}
+    peerDependencies:
+      react: '>= 16.3.0'
+      react-dom: '>= 16.3.0'
 
   react-hook-form@7.72.0:
     resolution: {integrity: sha512-V4v6jubaf6JAurEaVnT9aUPKFbNtDgohj5CIgVGyPHvT9wRx5OZHVjz31GsxnPNI278XMu+ruFz+wGOscHaLKw==}
@@ -6893,6 +6911,12 @@ packages:
     peerDependenciesMeta:
       '@types/react':
         optional: true
+
+  react-resizable@3.2.0:
+    resolution: {integrity: sha512-3NKQ0SLZV7rs3LQHeXlOzDSRQfFrkX6TVet77/Qk03zqiZyee37b7N8/gwDJAA8UUjRz7PdWCCy49hcso45SMQ==}
+    peerDependencies:
+      react: '>= 16.3'
+      react-dom: '>= 16.3'
 
   react-style-singleton@2.2.3:
     resolution: {integrity: sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ==}
@@ -6996,6 +7020,9 @@ packages:
     peerDependenciesMeta:
       '@react-email/render':
         optional: true
+
+  resize-observer-polyfill@1.5.1:
+    resolution: {integrity: sha512-LwZrotdHOo12nQuZlHEmtuXdqGoOD0OhaxopaNFxWzInpEgaLWoVuAMbTzixuosCx2nEG58ngzW3vxdWoxIgdg==}
 
   resolve-from@4.0.0:
     resolution: {integrity: sha512-pb/MYmXstAkysRFx8piNI1tGFNQIFA3vkE3Gq4EuA1dF6gHp/+vgZqsCGJapvy8N3Q+4o7FwvquPJcnZ7RYy4g==}
@@ -13362,6 +13389,8 @@ snapshots:
 
   fast-deep-equal@3.1.3: {}
 
+  fast-equals@4.0.3: {}
+
   fast-glob@3.3.1:
     dependencies:
       '@nodelib/fs.stat': 2.0.5
@@ -15269,6 +15298,13 @@ snapshots:
       react: 19.2.4
       scheduler: 0.27.0
 
+  react-draggable@4.7.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      clsx: 2.1.1
+      prop-types: 15.8.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+
   react-email@5.0.7:
     dependencies:
       '@babel/parser': 7.29.2
@@ -15292,6 +15328,17 @@ snapshots:
       - bufferutil
       - supports-color
       - utf-8-validate
+
+  react-grid-layout@2.2.4(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      clsx: 2.1.1
+      fast-equals: 4.0.3
+      prop-types: 15.8.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      react-draggable: 4.7.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react-resizable: 3.2.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      resize-observer-polyfill: 1.5.1
 
   react-hook-form@7.72.0(react@19.2.4):
     dependencies:
@@ -15346,6 +15393,13 @@ snapshots:
       use-sidecar: 1.1.3(@types/react@19.2.2)(react@19.2.4)
     optionalDependencies:
       '@types/react': 19.2.2
+
+  react-resizable@3.2.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4):
+    dependencies:
+      prop-types: 15.8.1
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
+      react-draggable: 4.7.2(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
 
   react-style-singleton@2.2.3(@types/react@19.2.2)(react@19.2.4):
     dependencies:
@@ -15499,6 +15553,8 @@ snapshots:
       svix: 1.86.0
     optionalDependencies:
       '@react-email/render': 2.0.0(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+
+  resize-observer-polyfill@1.5.1: {}
 
   resolve-from@4.0.0: {}
 

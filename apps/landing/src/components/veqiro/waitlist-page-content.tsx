@@ -166,7 +166,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                     letterSpacing: 0.5,
                     whiteSpace: 'nowrap',
                   }}>30% off</span>
-                  {' '}— on your first plan. Launch confetti included.
+                  {' '}on your first plan. Launch confetti included.
                 </>
             }
           </p>
@@ -245,7 +245,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                     you&apos;re in.
                   </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: T.ink2, margin: 0 }}>
-                    We&apos;ll email you the moment the doors open — along with your{' '}
+                    We&apos;ll email you the moment the doors open, along with your{' '}
                     <span style={{ fontFamily: FONT.head, fontWeight: 700 }}>30% off on your first plan</span>.
                   </p>
                 </div>
@@ -264,7 +264,7 @@ export default function WaitlistPageContent({ count, max }: Props) {
                     already in line.
                   </div>
                   <p style={{ fontFamily: FONT.body, fontSize: 16, color: T.ink2, margin: 0 }}>
-                    You&apos;re already on the list — we&apos;ve got you. Sit tight.
+                    You&apos;re already on the list, we&apos;ve got you. Sit tight.
                   </p>
                 </div>
               ) : status === 'full' || count >= max ? (

@@ -1,4 +1,5 @@
 import { Agent, McpActionSource } from "../../../prisma/generated/prisma/client.js";
+import { computeNextRun } from "../../common/utils/cron.js";
 import { prisma } from "../../config/prisma.js";
 import { BadRequestError } from "../../common/errors/badRequest.js";
 import { NotFoundError } from "../../common/errors/notFound.js";
@@ -25,7 +26,11 @@ export interface PlaySummary {
   missing: string[];
   available: boolean;
   enabled: boolean;
+  /** The cron expression actually stored for this org. */
+  schedule: string;
   lastRunAt: string | null;
+  /** When it fires next, or null when it is switched off. */
+  nextRunAt: string | null;
   lastError: string | null;
 }
 
@@ -53,7 +58,17 @@ export const listPlays = async (organizationId: string): Promise<PlaySummary[]> 
       missing,
       available: missing.length === 0,
       enabled: row?.enabled ?? false,
+      /** The cron actually stored for this org, not the catalog default —
+       *  a catalog change must not silently move a customer's Monday. */
+      schedule: row?.schedule ?? def.schedule,
       lastRunAt: row?.lastRunAt?.toISOString() ?? null,
+      // The PRD requires an automation to say when it next runs. Null for a
+      // play that is switched off, because "next run" for something that is
+      // not running is a misleading answer rather than a missing one.
+      nextRunAt:
+        row?.enabled
+          ? (computeNextRun(row.schedule)?.toISOString() ?? null)
+          : null,
       lastError: row?.lastError ?? null,
     };
   });
@@ -199,14 +214,41 @@ export const runPlayNow = async (
  * 9am would otherwise open a hundred concurrent agent calls, and the failure
  * mode there is the AI service falling over rather than a play being late.
  */
-export const runDuePlays = async (isDue: (schedule: string) => boolean): Promise<number> => {
+export const runDuePlays = async (
+  isDue: (schedule: string) => boolean,
+  now: Date = new Date(),
+): Promise<number> => {
   const enabled = await prisma.mcpPlay.findMany({ where: { enabled: true } });
   let ran = 0;
+
+  // Every play fires at most once per minute, so the start of this minute is
+  // the boundary a claim is measured against.
+  const minuteStart = new Date(now);
+  minuteStart.setUTCSeconds(0, 0);
 
   for (const row of enabled) {
     if (!isDue(row.schedule)) continue;
     const def = findPlayDefinition(row.playId);
     if (!def) continue;
+
+    // Claim the row before running it. This is what makes the scheduler safe
+    // on more than one instance: UPDATE ... WHERE takes a row lock, so exactly
+    // one process sees count 1 and the others skip. Without it, two servers
+    // ticking the same minute both run the play and the customer gets the
+    // Monday briefing twice.
+    //
+    // It also makes the tick idempotent within a minute, which matters because
+    // lastRunAt is written again below — a retry in the same minute is a
+    // no-op rather than a second send.
+    const claim = await prisma.mcpPlay.updateMany({
+      where: {
+        id: row.id,
+        enabled: true,
+        OR: [{ lastRunAt: null }, { lastRunAt: { lt: minuteStart } }],
+      },
+      data: { lastRunAt: now },
+    });
+    if (claim.count === 0) continue;
 
     try {
       await runPlay({

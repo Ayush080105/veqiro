@@ -38,6 +38,7 @@ export type McpApprovalPolicyMinAggregateOutputType = {
   organizationId: string | null
   integrationSlug: string | null
   toolName: string | null
+  agentScope: string | null
   mode: $Enums.McpApprovalMode | null
   createdByUserId: string | null
   createdAt: Date | null
@@ -49,6 +50,7 @@ export type McpApprovalPolicyMaxAggregateOutputType = {
   organizationId: string | null
   integrationSlug: string | null
   toolName: string | null
+  agentScope: string | null
   mode: $Enums.McpApprovalMode | null
   createdByUserId: string | null
   createdAt: Date | null
@@ -60,6 +62,7 @@ export type McpApprovalPolicyCountAggregateOutputType = {
   organizationId: number
   integrationSlug: number
   toolName: number
+  agentScope: number
   mode: number
   createdByUserId: number
   createdAt: number
@@ -73,6 +76,7 @@ export type McpApprovalPolicyMinAggregateInputType = {
   organizationId?: true
   integrationSlug?: true
   toolName?: true
+  agentScope?: true
   mode?: true
   createdByUserId?: true
   createdAt?: true
@@ -84,6 +88,7 @@ export type McpApprovalPolicyMaxAggregateInputType = {
   organizationId?: true
   integrationSlug?: true
   toolName?: true
+  agentScope?: true
   mode?: true
   createdByUserId?: true
   createdAt?: true
@@ -95,6 +100,7 @@ export type McpApprovalPolicyCountAggregateInputType = {
   organizationId?: true
   integrationSlug?: true
   toolName?: true
+  agentScope?: true
   mode?: true
   createdByUserId?: true
   createdAt?: true
@@ -179,6 +185,7 @@ export type McpApprovalPolicyGroupByOutputType = {
   organizationId: string
   integrationSlug: string
   toolName: string
+  agentScope: string
   mode: $Enums.McpApprovalMode
   createdByUserId: string
   createdAt: Date
@@ -211,6 +218,7 @@ export type McpApprovalPolicyWhereInput = {
   organizationId?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   integrationSlug?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   toolName?: Prisma.StringFilter<"McpApprovalPolicy"> | string
+  agentScope?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   mode?: Prisma.EnumMcpApprovalModeFilter<"McpApprovalPolicy"> | $Enums.McpApprovalMode
   createdByUserId?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   createdAt?: Prisma.DateTimeFilter<"McpApprovalPolicy"> | Date | string
@@ -222,6 +230,7 @@ export type McpApprovalPolicyOrderByWithRelationInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  agentScope?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -230,24 +239,26 @@ export type McpApprovalPolicyOrderByWithRelationInput = {
 
 export type McpApprovalPolicyWhereUniqueInput = Prisma.AtLeast<{
   id?: string
-  organizationId_integrationSlug_toolName?: Prisma.McpApprovalPolicyOrganizationIdIntegrationSlugToolNameCompoundUniqueInput
+  organizationId_integrationSlug_toolName_agentScope?: Prisma.McpApprovalPolicyOrganizationIdIntegrationSlugToolNameAgentScopeCompoundUniqueInput
   AND?: Prisma.McpApprovalPolicyWhereInput | Prisma.McpApprovalPolicyWhereInput[]
   OR?: Prisma.McpApprovalPolicyWhereInput[]
   NOT?: Prisma.McpApprovalPolicyWhereInput | Prisma.McpApprovalPolicyWhereInput[]
   organizationId?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   integrationSlug?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   toolName?: Prisma.StringFilter<"McpApprovalPolicy"> | string
+  agentScope?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   mode?: Prisma.EnumMcpApprovalModeFilter<"McpApprovalPolicy"> | $Enums.McpApprovalMode
   createdByUserId?: Prisma.StringFilter<"McpApprovalPolicy"> | string
   createdAt?: Prisma.DateTimeFilter<"McpApprovalPolicy"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"McpApprovalPolicy"> | Date | string
-}, "id" | "organizationId_integrationSlug_toolName">
+}, "id" | "organizationId_integrationSlug_toolName_agentScope">
 
 export type McpApprovalPolicyOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  agentScope?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -265,6 +276,7 @@ export type McpApprovalPolicyScalarWhereWithAggregatesInput = {
   organizationId?: Prisma.StringWithAggregatesFilter<"McpApprovalPolicy"> | string
   integrationSlug?: Prisma.StringWithAggregatesFilter<"McpApprovalPolicy"> | string
   toolName?: Prisma.StringWithAggregatesFilter<"McpApprovalPolicy"> | string
+  agentScope?: Prisma.StringWithAggregatesFilter<"McpApprovalPolicy"> | string
   mode?: Prisma.EnumMcpApprovalModeWithAggregatesFilter<"McpApprovalPolicy"> | $Enums.McpApprovalMode
   createdByUserId?: Prisma.StringWithAggregatesFilter<"McpApprovalPolicy"> | string
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"McpApprovalPolicy"> | Date | string
@@ -276,6 +288,7 @@ export type McpApprovalPolicyCreateInput = {
   organizationId: string
   integrationSlug?: string
   toolName?: string
+  agentScope?: string
   mode: $Enums.McpApprovalMode
   createdByUserId: string
   createdAt?: Date | string
@@ -287,6 +300,7 @@ export type McpApprovalPolicyUncheckedCreateInput = {
   organizationId: string
   integrationSlug?: string
   toolName?: string
+  agentScope?: string
   mode: $Enums.McpApprovalMode
   createdByUserId: string
   createdAt?: Date | string
@@ -298,6 +312,7 @@ export type McpApprovalPolicyUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  agentScope?: Prisma.StringFieldUpdateOperationsInput | string
   mode?: Prisma.EnumMcpApprovalModeFieldUpdateOperationsInput | $Enums.McpApprovalMode
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -309,6 +324,7 @@ export type McpApprovalPolicyUncheckedUpdateInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  agentScope?: Prisma.StringFieldUpdateOperationsInput | string
   mode?: Prisma.EnumMcpApprovalModeFieldUpdateOperationsInput | $Enums.McpApprovalMode
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -320,6 +336,7 @@ export type McpApprovalPolicyCreateManyInput = {
   organizationId: string
   integrationSlug?: string
   toolName?: string
+  agentScope?: string
   mode: $Enums.McpApprovalMode
   createdByUserId: string
   createdAt?: Date | string
@@ -331,6 +348,7 @@ export type McpApprovalPolicyUpdateManyMutationInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  agentScope?: Prisma.StringFieldUpdateOperationsInput | string
   mode?: Prisma.EnumMcpApprovalModeFieldUpdateOperationsInput | $Enums.McpApprovalMode
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
@@ -342,16 +360,18 @@ export type McpApprovalPolicyUncheckedUpdateManyInput = {
   organizationId?: Prisma.StringFieldUpdateOperationsInput | string
   integrationSlug?: Prisma.StringFieldUpdateOperationsInput | string
   toolName?: Prisma.StringFieldUpdateOperationsInput | string
+  agentScope?: Prisma.StringFieldUpdateOperationsInput | string
   mode?: Prisma.EnumMcpApprovalModeFieldUpdateOperationsInput | $Enums.McpApprovalMode
   createdByUserId?: Prisma.StringFieldUpdateOperationsInput | string
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
 
-export type McpApprovalPolicyOrganizationIdIntegrationSlugToolNameCompoundUniqueInput = {
+export type McpApprovalPolicyOrganizationIdIntegrationSlugToolNameAgentScopeCompoundUniqueInput = {
   organizationId: string
   integrationSlug: string
   toolName: string
+  agentScope: string
 }
 
 export type McpApprovalPolicyCountOrderByAggregateInput = {
@@ -359,6 +379,7 @@ export type McpApprovalPolicyCountOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  agentScope?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -370,6 +391,7 @@ export type McpApprovalPolicyMaxOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  agentScope?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -381,6 +403,7 @@ export type McpApprovalPolicyMinOrderByAggregateInput = {
   organizationId?: Prisma.SortOrder
   integrationSlug?: Prisma.SortOrder
   toolName?: Prisma.SortOrder
+  agentScope?: Prisma.SortOrder
   mode?: Prisma.SortOrder
   createdByUserId?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
@@ -398,6 +421,7 @@ export type McpApprovalPolicySelect<ExtArgs extends runtime.Types.Extensions.Int
   organizationId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  agentScope?: boolean
   mode?: boolean
   createdByUserId?: boolean
   createdAt?: boolean
@@ -409,6 +433,7 @@ export type McpApprovalPolicySelectCreateManyAndReturn<ExtArgs extends runtime.T
   organizationId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  agentScope?: boolean
   mode?: boolean
   createdByUserId?: boolean
   createdAt?: boolean
@@ -420,6 +445,7 @@ export type McpApprovalPolicySelectUpdateManyAndReturn<ExtArgs extends runtime.T
   organizationId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  agentScope?: boolean
   mode?: boolean
   createdByUserId?: boolean
   createdAt?: boolean
@@ -431,13 +457,14 @@ export type McpApprovalPolicySelectScalar = {
   organizationId?: boolean
   integrationSlug?: boolean
   toolName?: boolean
+  agentScope?: boolean
   mode?: boolean
   createdByUserId?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type McpApprovalPolicyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "integrationSlug" | "toolName" | "mode" | "createdByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpApprovalPolicy"]>
+export type McpApprovalPolicyOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "integrationSlug" | "toolName" | "agentScope" | "mode" | "createdByUserId" | "createdAt" | "updatedAt", ExtArgs["result"]["mcpApprovalPolicy"]>
 
 export type $McpApprovalPolicyPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "McpApprovalPolicy"
@@ -456,9 +483,18 @@ export type $McpApprovalPolicyPayload<ExtArgs extends runtime.Types.Extensions.I
      */
     integrationSlug: string
     /**
-     * Provider tool slug this applies to, or "*" for every tool.
+     * Provider tool slug this applies to, or "*" for every tool. For native
+     * (non-MCP) approvals this holds the frontend AgentActionId, which is how
+     * one policy table governs both MCP calls and native actions.
      */
     toolName: string
+    /**
+     * Agent this applies to as an Agent enum name, or "*" for every agent —
+     * "auto-run everything Sage proposes" is the rule customers actually ask
+     * for. A String, not a nullable Agent, for the NULL reason above: the
+     * wildcard has to participate in the unique key.
+     */
+    agentScope: string
     /**
      * What to do when a write matching this rule is proposed.
      */
@@ -902,6 +938,7 @@ export interface McpApprovalPolicyFieldRefs {
   readonly organizationId: Prisma.FieldRef<"McpApprovalPolicy", 'String'>
   readonly integrationSlug: Prisma.FieldRef<"McpApprovalPolicy", 'String'>
   readonly toolName: Prisma.FieldRef<"McpApprovalPolicy", 'String'>
+  readonly agentScope: Prisma.FieldRef<"McpApprovalPolicy", 'String'>
   readonly mode: Prisma.FieldRef<"McpApprovalPolicy", 'McpApprovalMode'>
   readonly createdByUserId: Prisma.FieldRef<"McpApprovalPolicy", 'String'>
   readonly createdAt: Prisma.FieldRef<"McpApprovalPolicy", 'DateTime'>

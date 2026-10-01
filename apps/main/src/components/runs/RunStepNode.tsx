@@ -4,6 +4,7 @@ import { Handle, Position, type NodeProps } from "@xyflow/react"
 import { Check, X, Loader2, Clock, PenLine, Ban, MinusCircle } from "lucide-react"
 import { getIntegrationBySlug } from "@repo/integrations-catalog"
 import type { AgentRunStep, AgentRunStepStatus } from "@/lib/types/runs"
+import { agentColorFor } from "./agentColor"
 import { NODE_WIDTH, NODE_HEIGHT } from "./runLayout"
 
 export interface RunStepNodeData extends Record<string, unknown> {
@@ -55,8 +56,11 @@ const StatusIcon = ({ status }: { status: AgentRunStepStatus }) => {
 }
 
 export function RunStepNode({ data }: NodeProps) {
-  const { step, agentColor, mode, disabled, cascaded, onToggle } =
+  const { step, agentColor: fallbackColor, mode, disabled, cascaded, onToggle } =
     data as RunStepNodeData
+  // Each step is coloured for the employee who does it, not for whoever led the
+  // run — a team plan is several people's work and should read that way.
+  const agentColor = agentColorFor(step.agent, fallbackColor)
 
   const status = disabled ? "DISABLED" : step.status
   const style = STATUS_STYLE[status]
@@ -105,7 +109,8 @@ export function RunStepNode({ data }: NodeProps) {
             fontSize: 9.5,
             letterSpacing: "0.1em",
             textTransform: "uppercase",
-            color: "var(--vq-ink-3)",
+            color: disabled ? "var(--vq-ink-3)" : `color-mix(in srgb, ${agentColor} 75%, var(--foreground))`,
+            fontWeight: 600,
           }}
         >
           {step.agent.toLowerCase()}

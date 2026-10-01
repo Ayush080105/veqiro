@@ -223,7 +223,7 @@ export default function BillingPage() {
       <SettingsNav />
 
       {pastDueAgents.length > 0 && (
-        <div className="rounded-[var(--vq-r-sm)] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <div className="rounded-[var(--vq-r-sm)] border border-chart-3/40 bg-chart-3/10 px-4 py-3 text-sm text-foreground">
           Payment failed for {pastDueAgents.map((e) => e.agent.toLowerCase()).join(", ")}. You still have access
           through the paid-for period. Update your payment method via &quot;Manage billing&quot; below to keep it renewing.
         </div>

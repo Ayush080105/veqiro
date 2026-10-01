@@ -17,22 +17,22 @@ keywords:
 readingTime: 8
 faq:
   - q: "Can AI actually generate a board deck that's ready to present?"
-    a: "Yes — when it has access to your live financial data. Rex connects to Stripe, your bank, and your analytics platforms. It generates a structured deck with MRR waterfall, burn trend, runway projection, unit economics, and narrative context. You review and refine in under an hour rather than building from scratch over a weekend."
+    a: "Yes, when it has access to your live financial data. Rex connects to Stripe, your bank, and your analytics platforms. It generates a structured deck with MRR waterfall, burn trend, runway projection, unit economics, and narrative context. You review and refine in under an hour rather than building from scratch over a weekend."
   - q: "What should a board deck for a Series A startup include?"
-    a: "The standard sections: (1) Business highlights and key wins, (2) Financial performance — MRR, ARR, growth rate, gross margin, (3) Burn and runway, (4) Unit economics — CAC, LTV, payback period, (5) Key metrics vs. targets, (6) Variance analysis — actual vs. budget, (7) Forward-looking — next quarter forecast and key risks, (8) Asks — what you need from the board. Rex generates all financial sections automatically."
+    a: "The standard sections: (1) Business highlights and key wins, (2) Financial performance: MRR, ARR, growth rate, gross margin, (3) Burn and runway, (4) Unit economics: CAC, LTV, payback period, (5) Key metrics vs. targets, (6) Variance analysis: actual vs. budget, (7) Forward-looking: next quarter forecast and key risks, (8) Asks: what you need from the board. Rex generates all financial sections automatically."
   - q: "How is an AI board deck different from a template?"
-    a: "A template is a blank format. An AI board deck is populated with your actual numbers, calculated correctly, with trend context. Rex doesn't just fill in boxes — it interprets the data: flagging metrics that are off-trend, explaining why burn increased, noting when a number is above or below the budget target. The narrative is data-driven, not hand-written at midnight."
+    a: "A template is a blank format. An AI board deck is populated with your actual numbers, calculated correctly, with trend context. Rex doesn't just fill in boxes. It interprets the data: flagging metrics that are off-trend, explaining why burn increased, noting when a number is above or below the budget target. The narrative is data-driven, not hand-written at midnight."
   - q: "What's a variance analysis and why do boards care about it?"
-    a: "A variance analysis compares your actual results against your approved budget, line by line, month by month. It answers the most common board question: 'What happened vs. what you said would happen?' Boards care because it shows financial discipline and planning accuracy. Rex runs it automatically from your actual data and budget dataset — no manual reconciliation."
+    a: "A variance analysis compares your actual results against your approved budget, line by line, month by month. It answers the most common board question: 'What happened vs. what you said would happen?' Boards care because it shows financial discipline and planning accuracy. Rex runs it automatically from your actual data and budget dataset, no manual reconciliation."
   - q: "How often should I send investor updates?"
-    a: "Monthly for active investors who are engaged with the business; quarterly at minimum for all investors on your cap table. The biggest mistake founders make is only communicating when things go well. Consistent updates — even when the month is flat — build trust and mean investors aren't surprised when they do need something from them."
+    a: "Monthly for active investors who are engaged with the business; quarterly at minimum for all investors on your cap table. The biggest mistake founders make is only communicating when things go well. Consistent updates, even when the month is flat, build trust and mean investors aren't surprised when they do need something from them."
 ---
 
 Every quarter, the same thing happens at startups across every stage.
 
-The board meeting is in five days. The CEO needs a deck with real numbers. Someone pulls the Stripe CSV, someone else updates the spreadsheet, a third person starts building slides — and for two or three days, people who should be running the company are instead assembling a presentation.
+The board meeting is in five days. The CEO needs a deck with real numbers. Someone pulls the Stripe CSV, someone else updates the spreadsheet, a third person starts building slides, and for two or three days, people who should be running the company are instead assembling a presentation.
 
-There's a better way. This is how to set up Rex to generate that deck automatically — and what to include so your board gets something worth reading.
+There's a better way. This is how to set up Rex to generate that deck automatically, and what to include so your board gets something worth reading.
 
 ## Why Board Deck Prep Costs More Than You Think
 
@@ -44,7 +44,7 @@ When you're assembling a board deck manually, you're also:
 - Making judgment calls about which metrics to include because you haven't established a consistent framework
 - Writing narrative under time pressure that doesn't reflect the actual story
 
-The result is a deck that's technically correct but not particularly useful — to the board or to you. The best board decks don't get assembled under pressure. They get reviewed under pressure, because the assembly already happened.
+The result is a deck that's technically correct but not particularly useful, to the board or to you. The best board decks don't get assembled under pressure. They get reviewed under pressure, because the assembly already happened.
 
 ## What Rex Generates
 
@@ -63,7 +63,7 @@ Starting MRR:      $182,000
 = Ending MRR:      $205,800  (+13.1% MoM)
 ```
 
-This is the most important single chart in your financial deck. It shows not just whether revenue grew, but *why* — and whether the growth is driven by acquisition, expansion, or both.
+This is the most important single chart in your financial deck. It shows not just whether revenue grew, but *why*, and whether the growth is driven by acquisition, expansion, or both.
 
 ### Burn and Runway
 
@@ -87,7 +87,7 @@ It also shows a trend line: is your net burn increasing, flat, or decreasing mon
 | LTV:CAC | 4.0x | 3.5x | >3:1 |
 | CAC Payback | 17.2 mo | 19.4 mo | <18 mo |
 
-Rex pulls CAC from your acquisition cost data (ad spend, sales costs, marketing tools) and calculates LTV from your actual cohort retention data — not the simplified formula.
+Rex pulls CAC from your acquisition cost data (ad spend, sales costs, marketing tools) and calculates LTV from your actual cohort retention data, not the simplified formula.
 
 ### Variance Analysis
 
@@ -104,31 +104,31 @@ Upload your budget dataset once; Rex runs the comparison against your actuals au
 
 ## The Weekly CFO Digest
 
-Between board meetings, Rex sends a Monday morning digest — the brief a CFO would give you at the start of the week:
+Between board meetings, Rex sends a Monday morning digest, the brief a CFO would give you at the start of the week:
 
 - What moved week-over-week (MRR, burn, cash position, key KPIs)
 - What looks anomalous (a CAC spike, an unusual churn week, an expense line that jumped)
 - Three focus actions for the week based on the numbers
 
-Most founders find this digest more valuable than the board deck itself — it's the early warning system that means there are no surprises in the quarterly review.
+Most founders find this digest more valuable than the board deck itself. It's the early warning system that means there are no surprises in the quarterly review.
 
 ## How to Set This Up
 
 **Step 1: Connect your data sources**
-- Stripe (or Paddle/Chargebee) — Rex pulls subscription data and calculates all MRR components
-- Bank feed — For real-time burn and cash position
-- Ad platform data (optional) — For channel-level CAC breakdown
+- Stripe (or Paddle/Chargebee): Rex pulls subscription data and calculates all MRR components
+- Bank feed: for real-time burn and cash position
+- Ad platform data (optional): for channel-level CAC breakdown
 
 **Step 2: Upload your budget**
 Upload your annual budget as a CSV or Excel file. Rex stores it and uses it for every variance analysis going forward. One upload, persistent reference.
 
 **Step 3: Set your board update cadence**
-Tell Rex when you want the monthly investor update generated — the first Monday of each month, the week before your board meeting, or on demand. It pulls the freshest data each time.
+Tell Rex when you want the monthly investor update generated, the first Monday of each month, the week before your board meeting, or on demand. It pulls the freshest data each time.
 
 **Step 4: Ask for what you need**
-- "Generate my board deck for May — pull from my latest dataset"
+- "Generate my board deck for May, pull from my latest dataset"
 - "Run a variance analysis: actual results vs budget for last quarter"
-- "Give me my Monday CFO digest — what moved and what looks weird"
+- "Give me my Monday CFO digest, what moved and what looks weird"
 
 ---
 

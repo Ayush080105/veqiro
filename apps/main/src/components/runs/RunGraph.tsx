@@ -13,6 +13,7 @@ import "@xyflow/react/dist/style.css"
 
 import type { AgentRunStep } from "@/lib/types/runs"
 import { RunStepNode, type RunStepNodeData } from "./RunStepNode"
+import { agentColorFor } from "./agentColor"
 import { layoutRun, layoutBounds, NODE_HEIGHT } from "./runLayout"
 
 const nodeTypes = { step: RunStepNode }
@@ -58,6 +59,7 @@ export function RunGraph({
 
   const edges = useMemo<Edge[]>(() => {
     const known = new Set(steps.map((s) => s.key))
+    const agentOf = new Map(steps.map((s) => [s.key, s.agent]))
     return steps.flatMap((s) =>
       s.dependsOn
         .filter((dep) => known.has(dep))
@@ -73,14 +75,18 @@ export function RunGraph({
             target: s.key,
             animated: !dimmed && s.status === "RUNNING",
             style: {
-              stroke: dimmed ? "rgba(20,18,14,0.12)" : "rgba(20,18,14,0.28)",
+              // The line carries the colour of the step it leaves, so hand-offs
+              // between employees are visible as a change of colour.
+              stroke: dimmed
+                ? "rgba(20,18,14,0.12)"
+                : `color-mix(in srgb, ${agentColorFor(agentOf.get(dep) ?? "", agentColor)} 55%, transparent)`,
               strokeWidth: 1.5,
               strokeDasharray: dimmed ? "4 4" : undefined,
             },
           }
         }),
     )
-  }, [steps, disabledKeys, cascadedKeys])
+  }, [steps, agentColor, disabledKeys, cascadedKeys])
 
   const { height } = layoutBounds(laidOut)
   // Reserve real height rather than measuring: the panel sits inside a chat

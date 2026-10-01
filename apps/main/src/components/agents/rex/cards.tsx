@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { investorUpdateEmail, runwayBoardEmail } from "@/lib/agents/vega-handoffs"
 import {
   TrendingUp,
   TrendingDown,
@@ -58,18 +59,6 @@ import type {
 
 type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 
-const rexSurfaceCls =
-  "rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-3"
-const rexLabelCls = "text-xs font-semibold text-foreground"
-const rexBodyCls = "text-sm leading-relaxed text-foreground"
-
-function RexSurface({
-  children,
-  className,
-}: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn(rexSurfaceCls, className)}>{children}</div>
-}
-
 // ─── Confidence footer ───────────────────────────────────────────────────────
 
 function ConfidenceFooter({
@@ -92,8 +81,8 @@ function ConfidenceFooter({
           style={{ background: dot }}
         />
       )}
-      <span className="text-xs font-medium text-muted-foreground">
-        {[label, dataPoints ? `${dataPoints} data pts` : null, note].filter(Boolean).join(" / ")}
+      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+        {[label, dataPoints ? `${dataPoints} data pts` : null, note].filter(Boolean).join(" · ")}
       </span>
     </div>
   )
@@ -227,14 +216,16 @@ export function MetricsAnalysisCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className={rexBodyCls}>{analysis.summary}</p>
+        <p className="text-[11px] leading-relaxed">{analysis.summary}</p>
         {Object.keys(charts_data).length > 0 && (
           <div className="grid gap-2 sm:grid-cols-2">
             {Object.entries(charts_data).map(([name, data]) => (
-              <RexSurface key={name} className="space-y-2 p-2.5">
-                <p className={rexLabelCls}>{name}</p>
+              <div key={name} className="border border-border bg-muted/20 p-2">
+                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+                  {name}
+                </p>
                 <Sparkline data={data} />
-              </RexSurface>
+              </div>
             ))}
           </div>
         )}
@@ -306,10 +297,10 @@ export function ForecastCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <RexSurface className="p-2.5">
+        <div className="border border-border bg-muted/20 p-2">
           <Sparkline data={points} band={band} height={80} />
-        </RexSurface>
-        <p className={rexBodyCls}>{result.summary}</p>
+        </div>
+        <p className="text-[11px] leading-relaxed">{result.summary}</p>
         {onFollowUpAction && (
           <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
@@ -413,11 +404,23 @@ export function FinancialHealthCard({
             <FollowUpBtn
               label="Calculate runway"
               icon={Hourglass}
-              onClick={() => onFollowUpAction("rex:runway", {
-                monthly_burn: Math.max(1, Math.abs(m.net_burn ?? m.burn_rate ?? 0)),
-                monthly_revenue: m.mrr ?? 0,
-                growth_rate_pct: m.growth_rate_pct ?? 0,
-              })}
+              onClick={() => {
+                const burn = Math.max(1, Math.abs(m.net_burn ?? m.burn_rate ?? 0))
+                onFollowUpAction("rex:runway", {
+                  // rex:runway's validator requires a positive cash_on_hand before
+                  // the form can submit, and financial-analysis never asks about or
+                  // returns a cash balance — so this is derived from what it does
+                  // return: cash ≈ runway months × monthly burn. Left at 0 (still
+                  // blocked, same as before) only when runway_months is unknown.
+                  cash_on_hand:
+                    m.runway_months != null && m.runway_months > 0
+                      ? Math.round(m.runway_months * burn)
+                      : 0,
+                  monthly_burn: burn,
+                  monthly_revenue: m.mrr ?? 0,
+                  growth_rate_pct: m.growth_rate_pct ?? 0,
+                })
+              }}
             />
           </div>
         )}
@@ -460,9 +463,11 @@ export function BriefingCard({
             const sectionObj = isObj ? (body as RexBriefingSectionObj) : null
             const textContent = isObj ? sectionObj?.summary : (body as string)
             return (
-              <RexSurface key={title} className="space-y-1.5 p-2.5">
+              <div key={title} className="border-l-2 border-border pl-2">
                 <div className="mb-0.5 flex items-center gap-1.5">
-                  <p className={rexLabelCls}>{title}</p>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+                    {title}
+                  </p>
                   {sectionObj?.status && (
                     <StatusPill level={healthLevel(sectionObj.status)}>
                       {sectionObj.status}
@@ -470,7 +475,7 @@ export function BriefingCard({
                   )}
                 </div>
                 {textContent && (
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{textContent}</p>
+                  <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{textContent}</p>
                 )}
                 {sectionObj?.key_actions && sectionObj.key_actions.length > 0 && (
                   <ul className="mt-1 space-y-0.5">
@@ -482,7 +487,7 @@ export function BriefingCard({
                     ))}
                   </ul>
                 )}
-              </RexSurface>
+              </div>
             )
           })}
         </div>
@@ -539,32 +544,50 @@ export function RunwayCard({
           </p>
         )}
         {result.scenarios?.length > 0 && (
-          <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
-            <table className="w-full text-sm">
+          <div className="border border-border overflow-hidden">
+            <table className="w-full text-[11px]">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Scenario</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Runway</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Zero date</th>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Scenario</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Runway</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Zero date</th>
                 </tr>
               </thead>
               <tbody>
                 {result.scenarios.map((s, i) => (
-                  <tr key={i} className="border-b border-border/60 last:border-0">
-                    <td className="px-3 py-2 capitalize">{s.name}</td>
-                    <td className="px-3 py-2 text-right">
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="px-2 py-1 capitalize">{s.name}</td>
+                    <td className="px-2 py-1 text-right">
                       {s.months != null ? `${s.months} mo` : "Profitable"}
                     </td>
-                    <td className="px-3 py-2 text-right text-muted-foreground">{s.date_of_zero}</td>
+                    <td className="px-2 py-1 text-right text-muted-foreground">{s.date_of_zero}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p className={rexBodyCls}>{result.recommendation}</p>
+        <p className="text-[11px] leading-relaxed">{result.recommendation}</p>
         {onFollowUpAction && (
           <div className="flex flex-wrap justify-end gap-1.5 pt-1">
+            <FollowUpBtn
+              label="Email board"
+              icon={Mail}
+              onClick={() =>
+                onFollowUpAction(
+                  "vega:compose-email",
+                  runwayBoardEmail({
+                    runwayLabel,
+                    verdict: result.verdict,
+                    cash: fmtCurrency(result.cash_on_hand),
+                    burn: fmtCurrency(result.monthly_burn),
+                    revenue: fmtCurrency(result.monthly_revenue),
+                    zeroDate: result.date_of_zero,
+                    recommendation: result.recommendation,
+                  }),
+                )
+              }
+            />
             <FollowUpBtn
               label="Model a scenario"
               icon={GitBranch}
@@ -629,7 +652,7 @@ export function UnitEconomicsCard({
             suffix=" mo"
           />
         </div>
-        <p className={rexBodyCls}>{result.benchmark_context}</p>
+        <p className="text-[11px] leading-relaxed">{result.benchmark_context}</p>
         {result.recommendations?.length > 0 && (
           <InfoSection label="recommendations" bullets={result.recommendations} />
         )}
@@ -713,24 +736,24 @@ export function WeeklyDigestCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-sm font-medium leading-snug">{result.headline}</p>
+        <p className="text-[12px] font-medium leading-snug">{result.headline}</p>
 
         {result.wow_changes?.length > 0 && (
-          <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
-            <table className="w-full text-sm">
+          <div className="border border-border overflow-hidden">
+            <table className="w-full text-[11px]">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Metric</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Current</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">WoW</th>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Metric</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Current</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">WoW</th>
                 </tr>
               </thead>
               <tbody>
                 {result.wow_changes.map((c, i) => (
-                  <tr key={i} className="border-b border-border/60 last:border-0">
-                    <td className="px-3 py-2 capitalize">{c.metric}</td>
-                    <td className="px-3 py-2 text-right">{c.current?.toLocaleString()}</td>
-                    <td className="px-3 py-2 text-right">
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="px-2 py-1 capitalize">{c.metric}</td>
+                    <td className="px-2 py-1 text-right">{c.current?.toLocaleString()}</td>
+                    <td className="px-2 py-1 text-right">
                       <span className={cn("flex items-center justify-end gap-0.5", c.direction === "up" ? "text-chart-2" : "text-destructive")}>
                         {c.direction === "up" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
                         {Math.abs(c.change_pct ?? 0).toFixed(1)}%
@@ -745,7 +768,7 @@ export function WeeklyDigestCard({
 
         {result.alerts?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className={rexLabelCls}>Alerts</p>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Alerts</p>
             {result.alerts.map((a, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <XCircle className={cn("mt-0.5 size-3 shrink-0", severityColor(a.severity))} />
@@ -757,7 +780,7 @@ export function WeeklyDigestCard({
 
         {result.green_flags?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className={rexLabelCls}>Green flags</p>
+            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Green flags</p>
             {result.green_flags.map((f, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <CheckCircle className="mt-0.5 size-3 shrink-0 text-chart-2" />
@@ -836,7 +859,7 @@ export function InvestorUpdateCard({
             <button
               type="button"
               onClick={copy}
-              className="flex items-center gap-1 rounded-[var(--vq-r-sm)] border border-border px-2 py-1 text-xs font-medium hover:bg-muted"
+              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
             >
               <Copy className="size-3" />
               {copied ? "Copied!" : "Copy email"}
@@ -845,10 +868,10 @@ export function InvestorUpdateCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-sm font-semibold leading-snug text-foreground">
+        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
           {result.subject_line}
         </p>
-        <p className={rexBodyCls}>{result.executive_summary}</p>
+        <p className="text-[11px] leading-relaxed">{result.executive_summary}</p>
 
         {result.highlights_section?.length > 0 && (
           <InfoSection label="Highlights" bullets={result.highlights_section} />
@@ -860,11 +883,23 @@ export function InvestorUpdateCard({
           <InfoSection label="Where you can help" bullets={result.asks_section} />
         )}
 
-        <details className="text-xs">
-          <summary className="cursor-pointer font-semibold text-muted-foreground hover:text-foreground">
+        {onFollowUpAction && (
+          <div className="flex flex-wrap justify-end gap-1.5">
+            {/* The draft becomes a Gmail draft in Vega's hands — not sent, and the
+                recipient is the customer's to fill in. */}
+            <FollowUpBtn
+              label="Send via Vega"
+              icon={Mail}
+              onClick={() => onFollowUpAction("vega:compose-email", investorUpdateEmail(result))}
+            />
+          </div>
+        )}
+
+        <details className="text-[10px]">
+          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
             Full email body
           </summary>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-[var(--vq-r-sm)] border border-border/60 bg-muted/20 p-3 text-xs leading-relaxed">
+          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap border border-border bg-muted/20 p-2 text-[10px] leading-relaxed">
             {result.full_email_body}
           </pre>
         </details>
@@ -910,24 +945,24 @@ export function VarianceCard({
           />
         </div>
         {result.rows.length > 0 && (
-          <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
-            <table className="w-full text-sm">
+          <div className="border border-border overflow-hidden">
+            <table className="w-full text-[11px]">
               <thead>
-                <tr className="border-b border-border/60 bg-muted/30">
-                  <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Date</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Actual</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Budget</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Delta</th>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Date</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Actual</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Budget</th>
+                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Δ</th>
                 </tr>
               </thead>
               <tbody>
                 {result.rows.map((r, i) => (
-                  <tr key={i} className="border-b border-border/60 last:border-0">
-                    <td className="px-3 py-2">{r.date}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtCurrency(r.actual)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{fmtCurrency(r.budget)}</td>
+                  <tr key={i} className="border-b border-border last:border-0">
+                    <td className="px-2 py-1">{r.date}</td>
+                    <td className="px-2 py-1 text-right font-mono">{fmtCurrency(r.actual)}</td>
+                    <td className="px-2 py-1 text-right font-mono text-muted-foreground">{fmtCurrency(r.budget)}</td>
                     <td className={cn(
-                      "px-3 py-2 text-right tabular-nums",
+                      "px-2 py-1 text-right",
                       r.direction === "over" ? "text-destructive" : r.direction === "under" ? "text-amber-500" : "text-muted-foreground"
                     )}>
                       {r.variance_pct > 0 ? "+" : ""}
@@ -939,7 +974,7 @@ export function VarianceCard({
             </table>
           </div>
         )}
-        <p className={rexBodyCls}>{result.narrative}</p>
+        <p className="text-[11px] leading-relaxed">{result.narrative}</p>
         {onFollowUpAction && (
           <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
@@ -985,7 +1020,7 @@ export function BoardDeckCard({
             <button
               type="button"
               onClick={copyHtml}
-              className="flex items-center gap-1 rounded-[var(--vq-r-sm)] border border-border px-2 py-1 text-xs font-medium hover:bg-muted"
+              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
             >
               <Copy className="size-3" />
               {copied ? "Copied!" : "Copy HTML"}
@@ -993,7 +1028,7 @@ export function BoardDeckCard({
             <button
               type="button"
               onClick={() => setPreviewOpen(true)}
-              className="flex items-center gap-1 rounded-[var(--vq-r-sm)] border border-border px-2 py-1 text-xs font-medium hover:bg-muted"
+              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
             >
               <ArrowRight className="size-3" /> Preview
             </button>
@@ -1001,15 +1036,15 @@ export function BoardDeckCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-sm font-medium leading-snug">{result.headline}</p>
+        <p className="text-[12px] font-medium leading-snug">{result.headline}</p>
         <div className="flex flex-col gap-2">
           {Object.entries(result.sections).map(([key, body]) => (
-            <RexSurface key={key} className="space-y-1.5 p-2.5">
-              <p className={rexLabelCls}>
+            <div key={key} className="border-l-2 border-border pl-2">
+              <p className="mb-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                 {key.replace(/_/g, " ")}
               </p>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">{body || "—"}</p>
-            </RexSurface>
+              <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body || "—"}</p>
+            </div>
           ))}
         </div>
         {onFollowUpAction && (
@@ -1055,20 +1090,20 @@ function DynamicChart({ spec }: { spec: RexQueryDatasetChartSpec }) {
   if (spec.type === "table") {
     const allKeys = spec.xKey ? [spec.xKey, ...spec.yKeys.map((y) => y.key)] : spec.yKeys.map((y) => y.key)
     return (
-      <div className="overflow-hidden overflow-x-auto rounded-[var(--vq-r-sm)] border border-border/60">
-        <table className="w-full border-collapse text-sm">
+      <div className="overflow-x-auto">
+        <table className="w-full text-[11px] border-collapse">
           <thead>
-            <tr className="border-b border-border/60 bg-muted/30">
+            <tr className="border-b border-border bg-muted/50">
               {allKeys.map((k) => (
-                <th key={k} className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">{k}</th>
+                <th key={k} className="px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{k}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {spec.data.map((row, i) => (
-              <tr key={i} className="border-b border-border/50 last:border-0">
+              <tr key={i} className={cn("border-b border-border/50", i % 2 === 0 ? "bg-background" : "bg-muted/20")}>
                 {allKeys.map((k) => (
-                  <td key={k} className="px-3 py-2">{String(row[k] ?? "—")}</td>
+                  <td key={k} className="px-2 py-1.5">{String(row[k] ?? "—")}</td>
                 ))}
               </tr>
             ))}
@@ -1195,15 +1230,15 @@ export function RexQueryDatasetCard({
       />
       <AgentCard.Body className="flex flex-col gap-3">
         {query && (
-          <RexSurface className="border-dashed p-2.5">
-            <p className="text-sm italic leading-snug text-muted-foreground">"{query}"</p>
-          </RexSurface>
+          <div className="border-l-2 pl-2" style={{ borderColor: "var(--vq-green)" }}>
+            <p className="text-[11px] italic text-muted-foreground leading-snug">&ldquo;{query}&rdquo;</p>
+          </div>
         )}
-        <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.answer}</p>
+        <p className="text-[12px] leading-relaxed whitespace-pre-wrap">{result.answer}</p>
         {result.chart && (
           <div className="flex flex-col gap-1.5">
             {result.chart.title && (
-              <p className={rexLabelCls}>
+              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                 {result.chart.title}
               </p>
             )}
@@ -1272,7 +1307,7 @@ export function RexAnalyzeDatasetCard({
         {/* Key findings */}
         {result.key_findings?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className={cn(rexLabelCls, "flex items-center gap-1.5")}>
+            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
               <TrendUp className="size-3" /> Key findings
             </p>
             <ul className="flex flex-col gap-1">
@@ -1292,7 +1327,7 @@ export function RexAnalyzeDatasetCard({
             {allCharts.map((chart, ci) => (
               <div key={ci} className="flex flex-col gap-1.5">
                 {chart.title && (
-                  <p className={rexLabelCls}>
+                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
                     {chart.title}
                   </p>
                 )}
@@ -1305,7 +1340,7 @@ export function RexAnalyzeDatasetCard({
         {/* Insights */}
         {result.insights?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className={cn(rexLabelCls, "flex items-center gap-1.5")}>
+            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
               <Lightbulb className="size-3" /> Insights
             </p>
             <ul className="flex flex-col gap-1">
@@ -1322,7 +1357,7 @@ export function RexAnalyzeDatasetCard({
         {/* Recommendations */}
         {result.recommendations?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className={cn(rexLabelCls, "flex items-center gap-1.5")}>
+            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
               <CheckCircle2 className="size-3" /> Recommendations
             </p>
             <ul className="flex flex-col gap-1">

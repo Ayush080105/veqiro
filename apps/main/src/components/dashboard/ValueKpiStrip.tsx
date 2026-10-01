@@ -104,7 +104,7 @@ export function ValueKpiStrip({
         label="Work shipped"
         value={metrics ? formatNumber(metrics.contentPublishedWeek) : "-"}
         detail={`${scheduled} scheduled, ${drafts} in draft. ${metrics ? publishedDelta(metrics.contentPublishedWeek, metrics.contentPublishedPrevWeek) : ""}`}
-        href="/workspace/content"
+        href="/assistants/maya"
         icon={Send}
       />
       <KpiCard

@@ -8,6 +8,7 @@ import {
 import { aiService } from "../../../common/utils/aiService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as sageRepository from "./sage.repository.js";
+import { capturePageAudit, captureSiteAudit } from "./sage.pages.js";
 import * as mcpService from "../../mcp/mcp.service.js";
 import type {
   SendMessageInput,
@@ -564,6 +565,10 @@ export const pageSeoAudit = async (
     customInput: { actionId: "sage:page-seo-audit", input, result: data },
   });
 
+  // Keep the audit: the page, its score and its problems, so the next one can
+  // say whether anything improved and whether the fixes stuck.
+  await capturePageAudit(organizationId, userId, data);
+
   return data;
 };
 
@@ -617,6 +622,8 @@ export const siteAudit = async (
     model: data.model_used,
     customInput: { actionId: "sage:site-audit", input, result: data },
   });
+
+  await captureSiteAudit(organizationId, userId, data.results ?? []);
 
   return data;
 };

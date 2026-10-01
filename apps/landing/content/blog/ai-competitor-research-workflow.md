@@ -2,7 +2,7 @@
 title: "AI for Competitor Research: The 2-Hour Weekly Workflow We Use"
 slug: ai-competitor-research-workflow
 date: "2026-05-12"
-description: "How to run a complete competitive intelligence cycle every week using an AI research agent — including the exact workflow, brief structure, and output format."
+description: "How to run a complete competitive intelligence cycle every week using an AI research agent, including the exact workflow, brief structure, and output format."
 category: agents
 agentKey: scout
 keywords:
@@ -17,7 +17,7 @@ faq:
   - q: "What should weekly competitive intelligence include?"
     a: "At minimum: new competitor feature announcements, pricing changes, content published (blog, social, PR), job postings (signals strategy shifts), and review site mentions. Monthly: deeper analysis of positioning, keyword movements, and funding/partnership news."
   - q: "Can an AI research agent replace a competitive intelligence analyst?"
-    a: "For monitoring and synthesis of public information, largely yes. For primary research (customer interviews, analyst relationships, off-the-record conversations), no. AI researches what's publicly available — which is already 80% of what most startups need."
+    a: "For monitoring and synthesis of public information, largely yes. For primary research (customer interviews, analyst relationships, off-the-record conversations), no. AI researches what's publicly available, which is already 80% of what most startups need."
   - q: "How many competitors should I track weekly?"
     a: "3–5 direct competitors in detail; 5–10 adjacent players at lower frequency. Tracking more than that leads to noise overwhelming signal. Better to track 5 competitors well than 20 companies poorly."
   - q: "How do I brief an AI agent for competitor research?"
@@ -28,7 +28,7 @@ faq:
 
 Most founders know they should be watching their competitors. Almost none of them actually do it consistently.
 
-It's not lack of interest. It's the time-to-value ratio. A proper competitive teardown takes 4–6 hours the first time. The weekly monitoring version still takes 90 minutes — and that's 90 minutes you're spending not building, not selling, not talking to customers.
+It's not lack of interest. It's the time-to-value ratio. A proper competitive teardown takes 4–6 hours the first time. The weekly monitoring version still takes 90 minutes, and that's 90 minutes you're spending not building, not selling, not talking to customers.
 
 AI research agents change that ratio. Here's the exact workflow we use to run a complete competitive intelligence cycle in 2 hours per week, with [Scout](/agents/scout) doing 85% of the work.
 
@@ -106,9 +106,9 @@ The intelligence is only valuable if it changes something. Your Tuesday review h
 **Read the brief.** 15–20 minutes. You're looking for anything in the HIGH signal tier.
 
 **Rate each finding.** For every notable item, assign one of:
-- **Watch** — interesting but not urgent; add to monthly review log
-- **Respond** — this affects our roadmap, messaging, or positioning; needs a decision this week
-- **Move** — this is an opportunity opening or threat materialising; needs immediate action
+- **Watch**: interesting but not urgent; add to monthly review log
+- **Respond**: this affects our roadmap, messaging, or positioning; needs a decision this week
+- **Move**: this is an opportunity opening or threat materialising; needs immediate action
 
 **Log and action.** High-signal items go into your strategy log with a date and your assessment. RESPOND and MOVE items go onto your weekly agenda.
 
@@ -143,7 +143,7 @@ The difference in output quality between a precise brief and a vague one is not 
 
 ## Building a Competitive Baseline
 
-The workflow above is for ongoing monitoring. Before starting it, you need a baseline — a point-in-time snapshot of each competitor that subsequent weeks are measured against.
+The workflow above is for ongoing monitoring. Before starting it, you need a baseline, a point-in-time snapshot of each competitor that subsequent weeks are measured against.
 
 Scout's baseline brief covers:
 - Full product feature inventory (what can it do today?)
@@ -152,7 +152,7 @@ Scout's baseline brief covers:
 - Current content strategy (what topics do they publish on? What keywords do they own?)
 - Funding status and team size (from Crunchbase and LinkedIn)
 
-With a baseline in place, the weekly monitoring becomes a diff exercise — what changed? — rather than starting from scratch.
+With a baseline in place, the weekly monitoring becomes a diff exercise (what changed?) rather than starting from scratch.
 
 ## Turning Intelligence Into Decisions
 

@@ -8,7 +8,7 @@ import { FONT, T } from '@/components/veqiro/tokens';
 import { consoleUrl, isPreLaunch, waitlistUrl } from '@/lib/site-config';
 
 export const metadata = buildPageMetadata({
-  title: 'Use Cases — Who Veqiro Is For',
+  title: 'Use Cases: Who Veqiro Is For',
   description:
     'See how founders, marketing teams, agencies, and growing startups use Veqiro to automate operations without adding headcount. Pick the playbook that fits.',
   path: '/use-cases',
@@ -37,7 +37,7 @@ const USE_CASES: UseCase[] = [
     persona: 'For Founders',
     headline: 'Your first 6 hires, without the payroll.',
     blurb:
-      'Early-stage founders wear six hats. Veqiro takes five of them off — inbox, research, content, SEO, legal, and finance — so you can focus on the one only you can wear.',
+      'Early-stage founders wear six hats. Veqiro takes five of them off: inbox, research, content, SEO, legal, and finance, so you can focus on the one only you can wear.',
     bullets: [
       'Inbox zero without sacrificing your mornings',
       'Competitor teardowns written while you sleep',
@@ -51,10 +51,10 @@ const USE_CASES: UseCase[] = [
     persona: 'For Marketing Teams',
     headline: 'Ship content at 3x pace. Same headcount.',
     blurb:
-      'Small marketing teams drown in output: blog posts, social, SEO, ads. Maya writes, Sage ranks, Scout researches — your team stops executing and starts strategizing.',
+      'Small marketing teams drown in output: blog posts, social, SEO, ads. Maya writes, Sage ranks, Scout researches, your team stops executing and starts strategizing.',
     bullets: [
       'Brand-voice content across LinkedIn, X, Instagram, and blog',
-      'SEO keyword research + full articles — no agency retainer',
+      'SEO keyword research + full articles, no agency retainer',
       'Competitor content intel delivered weekly',
     ],
     accent: T.red,
@@ -79,11 +79,11 @@ const USE_CASES: UseCase[] = [
     persona: 'For Growing Startups',
     headline: 'Scale the output. Not the headcount.',
     blurb:
-      "You've got revenue, a real team, and momentum — but you're still running lean on the operational layer. Veqiro gives your team six AI specialists so you stop hiring for execution and start competing on speed.",
+      "You've got revenue, a real team, and momentum, but you're still running lean on the operational layer. Veqiro gives your team six AI specialists so you stop hiring for execution and start competing on speed.",
     bullets: [
-      'Board decks and investor updates from live data — not 3 days of slides',
+      'Board decks and investor updates from live data, not 3 days of slides',
       'Content, SEO, and research at growth pace without a full team',
-      'Legal reviews, financial reports, and exec inbox — handled',
+      'Legal reviews, financial reports, and exec inbox, handled',
     ],
     accent: T.green,
     ink: `color-mix(in srgb, ${T.green} 60%, black)`,
@@ -150,7 +150,7 @@ export default function UseCasesHubPage() {
               margin: '0 0 12px',
             }}
           >
-            Whether you&apos;re a founder wearing six hats, a marketing team bottlenecked on output, an agency scaling client work, or a growth-stage startup systematizing fast — the crew works the same. Pick the playbook that fits how you run.
+            Whether you&apos;re a founder wearing six hats, a marketing team bottlenecked on output, an agency scaling client work, or a growth-stage startup systematizing fast, the crew works the same. Pick the playbook that fits how you run.
           </p>
         </div>
       </section>
@@ -298,7 +298,7 @@ export default function UseCasesHubPage() {
               lineHeight: 0.92,
             }}
           >
-            No matter which fits —<br />
+            No matter which fits.<br />
             <span>
               Same crew.
             </span>

@@ -7,6 +7,7 @@ import {
 } from "../../../common/utils/contextService.js";
 import { Agent } from "../../../../prisma/generated/prisma/client.js";
 import * as scoutRepository from "./scout.repository.js";
+import { captureResearch } from "./scout.workspace.js";
 import * as mcpService from "../../mcp/mcp.service.js";
 import type {
   SendMessageInput,
@@ -222,6 +223,25 @@ export const researchTopic = async (
     customInput: { actionId: "scout:research-topic", input, result: data },
   });
 
+  // Keep the research instead of letting it scroll away. The conclusions Scout
+  // already produced become findings; the URLs it read become citable sources.
+  await captureResearch({
+    organizationId,
+    userId,
+    title: input.topic,
+    question: `Research topic: ${input.topic}`,
+    summary: data.bottom_line,
+    sources: (data.sources_scraped ?? []).map((url) => ({ url, title: url })),
+    findings: [
+      ...(data.opportunities ?? []).map((statement) => ({ statement, category: "opportunity" })),
+      ...(data.risks ?? []).map((statement) => ({ statement, category: "risk" })),
+      ...(data.recommended_actions ?? []).map((statement) => ({
+        statement,
+        category: "recommendation",
+      })),
+    ],
+  });
+
   return data;
 };
 
@@ -260,6 +280,27 @@ export const researchCompany = async (
     tokensUsed: data.tokens_used,
     model: data.model_used,
     customInput: { actionId: "scout:research-company", input, result: data },
+  });
+
+  // A company profile is competitor intelligence, so it is recorded against
+  // the company name — which is what later makes "what changed since?"
+  // answerable rather than a fresh search.
+  await captureResearch({
+    organizationId,
+    userId,
+    title: data.company?.name ?? input.companyName,
+    question: `Research company: ${input.companyName}`,
+    subjectCompany: data.company?.name ?? input.companyName,
+    summary: data.company?.description,
+    sources: (data.company?.sources ?? []).map((source) => ({
+      url: source.url,
+      title: source.title,
+    })),
+    findings: [
+      ...(data.company?.strengths ?? []).map((statement) => ({ statement, category: "strength" })),
+      ...(data.company?.weaknesses ?? []).map((statement) => ({ statement, category: "weakness" })),
+      ...(data.company?.recent_news ?? []).map((statement) => ({ statement, category: "news" })),
+    ],
   });
 
   return data;

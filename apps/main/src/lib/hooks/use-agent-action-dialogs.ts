@@ -43,11 +43,25 @@ export interface UseAgentActionDialogsResult {
  * for three call sites wasn't worth the extra indirection. pinnedOpen stays
  * too — it's a message-browsing panel, not an action dialog.
  */
+/**
+ * @param routes Where cross-agent handoffs navigate to, and where the ?action=
+ *   deep link cleans up to. Defaults to the /assistants chat pages so the
+ *   existing page keeps working verbatim; the workspace passes its own, because
+ *   otherwise any ?action= link opened inside a workspace would eject the
+ *   customer back to the old chat page mid-task.
+ */
 export function useAgentActionDialogs(
   agentSlug: string,
   router: RouterLike,
   searchParams: SearchParamsLike,
+  routes?: {
+    hrefForAgent: (agentSlug: string, query: string) => string
+    selfHref: string
+  },
 ): UseAgentActionDialogsResult {
+  const hrefForAgent =
+    routes?.hrefForAgent ?? ((slug: string, query: string) => `/assistants/${slug}?${query}`)
+  const selfHref = routes?.selfHref ?? `/assistants/${agentSlug}`
   const [toolsOpen, setToolsOpen] = useState(false)
   const [templatePickerOpen, setTemplatePickerOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
@@ -77,10 +91,10 @@ export function useAgentActionDialogs(
       } else {
         const qs = new URLSearchParams({ action: actionId })
         if (prefill) qs.set("prefill", JSON.stringify(prefill))
-        router.push(`/assistants/${targetAgent}?${qs.toString()}`)
+        router.push(hrefForAgent(targetAgent, qs.toString()))
       }
     },
-    [agentSlug, openAction, router],
+    [agentSlug, openAction, router, hrefForAgent],
   )
 
   // On mount: if URL contains ?action=..., open that action dialog then clean the URL.
@@ -90,7 +104,7 @@ export function useAgentActionDialogs(
     const prefillStr = searchParams.get("prefill")
     const prefill = prefillStr ? (JSON.parse(prefillStr) as Record<string, unknown>) : undefined
     openAction(action, prefill)
-    router.replace(`/assistants/${agentSlug}`)
+    router.replace(selfHref)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // run once on mount only
 

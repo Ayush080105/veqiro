@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { getPage, listPages, patchIssue } from "./sage.pages.controller.js";
 import {
   msgSage,
   msgSageStream,
@@ -38,5 +39,11 @@ router.post("/site-audit", siteAudit);
 router.get("/keywords/saved", getSavedKeywords);
 router.post("/keywords/saved", addSavedKeyword);
 router.delete("/keywords/saved/:id", removeSavedKeyword);
+
+// Pages Sage watches, and the issue queue on each. Reads only plus one status
+// change — auditing is what creates them, and that already has its own route.
+router.get("/pages", listPages);
+router.get("/pages/:id", getPage);
+router.patch("/issues/:id", patchIssue);
 
 export default router;

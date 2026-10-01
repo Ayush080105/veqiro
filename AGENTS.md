@@ -84,6 +84,8 @@ Analyses business metrics, forecasts trends, models scenarios, and generates inv
 - `investor-update` — subject line, exec summary, full email body
 - `variance` — budget vs actual with direction and narrative
 - `board-deck` — full HTML board presentation
+- **Dashboards** (workspace → Work → Dashboards) — built from a prompt over up to 5 datasets. Each tile is one read-only DuckDB query that is validated before it's kept. Tiles can be edited on a 12-column grid, by prompt, or in a per-tile settings panel, and a dashboard can be published at `/share/rex/dashboard/<token>`. Public views read stored results (`rex_dashboard_result`) and never run queries, except that a filter combination nobody has asked for yet is computed once, rate-limited, and then stored. Code: `apps/ai/agents/rex/dashboards.py`, `apps/server/src/modules/agents/rex/rex.dashboards.*`, `apps/main/src/components/agents/rex/dashboards/`.
+- **Linked spreadsheets** — a pasted Google Sheets / OneDrive / SharePoint / Dropbox / direct CSV-XLSX link becomes a dataset. It is re-fetched every 15 minutes, but only when a dashboard uses it; an unchanged file costs no parsing or queries. It works through a plain download, not Composio, so the file must be shared "anyone with the link". Code: `rex.links.ts`, which includes the SSRF guard.
 
 **Hands off to →**
 
@@ -93,10 +95,12 @@ Analyses business metrics, forecasts trends, models scenarios, and generates inv
 | "Share growth update" (financial) | `maya:draft-content` | milestone topic | Turn a green financial signal into a post |
 | "Share forecast" (forecast) | `maya:draft-content` | forecast summary | Share growth trajectory with your audience |
 | "Generate investor update" (various) | `rex:investor-update` | current metrics, period | One-click from analysis to investor email draft |
-| "Send via Vega" (investor update) | `vega:compose-email` | subject line + full email body | Send the drafted update without leaving the platform |
-| "Email board" (runway) | `vega:compose-email` | runway status + recommendation | Alert the board about cash position instantly |
+| "Send via Vega" (investor update) 🚧 | `vega:compose-email` | subject line + full email body | Send the drafted update without leaving the platform |
+| "Email board" (runway) 🚧 | `vega:compose-email` | runway status + recommendation | Alert the board about cash position instantly |
 | "Calculate runway" (financial) | `rex:runway` | burn and revenue figures | Drill from financial health into runway detail |
 | "Model a scenario" (forecast/runway) | `rex:scenario` | base metrics | Explore what-if without re-entering data |
+
+🚧 = designed, not yet built. The blocker is gone: `vega:compose-email` now exists (a prompt action; prefill fields `to`, `subject`, `instructions`), so these buttons can now be added to `rex/cards.tsx`.
 
 ---
 
@@ -116,8 +120,10 @@ Analyses contracts for risk, checks regulatory compliance, drafts legal document
 
 | Button | Target | Pre-filled with | User benefit |
 |--------|--------|-----------------|--------------|
-| "Email team about risks" (contract) | `vega:compose-email` | subject with risk level + high-risk clause summary | Alert stakeholders about contract risks in one click |
+| "Email team about risks" (contract) 🚧 | `vega:compose-email` | subject with risk level + high-risk clause summary | Alert stakeholders about contract risks in one click |
 | "Draft awareness post" (compliance) | `maya:draft-content` | compliance framework as topic | Communicate your compliance posture publicly |
+
+🚧 = not yet built — same note as under Rex's table; `vega:compose-email` now exists.
 
 ---
 
@@ -125,13 +131,15 @@ Analyses contracts for risk, checks regulatory compliance, drafts legal document
 
 Connects to Gmail and Google Calendar. Triages inboxes, drafts replies, composes emails, summarises calendars, creates events, and produces executive morning briefings.
 
+Vega's Gmail and Calendar access is Composio MCP tools inside her chat loop, with writes staged for approval. Her actions are therefore *prompt actions* (`lib/agents/prompt-actions.ts`): a form assembles a request and sends it to her chat, rather than calling a bespoke endpoint. That keeps one approval path to the inbox. The exception is `daily-briefing`, a real endpoint (`POST /briefing`).
+
 **Key outputs**
+- `daily-briefing` — morning summary assembled from the workspace tables (schedule, urgent actions, email digest, focus recommendation). Shipped.
 - `process-inbox` — prioritised email list (urgent/high/medium/low) with summaries and suggested actions
 - `draft-reply` — ready-to-send reply draft, optionally saved to Gmail
 - `compose-email` — full email drafted from instructions (tone, CTA, recipient)
 - `calendar-summary` — events, conflicts, free slots, daily summary
 - `create-event` — calendar event with Google Meet link
-- `executive-briefing` — morning summary: schedule, urgent actions, email digest, focus recommendation
 
 **Hands off to →**
 

@@ -34,6 +34,8 @@ export interface McpPendingActionSummary {
   integrationSlug: string
   toolName: string
   summary: string
+  /** What the tool will be called with; read it through lib/mcp/present-action. */
+  arguments: unknown
   status: McpPendingActionStatus
   resultJson: unknown
   errorMessage: string | null
@@ -445,7 +447,11 @@ export interface McpPlay {
   missing: string[]
   available: boolean
   enabled: boolean
+  /** The cron expression stored for this org. */
+  schedule: string
   lastRunAt: string | null
+  /** When it fires next, or null when switched off. */
+  nextRunAt: string | null
   lastError: string | null
 }
 

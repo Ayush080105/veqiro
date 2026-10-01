@@ -30,12 +30,18 @@ export type LexSourceAvgAggregateOutputType = {
   sizeBytes: number | null
   pageCount: number | null
   chunksCreated: number | null
+  criticalCount: number | null
+  highCount: number | null
+  version: number | null
 }
 
 export type LexSourceSumAggregateOutputType = {
   sizeBytes: number | null
   pageCount: number | null
   chunksCreated: number | null
+  criticalCount: number | null
+  highCount: number | null
+  version: number | null
 }
 
 export type LexSourceMinAggregateOutputType = {
@@ -53,6 +59,29 @@ export type LexSourceMinAggregateOutputType = {
   chunksCreated: number | null
   summary: string | null
   createdAt: Date | null
+  status: string | null
+  counterparty: string | null
+  perspective: string | null
+  effectiveDate: Date | null
+  expiryDate: Date | null
+  renewalDate: Date | null
+  noticeDeadline: Date | null
+  autoRenewal: boolean | null
+  contractValue: string | null
+  currency: string | null
+  paymentTerms: string | null
+  governingLaw: string | null
+  jurisdiction: string | null
+  disputeResolution: string | null
+  reviewHeadline: string | null
+  reviewAction: string | null
+  riskLevel: string | null
+  criticalCount: number | null
+  highCount: number | null
+  lastReviewedAt: Date | null
+  version: number | null
+  previousVersionId: string | null
+  versionComparisonSeen: boolean | null
 }
 
 export type LexSourceMaxAggregateOutputType = {
@@ -70,6 +99,29 @@ export type LexSourceMaxAggregateOutputType = {
   chunksCreated: number | null
   summary: string | null
   createdAt: Date | null
+  status: string | null
+  counterparty: string | null
+  perspective: string | null
+  effectiveDate: Date | null
+  expiryDate: Date | null
+  renewalDate: Date | null
+  noticeDeadline: Date | null
+  autoRenewal: boolean | null
+  contractValue: string | null
+  currency: string | null
+  paymentTerms: string | null
+  governingLaw: string | null
+  jurisdiction: string | null
+  disputeResolution: string | null
+  reviewHeadline: string | null
+  reviewAction: string | null
+  riskLevel: string | null
+  criticalCount: number | null
+  highCount: number | null
+  lastReviewedAt: Date | null
+  version: number | null
+  previousVersionId: string | null
+  versionComparisonSeen: boolean | null
 }
 
 export type LexSourceCountAggregateOutputType = {
@@ -88,6 +140,31 @@ export type LexSourceCountAggregateOutputType = {
   summary: number
   keyTopics: number
   createdAt: number
+  status: number
+  counterparty: number
+  perspective: number
+  effectiveDate: number
+  expiryDate: number
+  renewalDate: number
+  noticeDeadline: number
+  autoRenewal: number
+  contractValue: number
+  currency: number
+  paymentTerms: number
+  governingLaw: number
+  jurisdiction: number
+  disputeResolution: number
+  review: number
+  reviewHeadline: number
+  reviewAction: number
+  riskLevel: number
+  criticalCount: number
+  highCount: number
+  lastReviewedAt: number
+  version: number
+  previousVersionId: number
+  versionComparison: number
+  versionComparisonSeen: number
   _all: number
 }
 
@@ -96,12 +173,18 @@ export type LexSourceAvgAggregateInputType = {
   sizeBytes?: true
   pageCount?: true
   chunksCreated?: true
+  criticalCount?: true
+  highCount?: true
+  version?: true
 }
 
 export type LexSourceSumAggregateInputType = {
   sizeBytes?: true
   pageCount?: true
   chunksCreated?: true
+  criticalCount?: true
+  highCount?: true
+  version?: true
 }
 
 export type LexSourceMinAggregateInputType = {
@@ -119,6 +202,29 @@ export type LexSourceMinAggregateInputType = {
   chunksCreated?: true
   summary?: true
   createdAt?: true
+  status?: true
+  counterparty?: true
+  perspective?: true
+  effectiveDate?: true
+  expiryDate?: true
+  renewalDate?: true
+  noticeDeadline?: true
+  autoRenewal?: true
+  contractValue?: true
+  currency?: true
+  paymentTerms?: true
+  governingLaw?: true
+  jurisdiction?: true
+  disputeResolution?: true
+  reviewHeadline?: true
+  reviewAction?: true
+  riskLevel?: true
+  criticalCount?: true
+  highCount?: true
+  lastReviewedAt?: true
+  version?: true
+  previousVersionId?: true
+  versionComparisonSeen?: true
 }
 
 export type LexSourceMaxAggregateInputType = {
@@ -136,6 +242,29 @@ export type LexSourceMaxAggregateInputType = {
   chunksCreated?: true
   summary?: true
   createdAt?: true
+  status?: true
+  counterparty?: true
+  perspective?: true
+  effectiveDate?: true
+  expiryDate?: true
+  renewalDate?: true
+  noticeDeadline?: true
+  autoRenewal?: true
+  contractValue?: true
+  currency?: true
+  paymentTerms?: true
+  governingLaw?: true
+  jurisdiction?: true
+  disputeResolution?: true
+  reviewHeadline?: true
+  reviewAction?: true
+  riskLevel?: true
+  criticalCount?: true
+  highCount?: true
+  lastReviewedAt?: true
+  version?: true
+  previousVersionId?: true
+  versionComparisonSeen?: true
 }
 
 export type LexSourceCountAggregateInputType = {
@@ -154,6 +283,31 @@ export type LexSourceCountAggregateInputType = {
   summary?: true
   keyTopics?: true
   createdAt?: true
+  status?: true
+  counterparty?: true
+  perspective?: true
+  effectiveDate?: true
+  expiryDate?: true
+  renewalDate?: true
+  noticeDeadline?: true
+  autoRenewal?: true
+  contractValue?: true
+  currency?: true
+  paymentTerms?: true
+  governingLaw?: true
+  jurisdiction?: true
+  disputeResolution?: true
+  review?: true
+  reviewHeadline?: true
+  reviewAction?: true
+  riskLevel?: true
+  criticalCount?: true
+  highCount?: true
+  lastReviewedAt?: true
+  version?: true
+  previousVersionId?: true
+  versionComparison?: true
+  versionComparisonSeen?: true
   _all?: true
 }
 
@@ -259,6 +413,31 @@ export type LexSourceGroupByOutputType = {
   summary: string
   keyTopics: string[]
   createdAt: Date
+  status: string
+  counterparty: string | null
+  perspective: string | null
+  effectiveDate: Date | null
+  expiryDate: Date | null
+  renewalDate: Date | null
+  noticeDeadline: Date | null
+  autoRenewal: boolean | null
+  contractValue: string | null
+  currency: string | null
+  paymentTerms: string | null
+  governingLaw: string | null
+  jurisdiction: string | null
+  disputeResolution: string | null
+  review: runtime.JsonValue | null
+  reviewHeadline: string | null
+  reviewAction: string | null
+  riskLevel: string | null
+  criticalCount: number
+  highCount: number
+  lastReviewedAt: Date | null
+  version: number
+  previousVersionId: string | null
+  versionComparison: runtime.JsonValue | null
+  versionComparisonSeen: boolean
   _count: LexSourceCountAggregateOutputType | null
   _avg: LexSourceAvgAggregateOutputType | null
   _sum: LexSourceSumAggregateOutputType | null
@@ -300,6 +479,34 @@ export type LexSourceWhereInput = {
   summary?: Prisma.StringFilter<"LexSource"> | string
   keyTopics?: Prisma.StringNullableListFilter<"LexSource">
   createdAt?: Prisma.DateTimeFilter<"LexSource"> | Date | string
+  status?: Prisma.StringFilter<"LexSource"> | string
+  counterparty?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  perspective?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  effectiveDate?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  renewalDate?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  noticeDeadline?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  autoRenewal?: Prisma.BoolNullableFilter<"LexSource"> | boolean | null
+  contractValue?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  currency?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  paymentTerms?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  governingLaw?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  jurisdiction?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  disputeResolution?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  review?: Prisma.JsonNullableFilter<"LexSource">
+  reviewHeadline?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  reviewAction?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  riskLevel?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  criticalCount?: Prisma.IntFilter<"LexSource"> | number
+  highCount?: Prisma.IntFilter<"LexSource"> | number
+  lastReviewedAt?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  version?: Prisma.IntFilter<"LexSource"> | number
+  previousVersionId?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  versionComparison?: Prisma.JsonNullableFilter<"LexSource">
+  versionComparisonSeen?: Prisma.BoolFilter<"LexSource"> | boolean
+  findings?: Prisma.LexFindingListRelationFilter
+  obligations?: Prisma.LexObligationListRelationFilter
+  activities?: Prisma.LexActivityListRelationFilter
 }
 
 export type LexSourceOrderByWithRelationInput = {
@@ -318,6 +525,34 @@ export type LexSourceOrderByWithRelationInput = {
   summary?: Prisma.SortOrder
   keyTopics?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  counterparty?: Prisma.SortOrderInput | Prisma.SortOrder
+  perspective?: Prisma.SortOrderInput | Prisma.SortOrder
+  effectiveDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  renewalDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  noticeDeadline?: Prisma.SortOrderInput | Prisma.SortOrder
+  autoRenewal?: Prisma.SortOrderInput | Prisma.SortOrder
+  contractValue?: Prisma.SortOrderInput | Prisma.SortOrder
+  currency?: Prisma.SortOrderInput | Prisma.SortOrder
+  paymentTerms?: Prisma.SortOrderInput | Prisma.SortOrder
+  governingLaw?: Prisma.SortOrderInput | Prisma.SortOrder
+  jurisdiction?: Prisma.SortOrderInput | Prisma.SortOrder
+  disputeResolution?: Prisma.SortOrderInput | Prisma.SortOrder
+  review?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewHeadline?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewAction?: Prisma.SortOrderInput | Prisma.SortOrder
+  riskLevel?: Prisma.SortOrderInput | Prisma.SortOrder
+  criticalCount?: Prisma.SortOrder
+  highCount?: Prisma.SortOrder
+  lastReviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  version?: Prisma.SortOrder
+  previousVersionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  versionComparison?: Prisma.SortOrderInput | Prisma.SortOrder
+  versionComparisonSeen?: Prisma.SortOrder
+  findings?: Prisma.LexFindingOrderByRelationAggregateInput
+  obligations?: Prisma.LexObligationOrderByRelationAggregateInput
+  activities?: Prisma.LexActivityOrderByRelationAggregateInput
 }
 
 export type LexSourceWhereUniqueInput = Prisma.AtLeast<{
@@ -340,6 +575,34 @@ export type LexSourceWhereUniqueInput = Prisma.AtLeast<{
   summary?: Prisma.StringFilter<"LexSource"> | string
   keyTopics?: Prisma.StringNullableListFilter<"LexSource">
   createdAt?: Prisma.DateTimeFilter<"LexSource"> | Date | string
+  status?: Prisma.StringFilter<"LexSource"> | string
+  counterparty?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  perspective?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  effectiveDate?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  renewalDate?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  noticeDeadline?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  autoRenewal?: Prisma.BoolNullableFilter<"LexSource"> | boolean | null
+  contractValue?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  currency?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  paymentTerms?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  governingLaw?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  jurisdiction?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  disputeResolution?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  review?: Prisma.JsonNullableFilter<"LexSource">
+  reviewHeadline?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  reviewAction?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  riskLevel?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  criticalCount?: Prisma.IntFilter<"LexSource"> | number
+  highCount?: Prisma.IntFilter<"LexSource"> | number
+  lastReviewedAt?: Prisma.DateTimeNullableFilter<"LexSource"> | Date | string | null
+  version?: Prisma.IntFilter<"LexSource"> | number
+  previousVersionId?: Prisma.StringNullableFilter<"LexSource"> | string | null
+  versionComparison?: Prisma.JsonNullableFilter<"LexSource">
+  versionComparisonSeen?: Prisma.BoolFilter<"LexSource"> | boolean
+  findings?: Prisma.LexFindingListRelationFilter
+  obligations?: Prisma.LexObligationListRelationFilter
+  activities?: Prisma.LexActivityListRelationFilter
 }, "id" | "userId_sourceId">
 
 export type LexSourceOrderByWithAggregationInput = {
@@ -358,6 +621,31 @@ export type LexSourceOrderByWithAggregationInput = {
   summary?: Prisma.SortOrder
   keyTopics?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  counterparty?: Prisma.SortOrderInput | Prisma.SortOrder
+  perspective?: Prisma.SortOrderInput | Prisma.SortOrder
+  effectiveDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  expiryDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  renewalDate?: Prisma.SortOrderInput | Prisma.SortOrder
+  noticeDeadline?: Prisma.SortOrderInput | Prisma.SortOrder
+  autoRenewal?: Prisma.SortOrderInput | Prisma.SortOrder
+  contractValue?: Prisma.SortOrderInput | Prisma.SortOrder
+  currency?: Prisma.SortOrderInput | Prisma.SortOrder
+  paymentTerms?: Prisma.SortOrderInput | Prisma.SortOrder
+  governingLaw?: Prisma.SortOrderInput | Prisma.SortOrder
+  jurisdiction?: Prisma.SortOrderInput | Prisma.SortOrder
+  disputeResolution?: Prisma.SortOrderInput | Prisma.SortOrder
+  review?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewHeadline?: Prisma.SortOrderInput | Prisma.SortOrder
+  reviewAction?: Prisma.SortOrderInput | Prisma.SortOrder
+  riskLevel?: Prisma.SortOrderInput | Prisma.SortOrder
+  criticalCount?: Prisma.SortOrder
+  highCount?: Prisma.SortOrder
+  lastReviewedAt?: Prisma.SortOrderInput | Prisma.SortOrder
+  version?: Prisma.SortOrder
+  previousVersionId?: Prisma.SortOrderInput | Prisma.SortOrder
+  versionComparison?: Prisma.SortOrderInput | Prisma.SortOrder
+  versionComparisonSeen?: Prisma.SortOrder
   _count?: Prisma.LexSourceCountOrderByAggregateInput
   _avg?: Prisma.LexSourceAvgOrderByAggregateInput
   _max?: Prisma.LexSourceMaxOrderByAggregateInput
@@ -384,6 +672,31 @@ export type LexSourceScalarWhereWithAggregatesInput = {
   summary?: Prisma.StringWithAggregatesFilter<"LexSource"> | string
   keyTopics?: Prisma.StringNullableListFilter<"LexSource">
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"LexSource"> | Date | string
+  status?: Prisma.StringWithAggregatesFilter<"LexSource"> | string
+  counterparty?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  perspective?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  effectiveDate?: Prisma.DateTimeNullableWithAggregatesFilter<"LexSource"> | Date | string | null
+  expiryDate?: Prisma.DateTimeNullableWithAggregatesFilter<"LexSource"> | Date | string | null
+  renewalDate?: Prisma.DateTimeNullableWithAggregatesFilter<"LexSource"> | Date | string | null
+  noticeDeadline?: Prisma.DateTimeNullableWithAggregatesFilter<"LexSource"> | Date | string | null
+  autoRenewal?: Prisma.BoolNullableWithAggregatesFilter<"LexSource"> | boolean | null
+  contractValue?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  currency?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  paymentTerms?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  governingLaw?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  jurisdiction?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  disputeResolution?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  review?: Prisma.JsonNullableWithAggregatesFilter<"LexSource">
+  reviewHeadline?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  reviewAction?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  riskLevel?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  criticalCount?: Prisma.IntWithAggregatesFilter<"LexSource"> | number
+  highCount?: Prisma.IntWithAggregatesFilter<"LexSource"> | number
+  lastReviewedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"LexSource"> | Date | string | null
+  version?: Prisma.IntWithAggregatesFilter<"LexSource"> | number
+  previousVersionId?: Prisma.StringNullableWithAggregatesFilter<"LexSource"> | string | null
+  versionComparison?: Prisma.JsonNullableWithAggregatesFilter<"LexSource">
+  versionComparisonSeen?: Prisma.BoolWithAggregatesFilter<"LexSource"> | boolean
 }
 
 export type LexSourceCreateInput = {
@@ -402,6 +715,34 @@ export type LexSourceCreateInput = {
   summary?: string
   keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
   createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  findings?: Prisma.LexFindingCreateNestedManyWithoutSourceInput
+  obligations?: Prisma.LexObligationCreateNestedManyWithoutSourceInput
+  activities?: Prisma.LexActivityCreateNestedManyWithoutSourceInput
 }
 
 export type LexSourceUncheckedCreateInput = {
@@ -420,6 +761,34 @@ export type LexSourceUncheckedCreateInput = {
   summary?: string
   keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
   createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  findings?: Prisma.LexFindingUncheckedCreateNestedManyWithoutSourceInput
+  obligations?: Prisma.LexObligationUncheckedCreateNestedManyWithoutSourceInput
+  activities?: Prisma.LexActivityUncheckedCreateNestedManyWithoutSourceInput
 }
 
 export type LexSourceUpdateInput = {
@@ -438,6 +807,34 @@ export type LexSourceUpdateInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  findings?: Prisma.LexFindingUpdateManyWithoutSourceNestedInput
+  obligations?: Prisma.LexObligationUpdateManyWithoutSourceNestedInput
+  activities?: Prisma.LexActivityUpdateManyWithoutSourceNestedInput
 }
 
 export type LexSourceUncheckedUpdateInput = {
@@ -456,6 +853,34 @@ export type LexSourceUncheckedUpdateInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  findings?: Prisma.LexFindingUncheckedUpdateManyWithoutSourceNestedInput
+  obligations?: Prisma.LexObligationUncheckedUpdateManyWithoutSourceNestedInput
+  activities?: Prisma.LexActivityUncheckedUpdateManyWithoutSourceNestedInput
 }
 
 export type LexSourceCreateManyInput = {
@@ -474,6 +899,31 @@ export type LexSourceCreateManyInput = {
   summary?: string
   keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
   createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
 }
 
 export type LexSourceUpdateManyMutationInput = {
@@ -492,6 +942,31 @@ export type LexSourceUpdateManyMutationInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type LexSourceUncheckedUpdateManyInput = {
@@ -510,6 +985,31 @@ export type LexSourceUncheckedUpdateManyInput = {
   summary?: Prisma.StringFieldUpdateOperationsInput | string
   keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type LexSourceUserIdSourceIdCompoundUniqueInput = {
@@ -533,12 +1033,40 @@ export type LexSourceCountOrderByAggregateInput = {
   summary?: Prisma.SortOrder
   keyTopics?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  counterparty?: Prisma.SortOrder
+  perspective?: Prisma.SortOrder
+  effectiveDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
+  renewalDate?: Prisma.SortOrder
+  noticeDeadline?: Prisma.SortOrder
+  autoRenewal?: Prisma.SortOrder
+  contractValue?: Prisma.SortOrder
+  currency?: Prisma.SortOrder
+  paymentTerms?: Prisma.SortOrder
+  governingLaw?: Prisma.SortOrder
+  jurisdiction?: Prisma.SortOrder
+  disputeResolution?: Prisma.SortOrder
+  review?: Prisma.SortOrder
+  reviewHeadline?: Prisma.SortOrder
+  reviewAction?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  criticalCount?: Prisma.SortOrder
+  highCount?: Prisma.SortOrder
+  lastReviewedAt?: Prisma.SortOrder
+  version?: Prisma.SortOrder
+  previousVersionId?: Prisma.SortOrder
+  versionComparison?: Prisma.SortOrder
+  versionComparisonSeen?: Prisma.SortOrder
 }
 
 export type LexSourceAvgOrderByAggregateInput = {
   sizeBytes?: Prisma.SortOrder
   pageCount?: Prisma.SortOrder
   chunksCreated?: Prisma.SortOrder
+  criticalCount?: Prisma.SortOrder
+  highCount?: Prisma.SortOrder
+  version?: Prisma.SortOrder
 }
 
 export type LexSourceMaxOrderByAggregateInput = {
@@ -556,6 +1084,29 @@ export type LexSourceMaxOrderByAggregateInput = {
   chunksCreated?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  counterparty?: Prisma.SortOrder
+  perspective?: Prisma.SortOrder
+  effectiveDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
+  renewalDate?: Prisma.SortOrder
+  noticeDeadline?: Prisma.SortOrder
+  autoRenewal?: Prisma.SortOrder
+  contractValue?: Prisma.SortOrder
+  currency?: Prisma.SortOrder
+  paymentTerms?: Prisma.SortOrder
+  governingLaw?: Prisma.SortOrder
+  jurisdiction?: Prisma.SortOrder
+  disputeResolution?: Prisma.SortOrder
+  reviewHeadline?: Prisma.SortOrder
+  reviewAction?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  criticalCount?: Prisma.SortOrder
+  highCount?: Prisma.SortOrder
+  lastReviewedAt?: Prisma.SortOrder
+  version?: Prisma.SortOrder
+  previousVersionId?: Prisma.SortOrder
+  versionComparisonSeen?: Prisma.SortOrder
 }
 
 export type LexSourceMinOrderByAggregateInput = {
@@ -573,12 +1124,48 @@ export type LexSourceMinOrderByAggregateInput = {
   chunksCreated?: Prisma.SortOrder
   summary?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
+  status?: Prisma.SortOrder
+  counterparty?: Prisma.SortOrder
+  perspective?: Prisma.SortOrder
+  effectiveDate?: Prisma.SortOrder
+  expiryDate?: Prisma.SortOrder
+  renewalDate?: Prisma.SortOrder
+  noticeDeadline?: Prisma.SortOrder
+  autoRenewal?: Prisma.SortOrder
+  contractValue?: Prisma.SortOrder
+  currency?: Prisma.SortOrder
+  paymentTerms?: Prisma.SortOrder
+  governingLaw?: Prisma.SortOrder
+  jurisdiction?: Prisma.SortOrder
+  disputeResolution?: Prisma.SortOrder
+  reviewHeadline?: Prisma.SortOrder
+  reviewAction?: Prisma.SortOrder
+  riskLevel?: Prisma.SortOrder
+  criticalCount?: Prisma.SortOrder
+  highCount?: Prisma.SortOrder
+  lastReviewedAt?: Prisma.SortOrder
+  version?: Prisma.SortOrder
+  previousVersionId?: Prisma.SortOrder
+  versionComparisonSeen?: Prisma.SortOrder
 }
 
 export type LexSourceSumOrderByAggregateInput = {
   sizeBytes?: Prisma.SortOrder
   pageCount?: Prisma.SortOrder
   chunksCreated?: Prisma.SortOrder
+  criticalCount?: Prisma.SortOrder
+  highCount?: Prisma.SortOrder
+  version?: Prisma.SortOrder
+}
+
+export type LexSourceScalarRelationFilter = {
+  is?: Prisma.LexSourceWhereInput
+  isNot?: Prisma.LexSourceWhereInput
+}
+
+export type LexSourceNullableScalarRelationFilter = {
+  is?: Prisma.LexSourceWhereInput | null
+  isNot?: Prisma.LexSourceWhereInput | null
 }
 
 export type LexSourceCreatekeyTopicsInput = {
@@ -590,6 +1177,685 @@ export type LexSourceUpdatekeyTopicsInput = {
   push?: string | string[]
 }
 
+export type LexSourceCreateNestedOneWithoutFindingsInput = {
+  create?: Prisma.XOR<Prisma.LexSourceCreateWithoutFindingsInput, Prisma.LexSourceUncheckedCreateWithoutFindingsInput>
+  connectOrCreate?: Prisma.LexSourceCreateOrConnectWithoutFindingsInput
+  connect?: Prisma.LexSourceWhereUniqueInput
+}
+
+export type LexSourceUpdateOneRequiredWithoutFindingsNestedInput = {
+  create?: Prisma.XOR<Prisma.LexSourceCreateWithoutFindingsInput, Prisma.LexSourceUncheckedCreateWithoutFindingsInput>
+  connectOrCreate?: Prisma.LexSourceCreateOrConnectWithoutFindingsInput
+  upsert?: Prisma.LexSourceUpsertWithoutFindingsInput
+  connect?: Prisma.LexSourceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LexSourceUpdateToOneWithWhereWithoutFindingsInput, Prisma.LexSourceUpdateWithoutFindingsInput>, Prisma.LexSourceUncheckedUpdateWithoutFindingsInput>
+}
+
+export type LexSourceCreateNestedOneWithoutObligationsInput = {
+  create?: Prisma.XOR<Prisma.LexSourceCreateWithoutObligationsInput, Prisma.LexSourceUncheckedCreateWithoutObligationsInput>
+  connectOrCreate?: Prisma.LexSourceCreateOrConnectWithoutObligationsInput
+  connect?: Prisma.LexSourceWhereUniqueInput
+}
+
+export type LexSourceUpdateOneRequiredWithoutObligationsNestedInput = {
+  create?: Prisma.XOR<Prisma.LexSourceCreateWithoutObligationsInput, Prisma.LexSourceUncheckedCreateWithoutObligationsInput>
+  connectOrCreate?: Prisma.LexSourceCreateOrConnectWithoutObligationsInput
+  upsert?: Prisma.LexSourceUpsertWithoutObligationsInput
+  connect?: Prisma.LexSourceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LexSourceUpdateToOneWithWhereWithoutObligationsInput, Prisma.LexSourceUpdateWithoutObligationsInput>, Prisma.LexSourceUncheckedUpdateWithoutObligationsInput>
+}
+
+export type LexSourceCreateNestedOneWithoutActivitiesInput = {
+  create?: Prisma.XOR<Prisma.LexSourceCreateWithoutActivitiesInput, Prisma.LexSourceUncheckedCreateWithoutActivitiesInput>
+  connectOrCreate?: Prisma.LexSourceCreateOrConnectWithoutActivitiesInput
+  connect?: Prisma.LexSourceWhereUniqueInput
+}
+
+export type LexSourceUpdateOneWithoutActivitiesNestedInput = {
+  create?: Prisma.XOR<Prisma.LexSourceCreateWithoutActivitiesInput, Prisma.LexSourceUncheckedCreateWithoutActivitiesInput>
+  connectOrCreate?: Prisma.LexSourceCreateOrConnectWithoutActivitiesInput
+  upsert?: Prisma.LexSourceUpsertWithoutActivitiesInput
+  disconnect?: Prisma.LexSourceWhereInput | boolean
+  delete?: Prisma.LexSourceWhereInput | boolean
+  connect?: Prisma.LexSourceWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.LexSourceUpdateToOneWithWhereWithoutActivitiesInput, Prisma.LexSourceUpdateWithoutActivitiesInput>, Prisma.LexSourceUncheckedUpdateWithoutActivitiesInput>
+}
+
+export type LexSourceCreateWithoutFindingsInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  sourceId: string
+  name: string
+  type?: string
+  typeDetected?: string | null
+  r2Key: string
+  sizeBytes?: number
+  pageCount?: number
+  chunksCreated?: number
+  summary?: string
+  keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
+  createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  obligations?: Prisma.LexObligationCreateNestedManyWithoutSourceInput
+  activities?: Prisma.LexActivityCreateNestedManyWithoutSourceInput
+}
+
+export type LexSourceUncheckedCreateWithoutFindingsInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  sourceId: string
+  name: string
+  type?: string
+  typeDetected?: string | null
+  r2Key: string
+  sizeBytes?: number
+  pageCount?: number
+  chunksCreated?: number
+  summary?: string
+  keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
+  createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  obligations?: Prisma.LexObligationUncheckedCreateNestedManyWithoutSourceInput
+  activities?: Prisma.LexActivityUncheckedCreateNestedManyWithoutSourceInput
+}
+
+export type LexSourceCreateOrConnectWithoutFindingsInput = {
+  where: Prisma.LexSourceWhereUniqueInput
+  create: Prisma.XOR<Prisma.LexSourceCreateWithoutFindingsInput, Prisma.LexSourceUncheckedCreateWithoutFindingsInput>
+}
+
+export type LexSourceUpsertWithoutFindingsInput = {
+  update: Prisma.XOR<Prisma.LexSourceUpdateWithoutFindingsInput, Prisma.LexSourceUncheckedUpdateWithoutFindingsInput>
+  create: Prisma.XOR<Prisma.LexSourceCreateWithoutFindingsInput, Prisma.LexSourceUncheckedCreateWithoutFindingsInput>
+  where?: Prisma.LexSourceWhereInput
+}
+
+export type LexSourceUpdateToOneWithWhereWithoutFindingsInput = {
+  where?: Prisma.LexSourceWhereInput
+  data: Prisma.XOR<Prisma.LexSourceUpdateWithoutFindingsInput, Prisma.LexSourceUncheckedUpdateWithoutFindingsInput>
+}
+
+export type LexSourceUpdateWithoutFindingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  sourceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  typeDetected?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  r2Key?: Prisma.StringFieldUpdateOperationsInput | string
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
+  pageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  chunksCreated?: Prisma.IntFieldUpdateOperationsInput | number
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  obligations?: Prisma.LexObligationUpdateManyWithoutSourceNestedInput
+  activities?: Prisma.LexActivityUpdateManyWithoutSourceNestedInput
+}
+
+export type LexSourceUncheckedUpdateWithoutFindingsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  sourceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  typeDetected?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  r2Key?: Prisma.StringFieldUpdateOperationsInput | string
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
+  pageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  chunksCreated?: Prisma.IntFieldUpdateOperationsInput | number
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  obligations?: Prisma.LexObligationUncheckedUpdateManyWithoutSourceNestedInput
+  activities?: Prisma.LexActivityUncheckedUpdateManyWithoutSourceNestedInput
+}
+
+export type LexSourceCreateWithoutObligationsInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  sourceId: string
+  name: string
+  type?: string
+  typeDetected?: string | null
+  r2Key: string
+  sizeBytes?: number
+  pageCount?: number
+  chunksCreated?: number
+  summary?: string
+  keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
+  createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  findings?: Prisma.LexFindingCreateNestedManyWithoutSourceInput
+  activities?: Prisma.LexActivityCreateNestedManyWithoutSourceInput
+}
+
+export type LexSourceUncheckedCreateWithoutObligationsInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  sourceId: string
+  name: string
+  type?: string
+  typeDetected?: string | null
+  r2Key: string
+  sizeBytes?: number
+  pageCount?: number
+  chunksCreated?: number
+  summary?: string
+  keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
+  createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  findings?: Prisma.LexFindingUncheckedCreateNestedManyWithoutSourceInput
+  activities?: Prisma.LexActivityUncheckedCreateNestedManyWithoutSourceInput
+}
+
+export type LexSourceCreateOrConnectWithoutObligationsInput = {
+  where: Prisma.LexSourceWhereUniqueInput
+  create: Prisma.XOR<Prisma.LexSourceCreateWithoutObligationsInput, Prisma.LexSourceUncheckedCreateWithoutObligationsInput>
+}
+
+export type LexSourceUpsertWithoutObligationsInput = {
+  update: Prisma.XOR<Prisma.LexSourceUpdateWithoutObligationsInput, Prisma.LexSourceUncheckedUpdateWithoutObligationsInput>
+  create: Prisma.XOR<Prisma.LexSourceCreateWithoutObligationsInput, Prisma.LexSourceUncheckedCreateWithoutObligationsInput>
+  where?: Prisma.LexSourceWhereInput
+}
+
+export type LexSourceUpdateToOneWithWhereWithoutObligationsInput = {
+  where?: Prisma.LexSourceWhereInput
+  data: Prisma.XOR<Prisma.LexSourceUpdateWithoutObligationsInput, Prisma.LexSourceUncheckedUpdateWithoutObligationsInput>
+}
+
+export type LexSourceUpdateWithoutObligationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  sourceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  typeDetected?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  r2Key?: Prisma.StringFieldUpdateOperationsInput | string
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
+  pageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  chunksCreated?: Prisma.IntFieldUpdateOperationsInput | number
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  findings?: Prisma.LexFindingUpdateManyWithoutSourceNestedInput
+  activities?: Prisma.LexActivityUpdateManyWithoutSourceNestedInput
+}
+
+export type LexSourceUncheckedUpdateWithoutObligationsInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  sourceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  typeDetected?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  r2Key?: Prisma.StringFieldUpdateOperationsInput | string
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
+  pageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  chunksCreated?: Prisma.IntFieldUpdateOperationsInput | number
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  findings?: Prisma.LexFindingUncheckedUpdateManyWithoutSourceNestedInput
+  activities?: Prisma.LexActivityUncheckedUpdateManyWithoutSourceNestedInput
+}
+
+export type LexSourceCreateWithoutActivitiesInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  sourceId: string
+  name: string
+  type?: string
+  typeDetected?: string | null
+  r2Key: string
+  sizeBytes?: number
+  pageCount?: number
+  chunksCreated?: number
+  summary?: string
+  keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
+  createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  findings?: Prisma.LexFindingCreateNestedManyWithoutSourceInput
+  obligations?: Prisma.LexObligationCreateNestedManyWithoutSourceInput
+}
+
+export type LexSourceUncheckedCreateWithoutActivitiesInput = {
+  id?: string
+  organizationId: string
+  userId: string
+  agent: $Enums.Agent
+  sourceId: string
+  name: string
+  type?: string
+  typeDetected?: string | null
+  r2Key: string
+  sizeBytes?: number
+  pageCount?: number
+  chunksCreated?: number
+  summary?: string
+  keyTopics?: Prisma.LexSourceCreatekeyTopicsInput | string[]
+  createdAt?: Date | string
+  status?: string
+  counterparty?: string | null
+  perspective?: string | null
+  effectiveDate?: Date | string | null
+  expiryDate?: Date | string | null
+  renewalDate?: Date | string | null
+  noticeDeadline?: Date | string | null
+  autoRenewal?: boolean | null
+  contractValue?: string | null
+  currency?: string | null
+  paymentTerms?: string | null
+  governingLaw?: string | null
+  jurisdiction?: string | null
+  disputeResolution?: string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: string | null
+  reviewAction?: string | null
+  riskLevel?: string | null
+  criticalCount?: number
+  highCount?: number
+  lastReviewedAt?: Date | string | null
+  version?: number
+  previousVersionId?: string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: boolean
+  findings?: Prisma.LexFindingUncheckedCreateNestedManyWithoutSourceInput
+  obligations?: Prisma.LexObligationUncheckedCreateNestedManyWithoutSourceInput
+}
+
+export type LexSourceCreateOrConnectWithoutActivitiesInput = {
+  where: Prisma.LexSourceWhereUniqueInput
+  create: Prisma.XOR<Prisma.LexSourceCreateWithoutActivitiesInput, Prisma.LexSourceUncheckedCreateWithoutActivitiesInput>
+}
+
+export type LexSourceUpsertWithoutActivitiesInput = {
+  update: Prisma.XOR<Prisma.LexSourceUpdateWithoutActivitiesInput, Prisma.LexSourceUncheckedUpdateWithoutActivitiesInput>
+  create: Prisma.XOR<Prisma.LexSourceCreateWithoutActivitiesInput, Prisma.LexSourceUncheckedCreateWithoutActivitiesInput>
+  where?: Prisma.LexSourceWhereInput
+}
+
+export type LexSourceUpdateToOneWithWhereWithoutActivitiesInput = {
+  where?: Prisma.LexSourceWhereInput
+  data: Prisma.XOR<Prisma.LexSourceUpdateWithoutActivitiesInput, Prisma.LexSourceUncheckedUpdateWithoutActivitiesInput>
+}
+
+export type LexSourceUpdateWithoutActivitiesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  sourceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  typeDetected?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  r2Key?: Prisma.StringFieldUpdateOperationsInput | string
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
+  pageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  chunksCreated?: Prisma.IntFieldUpdateOperationsInput | number
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  findings?: Prisma.LexFindingUpdateManyWithoutSourceNestedInput
+  obligations?: Prisma.LexObligationUpdateManyWithoutSourceNestedInput
+}
+
+export type LexSourceUncheckedUpdateWithoutActivitiesInput = {
+  id?: Prisma.StringFieldUpdateOperationsInput | string
+  organizationId?: Prisma.StringFieldUpdateOperationsInput | string
+  userId?: Prisma.StringFieldUpdateOperationsInput | string
+  agent?: Prisma.EnumAgentFieldUpdateOperationsInput | $Enums.Agent
+  sourceId?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.StringFieldUpdateOperationsInput | string
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  typeDetected?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  r2Key?: Prisma.StringFieldUpdateOperationsInput | string
+  sizeBytes?: Prisma.IntFieldUpdateOperationsInput | number
+  pageCount?: Prisma.IntFieldUpdateOperationsInput | number
+  chunksCreated?: Prisma.IntFieldUpdateOperationsInput | number
+  summary?: Prisma.StringFieldUpdateOperationsInput | string
+  keyTopics?: Prisma.LexSourceUpdatekeyTopicsInput | string[]
+  createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
+  status?: Prisma.StringFieldUpdateOperationsInput | string
+  counterparty?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  perspective?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  effectiveDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  expiryDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  renewalDate?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  noticeDeadline?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  autoRenewal?: Prisma.NullableBoolFieldUpdateOperationsInput | boolean | null
+  contractValue?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  currency?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  paymentTerms?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  governingLaw?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  jurisdiction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  disputeResolution?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  review?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  reviewHeadline?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  reviewAction?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  riskLevel?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  criticalCount?: Prisma.IntFieldUpdateOperationsInput | number
+  highCount?: Prisma.IntFieldUpdateOperationsInput | number
+  lastReviewedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+  version?: Prisma.IntFieldUpdateOperationsInput | number
+  previousVersionId?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  versionComparison?: Prisma.NullableJsonNullValueInput | runtime.InputJsonValue
+  versionComparisonSeen?: Prisma.BoolFieldUpdateOperationsInput | boolean
+  findings?: Prisma.LexFindingUncheckedUpdateManyWithoutSourceNestedInput
+  obligations?: Prisma.LexObligationUncheckedUpdateManyWithoutSourceNestedInput
+}
+
+
+/**
+ * Count Type LexSourceCountOutputType
+ */
+
+export type LexSourceCountOutputType = {
+  findings: number
+  obligations: number
+  activities: number
+}
+
+export type LexSourceCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  findings?: boolean | LexSourceCountOutputTypeCountFindingsArgs
+  obligations?: boolean | LexSourceCountOutputTypeCountObligationsArgs
+  activities?: boolean | LexSourceCountOutputTypeCountActivitiesArgs
+}
+
+/**
+ * LexSourceCountOutputType without action
+ */
+export type LexSourceCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LexSourceCountOutputType
+   */
+  select?: Prisma.LexSourceCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * LexSourceCountOutputType without action
+ */
+export type LexSourceCountOutputTypeCountFindingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LexFindingWhereInput
+}
+
+/**
+ * LexSourceCountOutputType without action
+ */
+export type LexSourceCountOutputTypeCountObligationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LexObligationWhereInput
+}
+
+/**
+ * LexSourceCountOutputType without action
+ */
+export type LexSourceCountOutputTypeCountActivitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.LexActivityWhereInput
+}
 
 
 export type LexSourceSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -608,6 +1874,35 @@ export type LexSourceSelect<ExtArgs extends runtime.Types.Extensions.InternalArg
   summary?: boolean
   keyTopics?: boolean
   createdAt?: boolean
+  status?: boolean
+  counterparty?: boolean
+  perspective?: boolean
+  effectiveDate?: boolean
+  expiryDate?: boolean
+  renewalDate?: boolean
+  noticeDeadline?: boolean
+  autoRenewal?: boolean
+  contractValue?: boolean
+  currency?: boolean
+  paymentTerms?: boolean
+  governingLaw?: boolean
+  jurisdiction?: boolean
+  disputeResolution?: boolean
+  review?: boolean
+  reviewHeadline?: boolean
+  reviewAction?: boolean
+  riskLevel?: boolean
+  criticalCount?: boolean
+  highCount?: boolean
+  lastReviewedAt?: boolean
+  version?: boolean
+  previousVersionId?: boolean
+  versionComparison?: boolean
+  versionComparisonSeen?: boolean
+  findings?: boolean | Prisma.LexSource$findingsArgs<ExtArgs>
+  obligations?: boolean | Prisma.LexSource$obligationsArgs<ExtArgs>
+  activities?: boolean | Prisma.LexSource$activitiesArgs<ExtArgs>
+  _count?: boolean | Prisma.LexSourceCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["lexSource"]>
 
 export type LexSourceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -626,6 +1921,31 @@ export type LexSourceSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ext
   summary?: boolean
   keyTopics?: boolean
   createdAt?: boolean
+  status?: boolean
+  counterparty?: boolean
+  perspective?: boolean
+  effectiveDate?: boolean
+  expiryDate?: boolean
+  renewalDate?: boolean
+  noticeDeadline?: boolean
+  autoRenewal?: boolean
+  contractValue?: boolean
+  currency?: boolean
+  paymentTerms?: boolean
+  governingLaw?: boolean
+  jurisdiction?: boolean
+  disputeResolution?: boolean
+  review?: boolean
+  reviewHeadline?: boolean
+  reviewAction?: boolean
+  riskLevel?: boolean
+  criticalCount?: boolean
+  highCount?: boolean
+  lastReviewedAt?: boolean
+  version?: boolean
+  previousVersionId?: boolean
+  versionComparison?: boolean
+  versionComparisonSeen?: boolean
 }, ExtArgs["result"]["lexSource"]>
 
 export type LexSourceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -644,6 +1964,31 @@ export type LexSourceSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ext
   summary?: boolean
   keyTopics?: boolean
   createdAt?: boolean
+  status?: boolean
+  counterparty?: boolean
+  perspective?: boolean
+  effectiveDate?: boolean
+  expiryDate?: boolean
+  renewalDate?: boolean
+  noticeDeadline?: boolean
+  autoRenewal?: boolean
+  contractValue?: boolean
+  currency?: boolean
+  paymentTerms?: boolean
+  governingLaw?: boolean
+  jurisdiction?: boolean
+  disputeResolution?: boolean
+  review?: boolean
+  reviewHeadline?: boolean
+  reviewAction?: boolean
+  riskLevel?: boolean
+  criticalCount?: boolean
+  highCount?: boolean
+  lastReviewedAt?: boolean
+  version?: boolean
+  previousVersionId?: boolean
+  versionComparison?: boolean
+  versionComparisonSeen?: boolean
 }, ExtArgs["result"]["lexSource"]>
 
 export type LexSourceSelectScalar = {
@@ -662,13 +2007,50 @@ export type LexSourceSelectScalar = {
   summary?: boolean
   keyTopics?: boolean
   createdAt?: boolean
+  status?: boolean
+  counterparty?: boolean
+  perspective?: boolean
+  effectiveDate?: boolean
+  expiryDate?: boolean
+  renewalDate?: boolean
+  noticeDeadline?: boolean
+  autoRenewal?: boolean
+  contractValue?: boolean
+  currency?: boolean
+  paymentTerms?: boolean
+  governingLaw?: boolean
+  jurisdiction?: boolean
+  disputeResolution?: boolean
+  review?: boolean
+  reviewHeadline?: boolean
+  reviewAction?: boolean
+  riskLevel?: boolean
+  criticalCount?: boolean
+  highCount?: boolean
+  lastReviewedAt?: boolean
+  version?: boolean
+  previousVersionId?: boolean
+  versionComparison?: boolean
+  versionComparisonSeen?: boolean
 }
 
-export type LexSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "sourceId" | "name" | "type" | "typeDetected" | "r2Key" | "sizeBytes" | "pageCount" | "chunksCreated" | "summary" | "keyTopics" | "createdAt", ExtArgs["result"]["lexSource"]>
+export type LexSourceOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "agent" | "sourceId" | "name" | "type" | "typeDetected" | "r2Key" | "sizeBytes" | "pageCount" | "chunksCreated" | "summary" | "keyTopics" | "createdAt" | "status" | "counterparty" | "perspective" | "effectiveDate" | "expiryDate" | "renewalDate" | "noticeDeadline" | "autoRenewal" | "contractValue" | "currency" | "paymentTerms" | "governingLaw" | "jurisdiction" | "disputeResolution" | "review" | "reviewHeadline" | "reviewAction" | "riskLevel" | "criticalCount" | "highCount" | "lastReviewedAt" | "version" | "previousVersionId" | "versionComparison" | "versionComparisonSeen", ExtArgs["result"]["lexSource"]>
+export type LexSourceInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  findings?: boolean | Prisma.LexSource$findingsArgs<ExtArgs>
+  obligations?: boolean | Prisma.LexSource$obligationsArgs<ExtArgs>
+  activities?: boolean | Prisma.LexSource$activitiesArgs<ExtArgs>
+  _count?: boolean | Prisma.LexSourceCountOutputTypeDefaultArgs<ExtArgs>
+}
+export type LexSourceIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type LexSourceIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $LexSourcePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "LexSource"
-  objects: {}
+  objects: {
+    findings: Prisma.$LexFindingPayload<ExtArgs>[]
+    obligations: Prisma.$LexObligationPayload<ExtArgs>[]
+    activities: Prisma.$LexActivityPayload<ExtArgs>[]
+  }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     /**
      * Source row id.
@@ -730,6 +2112,55 @@ export type $LexSourcePayload<ExtArgs extends runtime.Types.Extensions.InternalA
      * Creation timestamp.
      */
     createdAt: Date
+    /**
+     * active | archived.
+     */
+    status: string
+    /**
+     * Other main party, from the latest review.
+     */
+    counterparty: string | null
+    /**
+     * Party the latest review was written for.
+     */
+    perspective: string | null
+    effectiveDate: Date | null
+    expiryDate: Date | null
+    renewalDate: Date | null
+    /**
+     * Last day to give notice (e.g. to stop auto-renewal).
+     */
+    noticeDeadline: Date | null
+    autoRenewal: boolean | null
+    contractValue: string | null
+    currency: string | null
+    paymentTerms: string | null
+    governingLaw: string | null
+    jurisdiction: string | null
+    disputeResolution: string | null
+    /**
+     * Cached latest verdict-first review (the analyze-contract `analysis` object).
+     */
+    review: runtime.JsonValue | null
+    reviewHeadline: string | null
+    reviewAction: string | null
+    riskLevel: string | null
+    criticalCount: number
+    highCount: number
+    lastReviewedAt: Date | null
+    version: number
+    /**
+     * Row id of the version this one replaces.
+     */
+    previousVersionId: string | null
+    /**
+     * Cached comparison against the previous version.
+     */
+    versionComparison: runtime.JsonValue | null
+    /**
+     * Whether the user has opened the comparison (drives Legal Watch).
+     */
+    versionComparisonSeen: boolean
   }, ExtArgs["result"]["lexSource"]>
   composites: {}
 }
@@ -1124,6 +2555,9 @@ readonly fields: LexSourceFieldRefs;
  */
 export interface Prisma__LexSourceClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  findings<T extends Prisma.LexSource$findingsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LexSource$findingsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LexFindingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  obligations<T extends Prisma.LexSource$obligationsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LexSource$obligationsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LexObligationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  activities<T extends Prisma.LexSource$activitiesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.LexSource$activitiesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$LexActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1168,6 +2602,31 @@ export interface LexSourceFieldRefs {
   readonly summary: Prisma.FieldRef<"LexSource", 'String'>
   readonly keyTopics: Prisma.FieldRef<"LexSource", 'String[]'>
   readonly createdAt: Prisma.FieldRef<"LexSource", 'DateTime'>
+  readonly status: Prisma.FieldRef<"LexSource", 'String'>
+  readonly counterparty: Prisma.FieldRef<"LexSource", 'String'>
+  readonly perspective: Prisma.FieldRef<"LexSource", 'String'>
+  readonly effectiveDate: Prisma.FieldRef<"LexSource", 'DateTime'>
+  readonly expiryDate: Prisma.FieldRef<"LexSource", 'DateTime'>
+  readonly renewalDate: Prisma.FieldRef<"LexSource", 'DateTime'>
+  readonly noticeDeadline: Prisma.FieldRef<"LexSource", 'DateTime'>
+  readonly autoRenewal: Prisma.FieldRef<"LexSource", 'Boolean'>
+  readonly contractValue: Prisma.FieldRef<"LexSource", 'String'>
+  readonly currency: Prisma.FieldRef<"LexSource", 'String'>
+  readonly paymentTerms: Prisma.FieldRef<"LexSource", 'String'>
+  readonly governingLaw: Prisma.FieldRef<"LexSource", 'String'>
+  readonly jurisdiction: Prisma.FieldRef<"LexSource", 'String'>
+  readonly disputeResolution: Prisma.FieldRef<"LexSource", 'String'>
+  readonly review: Prisma.FieldRef<"LexSource", 'Json'>
+  readonly reviewHeadline: Prisma.FieldRef<"LexSource", 'String'>
+  readonly reviewAction: Prisma.FieldRef<"LexSource", 'String'>
+  readonly riskLevel: Prisma.FieldRef<"LexSource", 'String'>
+  readonly criticalCount: Prisma.FieldRef<"LexSource", 'Int'>
+  readonly highCount: Prisma.FieldRef<"LexSource", 'Int'>
+  readonly lastReviewedAt: Prisma.FieldRef<"LexSource", 'DateTime'>
+  readonly version: Prisma.FieldRef<"LexSource", 'Int'>
+  readonly previousVersionId: Prisma.FieldRef<"LexSource", 'String'>
+  readonly versionComparison: Prisma.FieldRef<"LexSource", 'Json'>
+  readonly versionComparisonSeen: Prisma.FieldRef<"LexSource", 'Boolean'>
 }
     
 
@@ -1184,6 +2643,10 @@ export type LexSourceFindUniqueArgs<ExtArgs extends runtime.Types.Extensions.Int
    * Omit specific fields from the LexSource
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
   /**
    * Filter, which LexSource to fetch.
    */
@@ -1203,6 +2666,10 @@ export type LexSourceFindUniqueOrThrowArgs<ExtArgs extends runtime.Types.Extensi
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
+  /**
    * Filter, which LexSource to fetch.
    */
   where: Prisma.LexSourceWhereUniqueInput
@@ -1220,6 +2687,10 @@ export type LexSourceFindFirstArgs<ExtArgs extends runtime.Types.Extensions.Inte
    * Omit specific fields from the LexSource
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
   /**
    * Filter, which LexSource to fetch.
    */
@@ -1269,6 +2740,10 @@ export type LexSourceFindFirstOrThrowArgs<ExtArgs extends runtime.Types.Extensio
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
+  /**
    * Filter, which LexSource to fetch.
    */
   where?: Prisma.LexSourceWhereInput
@@ -1316,6 +2791,10 @@ export type LexSourceFindManyArgs<ExtArgs extends runtime.Types.Extensions.Inter
    * Omit specific fields from the LexSource
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
   /**
    * Filter, which LexSources to fetch.
    */
@@ -1365,6 +2844,10 @@ export type LexSourceCreateArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
+  /**
    * The data needed to create a LexSource.
    */
   data: Prisma.XOR<Prisma.LexSourceCreateInput, Prisma.LexSourceUncheckedCreateInput>
@@ -1412,6 +2895,10 @@ export type LexSourceUpdateArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Omit specific fields from the LexSource
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
   /**
    * The data needed to update a LexSource.
    */
@@ -1479,6 +2966,10 @@ export type LexSourceUpsertArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
+  /**
    * The filter to search for the LexSource to update in case it exists.
    */
   where: Prisma.LexSourceWhereUniqueInput
@@ -1505,6 +2996,10 @@ export type LexSourceDeleteArgs<ExtArgs extends runtime.Types.Extensions.Interna
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
   /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
+  /**
    * Filter which LexSource to delete.
    */
   where: Prisma.LexSourceWhereUniqueInput
@@ -1525,6 +3020,78 @@ export type LexSourceDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Int
 }
 
 /**
+ * LexSource.findings
+ */
+export type LexSource$findingsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LexFinding
+   */
+  select?: Prisma.LexFindingSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LexFinding
+   */
+  omit?: Prisma.LexFindingOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexFindingInclude<ExtArgs> | null
+  where?: Prisma.LexFindingWhereInput
+  orderBy?: Prisma.LexFindingOrderByWithRelationInput | Prisma.LexFindingOrderByWithRelationInput[]
+  cursor?: Prisma.LexFindingWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LexFindingScalarFieldEnum | Prisma.LexFindingScalarFieldEnum[]
+}
+
+/**
+ * LexSource.obligations
+ */
+export type LexSource$obligationsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LexObligation
+   */
+  select?: Prisma.LexObligationSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LexObligation
+   */
+  omit?: Prisma.LexObligationOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexObligationInclude<ExtArgs> | null
+  where?: Prisma.LexObligationWhereInput
+  orderBy?: Prisma.LexObligationOrderByWithRelationInput | Prisma.LexObligationOrderByWithRelationInput[]
+  cursor?: Prisma.LexObligationWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LexObligationScalarFieldEnum | Prisma.LexObligationScalarFieldEnum[]
+}
+
+/**
+ * LexSource.activities
+ */
+export type LexSource$activitiesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the LexActivity
+   */
+  select?: Prisma.LexActivitySelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the LexActivity
+   */
+  omit?: Prisma.LexActivityOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexActivityInclude<ExtArgs> | null
+  where?: Prisma.LexActivityWhereInput
+  orderBy?: Prisma.LexActivityOrderByWithRelationInput | Prisma.LexActivityOrderByWithRelationInput[]
+  cursor?: Prisma.LexActivityWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.LexActivityScalarFieldEnum | Prisma.LexActivityScalarFieldEnum[]
+}
+
+/**
  * LexSource without action
  */
 export type LexSourceDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1536,4 +3103,8 @@ export type LexSourceDefaultArgs<ExtArgs extends runtime.Types.Extensions.Intern
    * Omit specific fields from the LexSource
    */
   omit?: Prisma.LexSourceOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.LexSourceInclude<ExtArgs> | null
 }

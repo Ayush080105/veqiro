@@ -21,6 +21,7 @@ export const SITE_KEYWORDS: string[] = [
   'digital employees',
   'virtual ai employees',
   'autonomous ai agents',
+  'ai employee vs ai agent',
   'veqiro',
 ];
 
@@ -44,6 +45,8 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'virtual ai assistant for founders',
       'ai email labels',
       'ai vip inbox',
+      'ai email assistant for gmail',
+      'best ai executive assistant',
     ],
   },
   scout: {
@@ -56,6 +59,8 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai competitive intelligence',
       'ai research assistant',
       'competitor analysis ai',
+      'ai for market research',
+      'best ai research assistant',
     ],
   },
   maya: {
@@ -71,6 +76,8 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'brand voice ai',
       'ai product campaign generator',
       'ai carousel post generator',
+      'ai social media manager',
+      'best ai content generator',
     ],
   },
   sage: {
@@ -87,6 +94,9 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai technical seo',
       'ai page audit tool',
       'ai site audit',
+      'ai visibility',
+      'generative engine optimization',
+      'answer engine optimization',
     ],
   },
   lex: {
@@ -100,12 +110,14 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai nda review',
       'legal ai for startups',
       'ai legal document library',
+      'ai contract analysis tool',
+      'best ai legal assistant',
     ],
   },
   rex: {
     seoTitleSuffix: 'AI Financial Analyst for Startups | Veqiro',
     metaDescription:
-      'Rex tracks MRR, burn, CAC, and runway — flags anomalies before they become problems. AI financial analyst for SaaS.',
+      'Rex tracks MRR, burn, CAC, and runway, and flags anomalies before they become problems. AI financial analyst for SaaS.',
     keywords: [
       'ai financial analyst',
       'ai for saas metrics',
@@ -115,6 +127,8 @@ export const AGENT_META: Record<string, AgentMetaEntry> = {
       'ai board deck generator',
       'ai cfo digest',
       'ai variance analysis',
+      'ai burn rate tracker',
+      'best ai financial analyst',
     ],
   },
 };
@@ -131,7 +145,6 @@ export interface BuildMetaInput {
 }
 
 export function buildPageMetadata(i: BuildMetaInput): Metadata {
-  const ogImage = i.ogImage ?? '/og-image.png';
   const type = i.type ?? 'website';
   const canonical = new URL(i.path, SITE_URL).toString();
 
@@ -148,20 +161,18 @@ export function buildPageMetadata(i: BuildMetaInput): Metadata {
       title: i.title,
       description: i.description,
       siteName: 'Veqiro',
-      images: [
-        {
-          url: ogImage,
-          width: 1200,
-          height: 630,
-          alt: i.ogImageAlt ?? i.title,
-        },
-      ],
+      // No explicit images here when `ogImage` is omitted: this lets the route's
+      // opengraph-image.tsx file convention (root, or a more specific one) supply
+      // the image automatically instead of pointing at a hand-maintained static path.
+      ...(i.ogImage
+        ? { images: [{ url: i.ogImage, width: 1200, height: 630, alt: i.ogImageAlt ?? i.title }] }
+        : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title: i.title,
       description: i.description,
-      images: [ogImage],
+      ...(i.ogImage ? { images: [i.ogImage] } : {}),
     },
     robots: i.noindex
       ? { index: false, follow: true }

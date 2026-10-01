@@ -35,7 +35,7 @@ export default function GlobalError({
           Something went sideways.
         </h1>
         <p style={{ maxWidth: 420, fontSize: 14, lineHeight: 1.6, color: '#56514A', margin: 0 }}>
-          The site failed to load. Try refreshing — if it keeps happening,
+          The site failed to load. Try refreshing, if it keeps happening,
           our team has already been notified.
         </p>
         <button

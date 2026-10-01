@@ -107,7 +107,7 @@ export function Hero() {
             onMouseEnter={e => (e.currentTarget.style.opacity = '0.87')}
             onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
           >
-            {isPreLaunch ? 'Join the waitlist' : 'Start free — 7 days'}
+            {isPreLaunch ? 'Join the waitlist' : 'Start free for 7 days'}
           </a>
           <Link
             href="#how"

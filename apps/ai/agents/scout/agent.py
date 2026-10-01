@@ -137,6 +137,12 @@ class ScoutAgent(BaseAgent):
             "Use research_company for companies, research_topic for markets, "
             "web_search for live data, discover_competitors to find who's competing, "
             "trending_topics for market signals.\n"
+            "Match the depth to the question — every tool call is time the customer waits:\n"
+            "  - 'Who are our competitors / the main players?' → discover_competitors (or one "
+            "web_search), then answer. Do NOT research_company each one.\n"
+            "  - research_company only for companies the customer asks about by name, or when they "
+            "ask for a deep dive / comparison — and at most 3 per turn; offer to profile the rest.\n"
+            "  - Don't search again for something a tool result already answered.\n"
         )
 
         prompt += (

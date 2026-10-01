@@ -93,7 +93,7 @@ export function ProblemSection() {
           margin: 'clamp(40px, 5vw, 56px) auto 0',
           textAlign: 'center',
         }}>
-          Six people can solve this. Six AI agents can too — at a fraction of the cost.
+          Six people can solve this. Six AI agents can too, at a fraction of the cost.
         </p>
       </div>
     </section>
@@ -168,7 +168,7 @@ function AgentNode({ name, role, color }: { name: string; role: string; color: s
   );
 }
 
-function BrainDiagram() {
+export function BrainDiagram() {
   const stubs = Array.from({ length: 6 }, (_, i) => <span key={i} />);
 
   return (
@@ -278,7 +278,7 @@ export function SharedBrainSection() {
           marginInline: 'auto',
         }}>
           Brief it once. Correct it once. Every agent applies the change from
-          then on — which is why the work gets more accurate the longer you
+          then on, which is why the work gets more accurate the longer you
           use it, instead of resetting every session.
         </p>
       </div>

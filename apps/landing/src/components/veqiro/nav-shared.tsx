@@ -138,7 +138,7 @@ export function NavShared({ variant = 'page' }: Props) {
 
         {/* Desktop nav */}
         <div className="vq-nav-desktop">
-          {navLinks.map(({ href, label }) => (
+          {navLinks.slice(0, 2).map(({ href, label }) => (
             <Link key={href} href={resolveNavHref(href)} className="nav-link">
               {label}
             </Link>
@@ -149,25 +149,18 @@ export function NavShared({ variant = 'page' }: Props) {
             <div className="nav-menu">
               {EMPLOYEES.map(emp => (
                 <Link key={emp.key} href={`/agents/${emp.key}`} className="nav-menu-item">
-                  <span style={{
-                    width: 30, height: 30, borderRadius: 8, overflow: 'hidden',
-                    border: `1px solid ${T.line}`, flexShrink: 0, display: 'block',
-                    background: T.surface2,
+                  <span aria-hidden style={{
+                    width: 30, height: 30, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                    border: `1px solid ${T.line}`, display: 'block',
                   }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- small static avatar, no layout shift risk */}
-                    <img
-                      src={`/${emp.name}.jpeg`}
-                      alt=""
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                    />
+                    {/* eslint-disable-next-line @next/next/no-img-element -- small static avatar, matches mobile drawer treatment */}
+                    <img src={`/${emp.name}.jpeg`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                   </span>
                   <span style={{ display: 'grid', gap: 1 }}>
                     <span style={{ fontFamily: FONT.display, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
                       {emp.name}
                     </span>
-                    <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3 }}>
-                      {emp.role.replace(/\n/g, ' ')}
-                    </span>
+                    <span style={{ fontFamily: FONT.body, fontSize: 12, color: T.ink3 }}>{emp.role.replace(/\n/g, ' ')}</span>
                   </span>
                 </Link>
               ))}
@@ -207,6 +200,12 @@ export function NavShared({ variant = 'page' }: Props) {
               </Link>
             </div>
           </div>
+
+          {navLinks.slice(2).map(({ href, label }) => (
+            <Link key={href} href={resolveNavHref(href)} className="nav-link">
+              {label}
+            </Link>
+          ))}
 
           <div className="nav-menu-wrap">
             <span className="nav-link" tabIndex={0} role="button">Resources <Chevron /></span>

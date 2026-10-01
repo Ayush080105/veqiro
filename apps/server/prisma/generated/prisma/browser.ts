@@ -276,10 +276,52 @@ export type SageSavedKeyword = Prisma.SageSavedKeywordModel
  */
 export type LexSource = Prisma.LexSourceModel
 /**
+ * Model LexFinding
+ * One finding from a contract review, kept for search and Legal Watch.
+ */
+export type LexFinding = Prisma.LexFindingModel
+/**
+ * Model LexObligation
+ * A date or duty extracted from a contract; drives reminders and Legal Watch.
+ */
+export type LexObligation = Prisma.LexObligationModel
+/**
+ * Model LexPreference
+ * A company's usual legal/commercial position, used to flag departures in reviews.
+ */
+export type LexPreference = Prisma.LexPreferenceModel
+/**
+ * Model LexActivity
+ * Audit trail of what Lex and the user did with legal documents.
+ */
+export type LexActivity = Prisma.LexActivityModel
+/**
+ * Model LexSettings
+ * Per-organisation Lex settings.
+ */
+export type LexSettings = Prisma.LexSettingsModel
+/**
  * Model RexDataset
  * Rex metric dataset parsed from uploads or ingest API.
  */
 export type RexDataset = Prisma.RexDatasetModel
+/**
+ * Model RexDashboard
+ * A Rex dashboard: widgets computed by SQL over one or more datasets, editable on a grid
+ * canvas and publishable at a public link.
+ */
+export type RexDashboard = Prisma.RexDashboardModel
+/**
+ * Model RexDashboardWidget
+ * One tile on a Rex dashboard.
+ */
+export type RexDashboardWidget = Prisma.RexDashboardWidgetModel
+/**
+ * Model RexDashboardResult
+ * A computed result for one tile under one filter state. Public links read only these, so an
+ * anonymous view never runs a query unless it asks for a filter combination not yet computed.
+ */
+export type RexDashboardResult = Prisma.RexDashboardResultModel
 /**
  * Model RexPinnedCard
  * Rex result card pinned to the Today/dashboard surface.
@@ -396,3 +438,124 @@ export type AgentRun = Prisma.AgentRunModel
  * One node in a run's DAG.
  */
 export type AgentRunStep = Prisma.AgentRunStepModel
+/**
+ * Model ActivityEvent
+ * A significant thing that happened, in human-readable form.
+ * 
+ * Separate from ActivityLog rather than an extension of it: ActivityLog
+ * requires a userId and an agent working on a schedule has no acting user,
+ * its ActivityAction is a closed enum that would need a migration per new
+ * verb, and it backs the admin portal's feed.
+ */
+export type ActivityEvent = Prisma.ActivityEventModel
+/**
+ * Model WorkObjectIndex
+ * A flat index over the agents' typed work tables.
+ * 
+ * The typed table is the truth; this is derived and rebuildable
+ * (POST /internal/work-objects/reindex). It exists because the framework
+ * needs two things the typed tables cannot give it: "list and count work for
+ * agent X, newest first" across heterogeneous kinds, and a single target for
+ * ActivityEvent/Insight/Handoff pointers.
+ * 
+ * Deliberately NOT a polymorphic home for the objects themselves. LexSource
+ * alone has ~15 typed, indexed columns that lex.cron.ts queries by date, and
+ * a `data Json` blob would forfeit those indexes, the FK cascades and every
+ * existing query. `preview` is for display only — never read it to make a
+ * decision, re-read the typed row instead.
+ */
+export type WorkObjectIndex = Prisma.WorkObjectIndexModel
+/**
+ * Model Insight
+ * Something an agent noticed that the customer did not ask about — the
+ * "Maya noticed..." card. An anomaly, a deadline, a risk or an opportunity.
+ * 
+ * The point of the model is that an insight is actionable and dismissible:
+ * suggestedActionId names an action from the frontend catalog, so the finding
+ * and the fix are one click apart.
+ */
+export type Insight = Prisma.InsightModel
+/**
+ * Model Handoff
+ * One agent asking another to do a concrete piece of work.
+ * 
+ * Today a handoff is a client-side router.push with query params: nothing is
+ * persisted, the receiving agent has no inbox and there is no audit trail.
+ * Accepting one creates an AgentRun — this table is the request and the
+ * result, never a second executor.
+ */
+export type Handoff = Prisma.HandoffModel
+/**
+ * Model Campaign
+ * A marketing campaign: the durable object around a generation run that
+ * previously left nothing behind but a PublishedPost.
+ * 
+ * Deliberately a thin wrapper, per the PRD's engineering rule. The generation
+ * itself still happens in apps/ai/core/campaign_director.py and is not
+ * touched: this records what was asked for, what came back, and what happened
+ * to it, so a campaign can be reopened, measured and reported on instead of
+ * scrolling back through a chat thread to find the images.
+ */
+export type Campaign = Prisma.CampaignModel
+/**
+ * Model ResearchProject
+ * A research project: the durable object Scout has never had.
+ * 
+ * Scout's research is one-off chat today — an answer scrolls past and the
+ * sources with it, so the same question gets asked again next month. This
+ * keeps the question, what was read, and what was concluded, which is also
+ * what makes monitoring possible later: you cannot tell someone what changed
+ * if you never recorded what you found the first time.
+ */
+export type ResearchProject = Prisma.ResearchProjectModel
+/**
+ * Model ResearchSource
+ * One thing Scout read.
+ * 
+ * Sources are first-class rather than a JSON blob on the project because the
+ * PRD's evidence requirement is that a customer can inspect what a claim
+ * rests on — which means a source needs its own identity to be cited from a
+ * finding, and its own retrieval date to be judged stale.
+ */
+export type ResearchSource = Prisma.ResearchSourceModel
+/**
+ * Model ResearchFinding
+ * One evidence-backed conclusion.
+ */
+export type ResearchFinding = Prisma.ResearchFindingModel
+/**
+ * Model MemoryItem
+ * One durable fact an employee works from, with its provenance.
+ * 
+ * AgentMemory already holds a running summary and a longTermFacts JSON array,
+ * and that is fine for feeding a prompt. It is not enough to show a customer:
+ * a list of assertions about their business with no indication of where each
+ * came from, when, or whether they ever agreed to it is not something anyone
+ * can sensibly edit or trust. The PRD asks for provenance, and provenance
+ * needs rows.
+ * 
+ * AgentMemory is NOT replaced. It stays the prompt-assembly path; this is the
+ * reviewable surface, and the two are reconciled deliberately rather than by
+ * having one silently shadow the other.
+ */
+export type MemoryItem = Prisma.MemoryItemModel
+/**
+ * Model SeoPage
+ * A page Sage watches.
+ * 
+ * Audits were stateless: they produced a score and a list of problems that
+ * scrolled away, so there was no way to tell whether last month's work helped
+ * or whether a page got worse. Keeping the page keeps the score history, and
+ * a score history is what turns an audit into monitoring.
+ */
+export type SeoPage = Prisma.SeoPageModel
+/**
+ * Model SeoIssue
+ * One problem found on a page.
+ * 
+ * Issues are rows rather than a JSON array on the page because they have a
+ * life of their own: a customer fixes one, ignores another, and expects the
+ * next audit to notice. A blob cannot carry that, and re-deriving status from
+ * text every audit would lose every decision they made.
+ */
+export type SeoIssue = Prisma.SeoIssueModel

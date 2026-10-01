@@ -3,6 +3,7 @@ import test from "node:test"
 
 import type { Message } from "../types"
 import {
+  applyCachedWindow,
   mergeMessageWindow,
   mergeServerSnapshot,
   parseCachedMessageWindow,
@@ -133,4 +134,21 @@ test("localStorage parsing rejects incompatible data and caps the cache", () => 
   const first = message({ id: "1" })
   const second = message({ id: "2", deliveryStatus: "failed" })
   assert.deepEqual(parseCachedMessageWindow(JSON.stringify([first, second]), 1), [second])
+})
+
+test("re-activating the same thread keeps a message that only exists in the browser", () => {
+  const optimistic = message({ id: "optimistic-1", deliveryStatus: "sending" })
+  const cached = [message({ id: "persisted-1", content: "earlier" })]
+
+  const next = applyCachedWindow([optimistic], cached, true, 20)
+
+  assert.ok(next.some((m) => m.id === "optimistic-1"), "the in-flight send must survive")
+  assert.ok(next.some((m) => m.id === "persisted-1"))
+})
+
+test("switching to a different thread replaces the window outright", () => {
+  const optimistic = message({ id: "optimistic-1", deliveryStatus: "sending" })
+  const cached = [message({ id: "persisted-1", content: "earlier" })]
+
+  assert.deepEqual(applyCachedWindow([optimistic], cached, false, 20), cached)
 })

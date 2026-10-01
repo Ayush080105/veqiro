@@ -3,7 +3,7 @@ import { JsonLd } from '@/components/veqiro/json-ld';
 import { ComparePageContent } from '@/components/veqiro/compare-page-content';
 
 export const metadata = buildPageMetadata({
-  title: 'Veqiro vs Sintra vs Marblism — AI Employee Platform Comparison',
+  title: 'Veqiro vs Sintra vs Marblism: AI Employee Platform Comparison',
   description:
     'An honest side-by-side comparison of Veqiro, Sintra, and Marblism across 7 business categories. See which AI employee platform actually covers your business.',
   path: '/compare',
@@ -22,7 +22,7 @@ export const metadata = buildPageMetadata({
 const comparisonPageJsonLd = {
   '@context': 'https://schema.org',
   '@type': 'WebPage',
-  name: 'Veqiro vs Sintra vs Marblism — AI Employee Platform Comparison',
+  name: 'Veqiro vs Sintra vs Marblism: AI Employee Platform Comparison',
   description:
     'Side-by-side feature comparison of three AI employee platforms: Veqiro, Sintra, and Marblism.',
 };

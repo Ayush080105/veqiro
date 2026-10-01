@@ -166,7 +166,7 @@ export default function UsagePage() {
             </p>
 
             {atLimit && (
-              <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="rounded-lg border border-chart-3/40 bg-chart-3/10 px-4 py-3 text-sm text-foreground">
                 You have reached your {data.tier === "TRIAL" ? "trial" : "plan"} limit.{" "}
                 <Link href="/settings/billing" className="font-semibold underline underline-offset-2">
                   Upgrade your plan

@@ -160,6 +160,7 @@ async def serper_search(query: str, search_type: str = "search") -> list[dict]:
                 "title": item.get("title", ""),
                 "link": item.get("link", ""),
                 "snippet": item.get("snippet", ""),
+                "date": item.get("date", ""),
             })
         logger.info("Serper search '%s' returned %d results", query, len(results))
         return results

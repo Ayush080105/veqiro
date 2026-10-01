@@ -2,7 +2,7 @@
 title: "How to Automate Your Inbox With AI (Without Losing Your Voice)"
 slug: automate-inbox-with-ai
 date: "2026-05-08"
-description: "A practical system for automating email triage, drafts, and follow-ups with an AI executive assistant — without sounding like a robot or losing control."
+description: "A practical system for automating email triage, drafts, and follow-ups with an AI executive assistant, without sounding like a robot or losing control."
 category: agents
 agentKey: vega
 keywords:
@@ -23,14 +23,14 @@ faq:
   - q: "How does an AI email assistant learn my writing style?"
     a: "By reading a sample of your previous sent emails, your brand voice document, and specific guidelines you give it. The more context you feed it upfront, the faster it calibrates. Most founders are seeing on-voice output within 2–3 weeks of iteration."
   - q: "Will people know my emails are AI-drafted?"
-    a: "Not if the AI is well-trained on your voice. The goal isn't to disguise AI — it's to produce output that genuinely sounds like you. A fast, clear email drafted by AI and edited by you beats a slow, perfect one you wrote entirely yourself."
+    a: "Not if the AI is well-trained on your voice. The goal isn't to disguise AI. It's to produce output that genuinely sounds like you. A fast, clear email drafted by AI and edited by you beats a slow, perfect one you wrote entirely yourself."
   - q: "How much time can inbox automation actually save?"
-    a: "For founders processing 50–100 emails/day, a well-configured AI assistant typically saves 90–120 minutes per day. Over a month, that's 30–40 hours reclaimed — enough to run a product sprint, close a few deals, or simply not work weekends."
+    a: "For founders processing 50–100 emails/day, a well-configured AI assistant typically saves 90–120 minutes per day. Over a month, that's 30–40 hours reclaimed, enough to run a product sprint, close a few deals, or simply not work weekends."
 ---
 
 Email is the tax you pay for being reachable. Most founders pay it between 7am and midnight, seven days a week, with no sign of the bill going down.
 
-The math is brutal: at 80 emails per day, even 2 minutes per email is 2.7 hours of daily inbox work. That's 13 hours a week. 676 hours a year. Roughly 17 full work weeks, gone — not to customers, not to product, not to the decisions that actually move the company.
+The math is brutal: at 80 emails per day, even 2 minutes per email is 2.7 hours of daily inbox work. That's 13 hours a week. 676 hours a year. Roughly 17 full work weeks, gone, not to customers, not to product, not to the decisions that actually move the company.
 
 There's a better way. Here's exactly how to set up AI inbox automation without turning your communications into the email equivalent of hold music.
 
@@ -48,11 +48,11 @@ The fix isn't a different tool. It's a better onboarding process.
 
 Before setting anything up, internalise this hierarchy:
 
-1. **AI monitors** — scans your inbox in real time, categorises everything
-2. **AI drafts** — writes responses for routine email types
-3. **AI queues** — puts drafts in a review queue with context and priority flags
-4. **You decide** — approve, edit, or decline; add nuance where needed
-5. **AI sends** — after approval, handles the mechanics
+1. **AI monitors**: scans your inbox in real time, categorises everything
+2. **AI drafts**: writes responses for routine email types
+3. **AI queues**: puts drafts in a review queue with context and priority flags
+4. **You decide**: approve, edit, or decline; add nuance where needed
+5. **AI sends**: after approval, handles the mechanics
 
 You're not removing yourself from the inbox. You're compressing 2 hours of processing into 20 minutes of decision-making.
 
@@ -83,7 +83,7 @@ Most founder inboxes are 60–70% Routine, 20–25% Hybrid, and 10–15% Human-o
 
 ## Step 2: Build Your Voice Document
 
-Your voice document is what determines whether your AI emails sound like you or sound like a press release. Keep it short — 300–500 words beats 3,000 words.
+Your voice document is what determines whether your AI emails sound like you or sound like a press release. Keep it short. 300–500 words beats 3,000 words.
 
 Include:
 - **Three to five tone adjectives** with examples from emails you've actually sent
@@ -133,24 +133,24 @@ After two weeks of supervised mode, you have real data on where the AI is reliab
 - **Second:** Routine customer FAQ responses (if quality is consistent)
 - **Keep supervised:** Anything involving relationship judgment, money, or complexity
 
-The rule: automate the task type, not the email type. "Schedule meetings with vendors" is a task type. "Emails from Mark at Google" is not — Mark at Google might send you a scheduling request one day and a partnership proposal the next.
+The rule: automate the task type, not the email type. "Schedule meetings with vendors" is a task type. "Emails from Mark at Google" is not. Mark at Google might send you a scheduling request one day and a partnership proposal the next.
 
 ## What Vega Handles End-to-End
 
 [Vega](/agents/vega), Veqiro's AI executive assistant, handles all of this within a single system:
 
-- **Inbox monitoring** — continuous scan, real-time categorisation
-- **Priority briefing** — every morning, a 5-minute summary of what needs your attention and why
-- **Draft queue** — responses ready for review with one-click approve/edit/decline
-- **Calendar integration** — pulls your availability, blocks focus time, schedules proactively
-- **Follow-up tracking** — flags emails that haven't been responded to after your usual response window
+- **Inbox monitoring**: continuous scan, real-time categorisation
+- **Priority briefing**: every morning, a 5-minute summary of what needs your attention and why
+- **Draft queue**: responses ready for review with one-click approve/edit/decline
+- **Calendar integration**: pulls your availability, blocks focus time, schedules proactively
+- **Follow-up tracking**: flags emails that haven't been responded to after your usual response window
 
 The result most founders report: a 90-minute daily inbox processing habit compressed into 15 minutes of review.
 
-> "I used to start every day in my inbox. Now I start with my briefing. It's the same information — but curated, prioritised, and ready to act on. Not just a firehose."
+> "I used to start every day in my inbox. Now I start with my briefing. It's the same information, but curated, prioritised, and ready to act on. Not just a firehose."
 
 ---
 
-Inbox automation isn't about removing yourself from your communications. It's about removing yourself from the mechanical parts — so what's left when you show up is judgment, relationship, and intention.
+Inbox automation isn't about removing yourself from your communications. It's about removing yourself from the mechanical parts, so what's left when you show up is judgment, relationship, and intention.
 
 [See how Vega handles your inbox →](/agents/vega)

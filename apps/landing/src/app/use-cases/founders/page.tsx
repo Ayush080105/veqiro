@@ -4,8 +4,8 @@ import type { UseCaseContent } from '@/components/veqiro/use-case-page';
 import { T } from '@/components/veqiro/tokens';
 
 export const metadata = buildPageMetadata({
-  title: 'AI Tools for Founders — Your 6-Person AI Team',
-  description: 'Veqiro gives founders an AI executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst — each billed independently starting at $9/mo.',
+  title: 'AI Tools for Founders: Your 6-Person AI Team',
+  description: 'Veqiro gives founders an AI executive assistant, researcher, content writer, SEO specialist, legal reviewer, and financial analyst, each billed independently starting at $9/mo.',
   path: '/use-cases/founders',
   keywords: ['ai tools for founders', 'ai agent for founders', 'ai assistant for founders', 'ai for early-stage startups', 'ai team for business', 'all in one ai platform for startups'],
 });
@@ -17,14 +17,14 @@ const content: UseCaseContent = {
   accentInk: `color-mix(in srgb, ${T.amber} 65%, black)`,
   hero: {
     h1: 'Stop doing everything yourself.',
-    subheading: 'AI tools for founders who need a full team — without the payroll.',
+    subheading: 'AI tools for founders who need a full team, without the payroll.',
     stats: ['6 AI employees', 'From $9 / mo', '24/7 availability'],
   },
   painPoints: [
     'inbox never clears', 'no time for research', 'content goes cold',
     'contracts pile up', 'metrics are a mystery', 'SEO is untouched',
   ],
-  whyNow: "Early-stage founders wear six hats. You can't hire a CFO, an EA, a marketing lead, an SEO specialist, a legal counsel, and a research analyst in the first year — and you shouldn't. But all six functions still need to happen, and right now they're happening at 2 AM on your laptop after everything else burns out. Veqiro is the specific, tactical answer to that problem: a crew of AI employees that take the routine execution off your plate so you can spend your time on the parts that actually need a founder — product decisions, customer conversations, and the vision only you can hold.",
+  whyNow: "Early-stage founders wear six hats. You can't hire a CFO, an EA, a marketing lead, an SEO specialist, a legal counsel, and a research analyst in the first year, and you shouldn't. But all six functions still need to happen, and right now they're happening at 2 AM on your laptop after everything else burns out. Veqiro is the specific, tactical answer to that problem: a crew of AI employees that take the routine execution off your plate so you can spend your time on the parts that actually need a founder: product decisions, customer conversations, and the vision only you can hold.",
   agents: [
     { key: 'vega', name: 'Vega', color: T.blue, ink: `color-mix(in srgb, ${T.blue} 55%, black)`, blurb: 'Manages your inbox & calendar so you can focus on building.' },
     { key: 'scout', name: 'Scout', color: T.amber, ink: `color-mix(in srgb, ${T.amber} 65%, black)`, blurb: 'Does the competitor research you\'ve been putting off for weeks.' },
@@ -37,7 +37,7 @@ const content: UseCaseContent = {
     {
       n: '01',
       title: 'Tell them about your startup',
-      description: 'Drop in your brand kit, goals, and context. They read everything and show up briefed — no hand-holding needed.',
+      description: 'Drop in your brand kit, goals, and context. They read everything and show up briefed, no hand-holding needed.',
       color: T.amber,
     },
     {
@@ -56,24 +56,24 @@ const content: UseCaseContent = {
   scenario: {
     title: "A typical Tuesday, before and after.",
     before: [
-      "Start your day on 240 unread emails — answer 30, mentally bookmark 40, ignore the rest.",
+      "Start your day on 240 unread emails, answer 30, mentally bookmark 40, ignore the rest.",
       "Planned to do competitor research but the calendar shifted and it slipped again.",
       "The blog hasn't been updated in 6 weeks. You still owe that vendor a redlined contract.",
       "Stripe dashboard shows something weird on CAC but you'll look into it 'next week.'",
       "End the day feeling busy but not sure what actually shipped.",
     ],
     after: [
-      "Wake up to Vega's briefing — she handled 80% of email, flagged 3 that need you.",
-      "Scout dropped a 2-page competitor memo while you slept — you read it with coffee.",
+      "Wake up to Vega's briefing, she handled 80% of email, flagged 3 that need you.",
+      "Scout dropped a 2-page competitor memo while you slept, you read it with coffee.",
       "Maya has 3 LinkedIn drafts and a blog post ready for review by 10 AM.",
       "Lex already reviewed the vendor contract and flagged two clauses before lunch.",
-      "Rex pinged you about the CAC anomaly — with the fix, not just the problem.",
+      "Rex pinged you about the CAC anomaly, with the fix, not just the problem.",
     ],
   },
   outcomes: [
     {
       title: "Your first 2 hours back",
-      body: "Most founders reclaim at least 2 hours a day within the first week — mostly from not living inside their inbox.",
+      body: "Most founders reclaim at least 2 hours a day within the first week, mostly from not living inside their inbox.",
     },
     {
       title: "A research memo a week",
@@ -89,12 +89,12 @@ const content: UseCaseContent = {
     },
   ],
   faq: [
-    { q: 'Do I need all 6 AI agents to start?', a: "No — but most founders find all 6 get used within the first week. Vega and Rex usually pay for the subscription alone in saved time. The other four compound from there." },
+    { q: 'Do I need all 6 AI agents to start?', a: "No, but most founders find all 6 get used within the first week. Vega and Rex usually pay for the subscription alone in saved time. The other four compound from there." },
     { q: 'Is this better than hiring a virtual assistant?', a: "A VA works 8 hours a day, forgets context between tasks, and charges $30–80/hour. Vega works 24/7, remembers every thread, and the whole crew costs less than a VA's first week. You still keep a human VA for personal tasks; Veqiro handles the company work." },
-    { q: 'Can a solo founder really use all six?', a: "Especially a solo founder. Solo founders face the same six-function workload as a team of ten — just with nobody to delegate to. Veqiro is that delegation layer." },
+    { q: 'Can a solo founder really use all six?', a: "Especially a solo founder. Solo founders face the same six-function workload as a team of ten, just with nobody to delegate to. Veqiro is that delegation layer." },
     { q: 'How fast is the setup?', a: "15 minutes to brief your crew. First output within the hour. Most founders are fully set up same-day and see real output within 24 hours." },
-    { q: 'What if I only need one agent right now?', a: "Start with just one — every agent is billed independently from $9/mo, so there's no bundle to buy into. Most founders start with the one they need most (usually Vega for inbox or Maya for content), then add the others as they hit the work those agents are built for." },
-    { q: 'What tools does Veqiro need to connect to?', a: "Gmail and Google Calendar for full coverage. You can start with just Gmail — more integrations layer in as you're ready." },
+    { q: 'What if I only need one agent right now?', a: "Start with just one, every agent is billed independently from $9/mo, so there's no bundle to buy into. Most founders start with the one they need most (usually Vega for inbox or Maya for content), then add the others as they hit the work those agents are built for." },
+    { q: 'What tools does Veqiro need to connect to?', a: "Gmail and Google Calendar for full coverage. You can start with just Gmail, more integrations layer in as you're ready." },
   ],
 };
 

@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { ApiError } from "@/lib/api/client"
 import { getMessages, useSendMessage, AgentNotAvailableError } from "@/lib/api/assistants"
 import type { Message } from "@/lib/types"
-import {
+import { applyCachedWindow,
   mergeMessageWindow,
   mergeServerSnapshot,
   parseCachedMessageWindow,
@@ -55,7 +55,22 @@ function refreshLocalPlaceholderTimestamps(messages: Message[]): Message[] {
  * and agent-action-specific message patching stay in the caller — this hook
  * only owns what's needed to load, page, and send into `msgWindow`.
  */
-export function useAgentChat(agentId: string, organizationId: string, agentName?: string) {
+/**
+ * @param options.active Whether the thread is actually being shown. The
+ *   workspace mounts this hook in the agent layout so chat state survives
+ *   module navigation, which means it would otherwise fetch history on entering
+ *   any module even with the dock collapsed. Gating only the initial load keeps
+ *   that cost proportional to what the customer is looking at; everything else
+ *   (drafts, the window, scroll position) stays alive either way. Defaults to
+ *   true so the existing chat page is unaffected.
+ */
+export function useAgentChat(
+  agentId: string,
+  organizationId: string,
+  agentName?: string,
+  options?: { active?: boolean },
+) {
+  const active = options?.active ?? true
   const [msgWindow, setMsgWindow] = useState<Message[]>([])
   const [hasPreviousPage, setHasPreviousPage] = useState(false)
   const [isLoadingPrev, setIsLoadingPrev] = useState(false)
@@ -81,6 +96,10 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   const thisMutationRef = useRef(false)
   const prevMutationStatusRef = useRef<string | undefined>(undefined)
   const didCatchUpRef = useRef(false)
+  // Which thread the last history load was for (null before the first). If the
+  // effect re-runs for the same thread it is only because the thread became
+  // visible (`active`), and whatever is on screen must not be wiped.
+  const loadedKeyRef = useRef<string | null>(null)
   const isAtBottomRef = useRef(isAtBottom)
   const activeChatKey = `${organizationId}:${agentId}`
   const activeChatKeyRef = useRef(activeChatKey)
@@ -88,8 +107,13 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
   isAtBottomRef.current = isAtBottom
 
   useEffect(() => {
-    if (!agentId || !organizationId) return
+    if (!agentId || !organizationId || !active) return
     const requestKey = `${organizationId}:${agentId}`
+    // Only a change of thread identity resets the window. The first ever load
+    // (null) has nothing to reset — and anything on screen by then is local
+    // (an optimistic send made just before the thread became visible).
+    const sameThread = loadedKeyRef.current === null || loadedKeyRef.current === requestKey
+    loadedKeyRef.current = requestKey
     const controller = new AbortController()
     setFetchError(null)
     setIsLoadingPrev(false)
@@ -107,20 +131,22 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
         const cached = parseCachedMessageWindow(raw, WINDOW)
         if (cached.length > 0) {
           scrollIntentRef.current = "instant"
-          setMsgWindow(cached)
+          setMsgWindow((current) => applyCachedWindow(current, cached, sameThread, WINDOW))
           setHasPreviousPage(cached.length === WINDOW)
           setInitialLoaded(true)
-        } else {
+        } else if (!sameThread) {
           setInitialLoaded(false)
           setMsgWindow([])
         }
-      } else {
+      } else if (!sameThread) {
         setInitialLoaded(false)
         setMsgWindow([])
       }
     } catch {
-      setInitialLoaded(false)
-      setMsgWindow([])
+      if (!sameThread) {
+        setInitialLoaded(false)
+        setMsgWindow([])
+      }
     }
 
     // Refresh from server in background
@@ -139,7 +165,9 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       })
 
     return () => controller.abort()
-  }, [agentId, organizationId])
+    // `active` participates: flipping it false→true is what triggers the first
+    // load for a dock the customer opened after landing on another module.
+  }, [agentId, organizationId, active])
 
   // Persist window to localStorage after every settled update
   useEffect(() => {
@@ -429,8 +457,9 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
 
   const clearHighlight = useCallback(() => setHighlightedMessageId(null), [])
 
-  const handleSend = useCallback(async () => {
-    const trimmed = content.trim()
+  /** Send explicit text, bypassing the composer — for actions that build the request themselves. */
+  const sendText = useCallback(async (text: string) => {
+    const trimmed = text.trim()
     if (!trimmed || trimmed.length > 1000 || isLoading) return
 
     if (isAnchoredRef.current) await returnToLatest()
@@ -451,7 +480,9 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
         toast.error("Failed to send message. Please try again.")
       }
     }
-  }, [content, isLoading, sendMutation, agentName, attachedSourceIds, returnToLatest])
+  }, [isLoading, sendMutation, agentName, attachedSourceIds, returnToLatest])
+
+  const handleSend = useCallback(() => sendText(content), [sendText, content])
 
   const contentRef = useRef(content)
   contentRef.current = content
@@ -482,7 +513,12 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       sendError,
       isLoading,
       handleSend,
+      sendText,
       handleRestoreDraft,
+      // The id itself, not only the ref. It is fixed for the life of the hook,
+      // so consumers that just need the value should not have to read .current
+      // during render and trip the refs lint rule for nothing.
+      conversationId: conversationIdRef.current,
       conversationIdRef,
       chatScrollRef,
       scrollAnchorRef,
@@ -507,6 +543,7 @@ export function useAgentChat(agentId: string, organizationId: string, agentName?
       sendError,
       isLoading,
       handleSend,
+      sendText,
       handleRestoreDraft,
       attachedSourceIds,
       isAnchored,

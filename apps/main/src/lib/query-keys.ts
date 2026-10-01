@@ -25,6 +25,13 @@ export const qk = {
   chat: (agentSlug: string, organizationId: string) =>
     ["chat", agentSlug, organizationId] as const,
   lexSources: () => ["lex", "sources"] as const,
+  lexSourceSearch: (q: string) => ["lex", "sources", "search", q] as const,
+  lexSource: (id: string) => ["lex", "source", id] as const,
+  lexWatch: () => ["lex", "watch"] as const,
+  lexBrief: () => ["lex", "brief"] as const,
+  lexPreferences: () => ["lex", "preferences"] as const,
+  lexSettings: () => ["lex", "settings"] as const,
+  lexVersionCandidates: (name: string) => ["lex", "version-candidates", name] as const,
   pinnedMessages: (agentSlug: string, organizationId: string) =>
     ["pinned-messages", agentSlug, organizationId] as const,
   mayaPublishedPosts: (organizationId: string) =>
@@ -63,4 +70,28 @@ export const qk = {
     ["vega", "reschedule-draft", eventId, newStart, newEnd] as const,
   vegaLabels: (organizationId: string) =>
     ["vega", "labels", organizationId] as const,
+
+  // Agent workspaces. Keyed by agent rather than org where the endpoint is
+  // already org-scoped by the session, except the overview, which is cached
+  // per org so switching organizations cannot show the previous one's numbers.
+  workspaceOverview: (agent: string, organizationId: string) =>
+    ["workspace", "overview", agent, organizationId] as const,
+  workspaceWork: (agent: string, filters: string) =>
+    ["workspace", "work", agent, filters] as const,
+  workspaceActivity: (agent: string, filters: string) =>
+    ["workspace", "activity", agent, filters] as const,
+  workspaceInsights: (agent: string, status: string) =>
+    ["workspace", "insights", agent, status] as const,
+  workspaceApprovals: (agent: string) => ["workspace", "approvals", agent] as const,
+  workspaceMemory: (agent: string) => ["workspace", "memory", agent] as const,
+  mayaCampaigns: (status: string) => ["maya", "campaigns", status] as const,
+  scoutProjects: () => ["scout", "projects"] as const,
+  scoutProject: (id: string) => ["scout", "project", id] as const,
+  sagePages: () => ["sage", "pages"] as const,
+  sagePage: (id: string) => ["sage", "page", id] as const,
+  companyPulse: (organizationId: string) => ["workspace", "pulse", organizationId] as const,
+  workspaceOutcomes: (organizationId: string, days: number) =>
+    ["workspace", "outcomes", organizationId, days] as const,
+  workspaceHandoffs: (agent: string, direction: string) =>
+    ["workspace", "handoffs", agent, direction] as const,
 }

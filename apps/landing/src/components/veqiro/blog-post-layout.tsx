@@ -227,7 +227,7 @@ export function BlogPostLayout({ post, related, crumbs }: BlogPostLayoutProps) {
             textDecoration: 'none',
           }}
         >
-          Start free — 7 days on us →
+          Start free, 7 days on us →
         </a>
       </section>
 

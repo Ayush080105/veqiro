@@ -12,6 +12,7 @@ import {
   type ContentPlan,
   type ContentPlanItem,
 } from "@/lib/api/assistants"
+import { FORMAT_COLOR, PlanEvidence, PlanSummary } from "./plan-insights"
 
 /**
  * The weekly content plan, as a calendar.
@@ -27,9 +28,11 @@ import {
  * demand.
  */
 
+// The chart pair, not the brand blue/violet: those two are too close to tell
+// apart once they are more than a dot (see plan-insights.tsx).
 const FORMAT = {
-  post: { label: "Static post", short: "POST", Icon: ImageIcon, color: "var(--vq-blue)" },
-  reel: { label: "Reel", short: "REEL", Icon: Film, color: "var(--vq-violet)" },
+  post: { label: "Static post", short: "POST", Icon: ImageIcon, color: FORMAT_COLOR.post },
+  reel: { label: "Reel", short: "REEL", Icon: Film, color: FORMAT_COLOR.reel },
 } as const
 
 const DAY_LABELS = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"]
@@ -71,8 +74,8 @@ function DayCell({
   return (
     <div className="flex min-h-[132px] min-w-0 flex-col gap-1.5 border-r border-b border-(--vq-line-2) p-2 last:border-r-0">
       <div className="flex items-baseline gap-1.5">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
-        {date && <span className="text-xs text-muted-foreground/60">{date.getUTCDate()}</span>}
+        <span className="font-mono text-[10px] tracking-widest text-muted-foreground">{label}</span>
+        {date && <span className="text-[10px] text-muted-foreground/60">{date.getUTCDate()}</span>}
       </div>
 
       {items.length === 0 ? (
@@ -100,14 +103,14 @@ function DayCell({
                   className="size-1.5 shrink-0 rounded-full"
                   style={{ background: meta.color }}
                 />
-                <span className="text-xs font-medium text-muted-foreground">
+                <span className="font-mono text-[9px] tracking-wider text-muted-foreground">
                   {meta.short}
                 </span>
                 {item.isGapFiller && (
                   <HelpCircle className="size-2.5 shrink-0 text-muted-foreground/60" />
                 )}
               </span>
-              <span className="line-clamp-3 text-xs font-medium leading-snug">{item.hook}</span>
+              <span className="line-clamp-3 text-[11px] font-medium leading-snug">{item.hook}</span>
             </button>
           )
         })
@@ -132,14 +135,17 @@ function ItemDetail({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold">{item.day || item.date}</span>
         <span
-          className="flex items-center gap-1 rounded-[var(--vq-r-sm)] px-2 py-0.5 text-xs"
-          style={{ background: meta.color, color: "var(--foreground)" }}
+          // A tint with the colour as a dot, not a solid fill: solid chart
+          // colours don't reach text contrast against the foreground.
+          className="flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px]"
+          style={{ background: `color-mix(in srgb, ${meta.color} 16%, transparent)` }}
         >
+          <span aria-hidden className="size-1.5 rounded-full" style={{ background: meta.color }} />
           <Icon className="size-3" />
           {meta.label}
         </span>
         {item.isGapFiller && (
-          <span className="flex items-center gap-1 rounded-[var(--vq-r-sm)] bg-background px-2 py-0.5 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
             <HelpCircle className="size-3" />
             No strong signal
           </span>
@@ -155,13 +161,13 @@ function ItemDetail({
       {(item.reason || item.formatReason) && (
         <div className="flex flex-col gap-1 border-t border-(--vq-line-2) pt-2">
           {item.reason && (
-            <p className="text-sm leading-relaxed">
+            <p className="text-[11px] leading-relaxed">
               <span className="font-medium">Why: </span>
               <span className="text-muted-foreground">{item.reason}</span>
             </p>
           )}
           {item.formatReason && (
-            <p className="text-sm leading-relaxed">
+            <p className="text-[11px] leading-relaxed">
               <span className="font-medium">Why {meta.label.toLowerCase()}: </span>
               <span className="text-muted-foreground">{item.formatReason}</span>
             </p>
@@ -175,7 +181,7 @@ function ItemDetail({
       {onCreate && (
         <button
           onClick={() => onCreate(item)}
-          className="flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90"
+          className="flex w-fit items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
           <Wand2 className="size-3" />
           {item.format === "reel" ? "Make this reel" : "Make this post"}
@@ -250,10 +256,12 @@ function PlanView({
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-4">
+      <PlanSummary plan={plan} items={items} />
+
       <div className="overflow-hidden rounded-lg border border-(--vq-line-2)">
         <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-3 py-2">
-          <h3 className="text-sm font-semibold text-primary-foreground">
+          <h3 className="font-mono text-[11px] uppercase tracking-widest text-primary-foreground">
             {fmt(weekStart)} – {fmt(weekEnd)}
           </h3>
           <div className="flex items-center gap-3">
@@ -264,7 +272,7 @@ function PlanView({
                   className="size-1.5 rounded-full"
                   style={{ background: FORMAT[key].color }}
                 />
-                <span className="text-xs font-medium text-primary-foreground/70">
+                <span className="font-mono text-[9px] uppercase tracking-wider text-primary-foreground/70">
                   {FORMAT[key].short}
                 </span>
               </span>
@@ -295,15 +303,13 @@ function PlanView({
         </div>
       </div>
 
-      {/* The note carries the caveats — how thin the data was, what wasn't
-          available. Kept close to the grid rather than buried at the bottom. */}
-      {plan.note && (
-        <p className="rounded-lg border border-(--vq-line-2) bg-muted p-3 text-xs leading-relaxed text-muted-foreground">
-          {plan.note}
-        </p>
-      )}
-
+      {/* What one slot argues for sits right under the grid it was clicked in;
+          the evidence for the whole week follows. */}
       {selectedItem && <ItemDetail item={selectedItem} onCreate={onCreate} />}
+
+      {/* Structured signals and their limits when the plan has them, the note
+          as tidy bullets when it does not. */}
+      <PlanEvidence plan={plan} />
     </div>
   )
 }
@@ -361,14 +367,26 @@ export function MayaContentPlanTab({
           </p>
         </div>
         {alreadyPlanned ? (
-          <span className="shrink-0 text-xs font-medium text-muted-foreground">
-            Next week is planned
-          </span>
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+              Next week is planned
+            </span>
+            {/* A new plan for the same week supersedes the old one (the list
+                is newest-first), so re-running is safe — it just costs another
+                run, which is why it is quiet rather than the main button. */}
+            <button
+              onClick={handleGenerate}
+              disabled={generating || !organizationId}
+              className="rounded-full border border-(--vq-line-2) px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+            >
+              {generating ? "Planning…" : "Regenerate"}
+            </button>
+          </div>
         ) : (
           <button
             onClick={handleGenerate}
             disabled={generating || !organizationId}
-            className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             <Sparkles className="size-3" />
             {generating ? "Planning…" : "Generate plan"}
@@ -398,7 +416,7 @@ export function MayaContentPlanTab({
 
           {older.length > 0 && (
             <div className="flex flex-col gap-3">
-              <h3 className="text-sm font-semibold text-foreground">
+              <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
                 Earlier plans
               </h3>
               {older.map((plan) => (

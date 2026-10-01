@@ -2,7 +2,7 @@
 title: "Contract Red Flags Every Founder Should Know (With AI-Assisted Review)"
 slug: contract-red-flags-founders
 date: "2026-05-22"
-description: "The 12 contract clauses that most often hurt founders — and how an AI legal agent catches them in under 5 minutes, before you sign."
+description: "The 12 contract clauses that most often hurt founders, and how an AI legal agent catches them in under 5 minutes, before you sign."
 category: agents
 agentKey: lex
 keywords:
@@ -18,7 +18,7 @@ faq:
   - q: "What are the most common contract red flags for founders?"
     a: "Uncapped liability clauses, auto-renewal with short cancellation windows, IP assignment language that's too broad, one-sided termination rights, unfavourable jurisdiction clauses, and indemnification provisions that don't match the actual risk. These appear in vendor contracts, SaaS agreements, and partnership deals."
   - q: "Can I use AI to review contracts instead of a lawyer?"
-    a: "For routine vendor NDAs and standard SaaS agreements, AI-assisted review is adequate for flagging issues — and significantly faster and cheaper than attorney review. For material agreements (investment docs, major partnership contracts, M&A), use a lawyer. AI catches the flags; lawyers make the calls."
+    a: "For routine vendor NDAs and standard SaaS agreements, AI-assisted review is adequate for flagging issues, and significantly faster and cheaper than attorney review. For material agreements (investment docs, major partnership contracts, M&A), use a lawyer. AI catches the flags; lawyers make the calls."
   - q: "How does an AI contract reviewer work?"
     a: "You upload or paste the contract. The AI reads it against standard risk parameters, identifies clauses that deviate from market-standard terms, flags them with plain-English explanations, and suggests redlines or questions to raise with the other party."
   - q: "How fast can AI review a contract?"
@@ -33,7 +33,7 @@ The investor wants the term sheet signed by Friday. The vendor won't ship until 
 
 This doesn't happen because founders are careless. It happens because contract review is slow, expensive, and not interesting enough to prioritise until something goes wrong.
 
-[Lex](/agents/lex), Veqiro's AI legal assistant, reviews contracts in under 5 minutes. Here are the 12 red flags it's trained to catch — and what to do when it finds them.
+[Lex](/agents/lex), Veqiro's AI legal assistant, reviews contracts in under 5 minutes. Here are the 12 red flags it's trained to catch, and what to do when it finds them.
 
 ## The Ground Rules Before We Start
 
@@ -45,7 +45,7 @@ Three things worth saying clearly:
 
 **Your negotiating leverage depends on your stage.** Some red flags are worth fighting for. Others aren't worth the relationship cost. Knowing which is which requires judgment, not just clause identification.
 
-With that said — here are the 12 clauses that hurt founders most often.
+With that said, here are the 12 clauses that hurt founders most often.
 
 ## The 12 Red Flags
 
@@ -54,7 +54,7 @@ With that said — here are the 12 clauses that hurt founders most often.
 **What it looks like:**
 > "Customer shall indemnify and hold harmless Vendor from any and all claims, damages, losses, and expenses arising from Customer's use of the Service."
 
-**Why it matters:** "Any and all" means exactly what it says. If the vendor's service causes a data breach that harms your customers, you're on the hook for every dollar of damages — potentially more than your company is worth.
+**Why it matters:** "Any and all" means exactly what it says. If the vendor's service causes a data breach that harms your customers, you're on the hook for every dollar of damages, potentially more than your company is worth.
 
 **What market standard looks like:** Liability caps at 12 months of fees paid, or a specific dollar amount. Both parties capped at the same limit.
 
@@ -119,7 +119,7 @@ With that said — here are the 12 clauses that hurt founders most often.
 **What it looks like:**
 > "By using the Service, Customer grants Company a worldwide, irrevocable, royalty-free license to use, reproduce, modify, and distribute Customer's data for any purpose including service improvement."
 
-**Why it matters:** Your customer data, product usage data, and business intelligence — shared freely with the vendor, including for training AI models, building competing products, or selling to third parties.
+**Why it matters:** Your customer data, product usage data, and business intelligence, shared freely with the vendor, including for training AI models, building competing products, or selling to third parties.
 
 **What market standard looks like:** Data use limited to service delivery and improvement; no third-party sharing without consent; explicit AI training opt-out.
 
@@ -132,7 +132,7 @@ With that said — here are the 12 clauses that hurt founders most often.
 **What it looks like:**
 > "Recipient's obligations under this Agreement shall continue in perpetuity."
 
-**Why it matters:** Perpetual confidentiality obligations on general business information are increasingly unenforceable — and they create ongoing compliance risk for information that's become publicly known or irrelevant.
+**Why it matters:** Perpetual confidentiality obligations on general business information are increasingly unenforceable, and they create ongoing compliance risk for information that's become publicly known or irrelevant.
 
 **What market standard looks like:** 2–5 year confidentiality obligation for general business information; perpetual only for trade secrets.
 
@@ -145,7 +145,7 @@ With that said — here are the 12 clauses that hurt founders most often.
 **What it looks like:**
 > "All disputes shall be resolved by binding arbitration administered by [Vendor's preferred arbitration body] under [Vendor's preferred rules] with hearings in [Vendor's location]."
 
-**Why it matters:** Arbitration clauses themselves aren't necessarily bad — they can be faster and cheaper than litigation. But when the arbitration body, rules, and location are all chosen by the vendor, the deck is stacked against you before the case starts.
+**Why it matters:** Arbitration clauses themselves aren't necessarily bad. They can be faster and cheaper than litigation. But when the arbitration body, rules, and location are all chosen by the vendor, the deck is stacked against you before the case starts.
 
 **What market standard looks like:** Mutually agreed arbitration body (AAA, JAMS), neutral venue or remote hearing option, consumer-protective rules for small claims.
 
@@ -158,7 +158,7 @@ With that said — here are the 12 clauses that hurt founders most often.
 **What it looks like:**
 > "In no event shall Vendor be liable for consequential, indirect, or incidental damages. Customer's liability is not so limited."
 
-**Why it matters:** Vendor is protected from consequential damages. You aren't. If their service failure causes you to lose a major customer, you have limited recourse — while remaining fully exposed yourself.
+**Why it matters:** Vendor is protected from consequential damages. You aren't. If their service failure causes you to lose a major customer, you have limited recourse, while remaining fully exposed yourself.
 
 **What market standard looks like:** Mutual waiver of consequential damages, or mutual removal of the waiver.
 
@@ -184,7 +184,7 @@ With that said — here are the 12 clauses that hurt founders most often.
 **What it looks like:**
 > "Company may assign its rights and obligations under this Agreement without prior written consent of the other party."
 
-**Why it matters:** The vendor can sell the contract to whoever they want — including a competitor. You're now under contract with a company you never chose.
+**Why it matters:** The vendor can sell the contract to whoever they want, including a competitor. You're now under contract with a company you never chose.
 
 **What market standard looks like:** No assignment without consent, or consent not to be unreasonably withheld, with carveout for change of control scenarios.
 
@@ -197,7 +197,7 @@ With that said — here are the 12 clauses that hurt founders most often.
 **What it looks like:**
 > "Either party may terminate this Agreement upon written notice if the other party has committed a material breach."
 
-**Why it matters:** "Material breach" is undefined. What counts as material? The party claiming breach gets to make that argument first — and an experienced legal team can characterise almost anything as "material" if they want out of the deal.
+**Why it matters:** "Material breach" is undefined. What counts as material? The party claiming breach gets to make that argument first, and an experienced legal team can characterise almost anything as "material" if they want out of the deal.
 
 **What market standard looks like:** Specific enumerated breach events that qualify as material; cure period of 30–60 days for remediable breaches.
 
@@ -214,10 +214,10 @@ With [Lex](/agents/lex), the workflow is:
 3. **Receive a flagged brief.** Within 5 minutes: a section-by-section summary, flagged clauses with plain-English explanations, risk severity ratings, and suggested redlines.
 4. **Decide which flags to push on.** Not every flag is worth the negotiation cost. Lex gives you the information; you make the call.
 
-For routine NDAs and vendor agreements, this process replaces attorney review entirely. For material agreements, Lex's flag brief goes to your attorney as a pre-read — cutting their review time and your bill.
+For routine NDAs and vendor agreements, this process replaces attorney review entirely. For material agreements, Lex's flag brief goes to your attorney as a pre-read, cutting their review time and your bill.
 
 ---
 
-Most founders sign bad contracts not because they're naive, but because they're fast. AI contract review closes that gap — without slowing you down.
+Most founders sign bad contracts not because they're naive, but because they're fast. AI contract review closes that gap, without slowing you down.
 
 [See how Lex handles contract review →](/agents/lex)

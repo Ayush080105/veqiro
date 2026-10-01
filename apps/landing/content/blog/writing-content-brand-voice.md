@@ -2,7 +2,7 @@
 title: "Writing Content That Doesn't Sound Like AI: A Brand-Voice Primer"
 slug: writing-content-brand-voice
 date: "2026-05-15"
-description: "How to define your brand voice so precisely that AI-generated content is indistinguishable from your best human writing — plus the exact framework we use."
+description: "How to define your brand voice so precisely that AI-generated content is indistinguishable from your best human writing: plus the exact framework we use."
 category: agents
 agentKey: maya
 keywords:
@@ -16,13 +16,13 @@ keywords:
 readingTime: 8
 faq:
   - q: "Why does AI-generated content often sound generic?"
-    a: "Because generic inputs produce generic outputs. If you give an AI agent no context about your voice, it defaults to the average of everything it's been trained on — which is competent but forgettable. Brand voice definition is the difference between 'AI content' and 'your content, produced by AI.'"
+    a: "Because generic inputs produce generic outputs. If you give an AI agent no context about your voice, it defaults to the average of everything it's been trained on: which is competent but forgettable. Brand voice definition is the difference between 'AI content' and 'your content, produced by AI.'"
   - q: "What should a brand voice document include?"
-    a: "At minimum: 3–5 tone adjectives with examples, vocabulary you use and avoid, sentence rhythm preferences, topics you own and avoid, and 3 examples of writing you consider 'on voice.' Longer is not better — clarity is better."
+    a: "At minimum: 3–5 tone adjectives with examples, vocabulary you use and avoid, sentence rhythm preferences, topics you own and avoid, and 3 examples of writing you consider 'on voice.' Longer is not better: clarity is better."
   - q: "How long does it take for an AI to learn a brand voice?"
     a: "With a well-structured brand voice document and 10–15 example outputs, a capable AI agent produces consistently on-voice content within 2–3 weeks of iteration and feedback cycles."
   - q: "Can AI write genuinely creative content, or just competent content?"
-    a: "Competent content at scale is the reliable default. Genuinely creative content — with unexpected turns, earned metaphors, and ideas readers didn't know they were waiting for — still requires human creative direction. Use AI for execution volume; keep a human in the creative direction seat."
+    a: "Competent content at scale is the reliable default. Genuinely creative content, with unexpected turns, earned metaphors, and ideas readers didn't know they were waiting for, still requires human creative direction. Use AI for execution volume; keep a human in the creative direction seat."
   - q: "How do I brief an AI content agent for social media posts?"
     a: "Include: the platform (LinkedIn vs. Twitter vs. Instagram have very different norms), the content goal (educate, promote, engage), the topic with 2–3 specific angles to explore, the tone calibration (more formal or more casual than your baseline), and any examples of posts you loved. The brief quality determines the output quality."
 ---
@@ -33,7 +33,7 @@ There's a specific kind of content horror that founders who use AI tools know in
 
 This isn't a failure of the AI. It's a failure of the brief. Generic inputs produce generic outputs, and most founders give their AI tools approximately zero context about their actual voice.
 
-Here's how to fix that — and how to get content out of [Maya](/agents/maya) that your audience will actually recognise as coming from you.
+Here's how to fix that, and how to get content out of [Maya](/agents/maya) that your audience will actually recognise as coming from you.
 
 ## What Brand Voice Actually Is (and Isn't)
 
@@ -57,7 +57,7 @@ Here's the framework for building a voice document that actually works with AI t
 
 ### Component 1: The Three-Word Brand Personality
 
-Describe your brand with three specific adjectives. Not "professional" or "approachable" — those mean nothing. Pick adjectives with contrast:
+Describe your brand with three specific adjectives. Not "professional" or "approachable": those mean nothing. Pick adjectives with contrast:
 
 - *Direct, witty, irreverent* (Veqiro)
 - *Earnest, rigorous, dry* (Stripe's early writing)
@@ -118,7 +118,7 @@ Once your voice document exists, loading it into [Maya](/agents/maya) is a one-t
 
 1. **Upload the full voice document** to Maya's Brand Brain
 2. **Add 10–15 example posts** across your main channels (pick your absolute best work)
-3. **Run a calibration batch** — ask Maya to write 3 posts on topics you know well, then mark each line with "on voice / off voice" annotations
+3. **Run a calibration batch**: ask Maya to write 3 posts on topics you know well, then mark each line with "on voice / off voice" annotations
 4. **Update the voice document** based on patterns you notice in the corrections
 
 After this initial pass, Maya's Brand Brain has a rich model of your voice. Most founders see consistent on-voice output within the first 2 weeks.
@@ -149,6 +149,6 @@ The difference isn't a better model. It's a better brief.
 
 ---
 
-Brand voice is the most leveraged investment you'll make in your content operation. Write it once. Load it once. Then let Maya run — at scale, consistently, in your voice.
+Brand voice is the most leveraged investment you'll make in your content operation. Write it once. Load it once. Then let Maya run: at scale, consistently, in your voice.
 
 [See how Maya handles your content →](/agents/maya)

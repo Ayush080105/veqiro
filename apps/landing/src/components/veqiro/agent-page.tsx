@@ -259,7 +259,7 @@ export function AgentPage({ employee }: Props) {
                 </span>
               </h2>
               <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 1.9vw, 18px)', color: T.ink, marginTop: 20, maxWidth: 640, lineHeight: 1.6 }}>
-                {employee.name} already speaks {connectedTools.length}+ of the tools your team runs on — connect them in a click, no setup work required.
+                {employee.name} already speaks {connectedTools.length}+ of the tools your team runs on, connect them in a click, no setup work required.
               </p>
             </div>
 
@@ -285,7 +285,7 @@ export function AgentPage({ employee }: Props) {
           <div style={{ marginBottom: 'clamp(28px, 4vw, 40px)' }}>
             <div style={{
               fontFamily: FONT.mono, fontSize: 13, letterSpacing: 3,
-              textTransform: 'uppercase' as const, color: T.ink2, marginBottom: 14,
+              textTransform: 'uppercase' as const, color: T.inkInv2, marginBottom: 14,
             }}>
               Things to ask {employee.name}
             </div>
@@ -320,7 +320,7 @@ export function AgentPage({ employee }: Props) {
                   &gt;_
                 </span>
                 <span style={{
-                  fontFamily: FONT.mono, fontSize: 13, color: T.line2,
+                  fontFamily: FONT.mono, fontSize: 13, color: T.inkInv2,
                   lineHeight: 1.55,
                 }}>
                   {action}
@@ -572,7 +572,7 @@ export function AgentPage({ employee }: Props) {
             marginTop: 28, fontFamily: FONT.mono, fontSize: 12, letterSpacing: 3,
             textTransform: 'uppercase' as const, color: employee.color,
           }}>
-            — {employee.name}, {employee.role}
+            {employee.name}, {employee.role}
           </div>
         </div>
       </section>
@@ -642,7 +642,7 @@ export function AgentPage({ employee }: Props) {
             </span>
           </h2>
           <p style={{ fontFamily: FONT.body, fontSize: 'clamp(15px, 2vw, 18px)', color: T.ink2, marginBottom: 44 }}>
-            Start with {employee.name} for {agentMonthlyPrice != null ? `$${agentMonthlyPrice}/mo` : 'starting at $9/mo'} — billed independently, no bundle — or try free for 7 days, no card needed.
+            Start with {employee.name} for {agentMonthlyPrice != null ? `$${agentMonthlyPrice}/mo` : 'starting at $9/mo'}, billed independently, no bundle, or try free for 7 days, no card needed.
           </p>
           <div style={{ display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
             <Button variant="dark" href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}>{isPreLaunch ? 'Join the waitlist →' : 'Start free →'}</Button>

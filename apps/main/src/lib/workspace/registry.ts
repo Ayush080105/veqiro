@@ -1,0 +1,85 @@
+import type { AgentSlug } from "@/lib/types"
+import { MODULE_ORDER } from "./modules"
+import type { AgentWorkspaceSpec, ModuleId, ModuleSpec } from "./types"
+import { lexWorkspace } from "./agents/lex.workspace"
+import { mayaWorkspace } from "./agents/maya.workspace"
+import { rexWorkspace } from "./agents/rex.workspace"
+import { sageWorkspace } from "./agents/sage.workspace"
+import { scoutWorkspace } from "./agents/scout.workspace"
+import { vegaWorkspace } from "./agents/vega.workspace"
+
+/**
+ * Every agent's workspace spec.
+ *
+ * Note what is NOT in this file: any branch on which agent is which. The specs
+ * are data, the framework reads them uniformly, and agent-specific behaviour
+ * lives inside the agent's own lazy components. If a change to this file needs
+ * a slug literal, the right fix is almost always a new field on ModuleSpec or
+ * AgentWorkspaceSpec that at least two agents will use.
+ */
+export const WORKSPACE_REGISTRY: Record<AgentSlug, AgentWorkspaceSpec> = {
+  lex: lexWorkspace,
+  maya: mayaWorkspace,
+  rex: rexWorkspace,
+  sage: sageWorkspace,
+  scout: scoutWorkspace,
+  vega: vegaWorkspace,
+}
+
+export function getWorkspaceSpec(agent: string): AgentWorkspaceSpec | undefined {
+  return WORKSPACE_REGISTRY[agent as AgentSlug]
+}
+
+export function isWorkspaceAgent(agent: string): agent is AgentSlug {
+  return agent in WORKSPACE_REGISTRY
+}
+
+export interface ResolvedModule extends ModuleSpec {
+  id: ModuleId
+  status: "ready" | "coming-soon"
+}
+
+/**
+ * The spec's sparse module overrides merged onto the canonical order.
+ *
+ * Anything an agent does not mention is "coming-soon" rather than absent: the
+ * route resolves, the nav shows it under More, and the customer sees a roadmap
+ * instead of a dead end. Overview and chat are always ready — every agent has
+ * a chat thread and an overview can always render insights and activity, even
+ * when they are empty.
+ */
+export function resolveModules(spec: AgentWorkspaceSpec): ResolvedModule[] {
+  const overrides = new Map((spec.modules ?? []).map((m) => [m.id, m]))
+
+  return MODULE_ORDER.map((id) => {
+    const override = overrides.get(id)
+    const hasWork = id === "work" && spec.workTypes.length > 0
+    // Modules the framework can always render from data every agent already
+    // has: a chat thread, an overview, an action catalog, an approval queue,
+    // an activity feed, memory, integrations and automations.
+    const alwaysReady =
+      id === "overview" ||
+      id === "chat" ||
+      id === "actions" ||
+      id === "approvals" ||
+      id === "activity" ||
+      id === "memory" ||
+      id === "integrations" ||
+      id === "automations"
+
+    return {
+      id,
+      ...override,
+      status: override?.status ?? (alwaysReady || hasWork ? "ready" : "coming-soon"),
+      // Chat is listed: the dock is one way to talk to this employee, the Chat
+      // page (thread as the main area) is another, and on desktop the rail was
+      // the only place that could offer the second. Hiding it left no way to
+      // open chat full-width without knowing the URL.
+      hiddenInNav: override?.hiddenInNav ?? false,
+    }
+  })
+}
+
+export function getWorkType(spec: AgentWorkspaceSpec, slug: string) {
+  return spec.workTypes.find((w) => w.slug === slug)
+}

@@ -19,6 +19,10 @@ def _vec(embedding: list[float]) -> str:
     return "[" + ",".join(str(x) for x in embedding) + "]"
 
 
+CHUNK_WORDS = 200
+CHUNK_OVERLAP_WORDS = 30
+
+
 def _row_meta(raw) -> dict:
     """Normalize asyncpg metadata field — JSONB comes back as dict, TEXT as string."""
     if raw is None:
@@ -43,7 +47,15 @@ class RAGService:
         source_types: list[str] | None = None,
         source_agent: str | None = None,
         source_id: str | None = None,
+        min_score: float = 0.70,
     ) -> list[dict]:
+        """Top-k chunks by cosine similarity, dropping any below `min_score`.
+
+        The 0.70 default is a noise floor for searches across everything a user has stored.
+        A search scoped to one chosen document should pass a much lower floor: with
+        text-embedding-3-small a short question against a 200-word chunk rarely scores
+        above ~0.6 even when the chunk holds the answer, so 0.70 filters out every result.
+        """
         if settings.MOCK_MODE:
             return []
 
@@ -54,27 +66,52 @@ class RAGService:
         pool = await get_pool()
 
         async with pool.acquire() as conn:
-            rows = await conn.fetch(
-                """
-                SELECT id, content, source_type, source_agent, metadata,
-                       1 - (embedding <=> $1::vector) AS score
-                FROM rag_chunks
-                WHERE user_id = $2
-                  AND ($3::text   IS NULL OR source_agent = $3)
-                  AND ($4::text[] IS NULL OR source_type  = ANY($4))
-                  AND ($6::text   IS NULL OR source_id    = $6)
-                ORDER BY embedding <=> $1::vector
-                LIMIT $5
-                """,
-                _vec(query_embedding),
-                user_id,
-                source_agent,
-                source_types,
-                top_k,
-                source_id,
-            )
+            if source_id:
+                # Exact scan over one document's chunks. Through the IVFFlat index (lists=100,
+                # probes=1) Postgres searches a single list and only then applies the
+                # source_id filter, so a document-scoped search could return few or no rows.
+                # MATERIALIZED keeps the planner from pushing the ORDER BY back onto the index.
+                rows = await conn.fetch(
+                    """
+                    WITH doc AS MATERIALIZED (
+                        SELECT id, content, source_type, source_agent, metadata, embedding
+                        FROM rag_chunks
+                        WHERE user_id = $2 AND source_id = $6
+                          AND ($3::text   IS NULL OR source_agent = $3)
+                          AND ($4::text[] IS NULL OR source_type  = ANY($4))
+                    )
+                    SELECT id, content, source_type, source_agent, metadata,
+                           1 - (embedding <=> $1::vector) AS score
+                    FROM doc
+                    ORDER BY embedding <=> $1::vector
+                    LIMIT $5
+                    """,
+                    _vec(query_embedding),
+                    user_id,
+                    source_agent,
+                    source_types,
+                    top_k,
+                    source_id,
+                )
+            else:
+                rows = await conn.fetch(
+                    """
+                    SELECT id, content, source_type, source_agent, metadata,
+                           1 - (embedding <=> $1::vector) AS score
+                    FROM rag_chunks
+                    WHERE user_id = $2
+                      AND ($3::text   IS NULL OR source_agent = $3)
+                      AND ($4::text[] IS NULL OR source_type  = ANY($4))
+                    ORDER BY embedding <=> $1::vector
+                    LIMIT $5
+                    """,
+                    _vec(query_embedding),
+                    user_id,
+                    source_agent,
+                    source_types,
+                    top_k,
+                )
 
-        _MIN_SCORE = 0.70  # cosine similarity floor — below this the chunk is noise
         return [
             {
                 "id": str(row["id"]),
@@ -85,7 +122,7 @@ class RAGService:
                 "score": float(row["score"]),
             }
             for row in rows
-            if float(row["score"]) >= _MIN_SCORE
+            if float(row["score"]) >= min_score
         ]
 
     async def ingest(
@@ -104,13 +141,17 @@ class RAGService:
         from core.embeddings import embed_batch
         from core.db import get_pool
 
-        chunks = _chunk_text(text, chunk_size=200, overlap=30)
+        chunks = _chunk_text(text, chunk_size=CHUNK_WORDS, overlap=CHUNK_OVERLAP_WORDS)
         embeddings = await embed_batch(chunks)
-        meta_json = json.dumps(metadata or {})
 
+        # Every row in one executemany shares a transaction, so created_at (DEFAULT now()) is
+        # identical across them and cannot order a document. The position is stored instead.
         rows = [
-            (str(uuid.uuid4()), user_id, source_id, source_type, source_agent, chunk, _vec(emb), meta_json)
-            for chunk, emb in zip(chunks, embeddings)
+            (
+                str(uuid.uuid4()), user_id, source_id, source_type, source_agent, chunk, _vec(emb),
+                json.dumps({**(metadata or {}), "chunk_index": i, "overlap_words": CHUNK_OVERLAP_WORDS}),
+            )
+            for i, (chunk, emb) in enumerate(zip(chunks, embeddings))
         ]
 
         pool = await get_pool()
@@ -164,7 +205,7 @@ class RAGService:
                 SELECT id, content, source_type, source_agent, metadata
                 FROM rag_chunks
                 WHERE user_id = $1 AND source_id = $2
-                ORDER BY created_at ASC
+                ORDER BY (metadata->>'chunk_index')::int NULLS LAST, created_at ASC, id
                 """,
                 user_id,
                 source_id,
@@ -180,6 +221,14 @@ class RAGService:
             }
             for row in rows
         ]
+
+    async def source_text(self, user_id: str, source_id: str) -> str:
+        """A document's full text reassembled from its chunks, without the overlap repeats.
+
+        Documents ingested before chunk positions were stored come back joined as-is.
+        """
+        chunks = await self.retrieve_by_source(user_id, source_id)
+        return join_chunks(chunks)
 
     async def delete_source(self, user_id: str, source_id: str) -> int:
         """Delete all chunks for a (user_id, source_id). Returns number of rows deleted."""
@@ -238,6 +287,20 @@ class RAGService:
             }
             for row in rows
         ]
+
+
+def join_chunks(chunks: list[dict]) -> str:
+    """Join ordered chunks, dropping the words each chunk repeats from the one before it."""
+    parts = []
+    for i, c in enumerate(chunks):
+        content = c.get("content", "")
+        meta = c.get("metadata") or {}
+        overlap = meta.get("overlap_words") if isinstance(meta, dict) else None
+        if i > 0 and isinstance(overlap, int) and overlap > 0 and "chunk_index" in meta:
+            content = " ".join(content.split()[overlap:])
+        if content:
+            parts.append(content)
+    return "\n\n".join(parts)
 
 
 def _chunk_text(text: str, chunk_size: int = 200, overlap: int = 30) -> list[str]:

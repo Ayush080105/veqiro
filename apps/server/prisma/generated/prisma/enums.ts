@@ -61,10 +61,23 @@ export type McpPendingActionStatus = (typeof McpPendingActionStatus)[keyof typeo
 
 export const McpActionSource = {
   CHAT: 'CHAT',
-  TRIGGER: 'TRIGGER'
+  TRIGGER: 'TRIGGER',
+  PLAY: 'PLAY',
+  HANDOFF: 'HANDOFF'
 } as const
 
 export type McpActionSource = (typeof McpActionSource)[keyof typeof McpActionSource]
+
+
+export const ApprovalKind = {
+  MCP_TOOL: 'MCP_TOOL',
+  AGENT_ACTION: 'AGENT_ACTION',
+  WORK_OBJECT_MUTATION: 'WORK_OBJECT_MUTATION',
+  PUBLISH: 'PUBLISH',
+  OUTBOUND_MESSAGE: 'OUTBOUND_MESSAGE'
+} as const
+
+export type ApprovalKind = (typeof ApprovalKind)[keyof typeof ApprovalKind]
 
 
 export const McpApprovalMode = {
@@ -169,6 +182,60 @@ export const ActivityAction = {
 export type ActivityAction = (typeof ActivityAction)[keyof typeof ActivityAction]
 
 
+export const ActorKind = {
+  USER: 'USER',
+  AGENT: 'AGENT',
+  SYSTEM: 'SYSTEM'
+} as const
+
+export type ActorKind = (typeof ActorKind)[keyof typeof ActorKind]
+
+
+export const WorkObjectStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  NEEDS_REVIEW: 'NEEDS_REVIEW',
+  BLOCKED: 'BLOCKED',
+  DONE: 'DONE',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type WorkObjectStatus = (typeof WorkObjectStatus)[keyof typeof WorkObjectStatus]
+
+
+export const InsightSeverity = {
+  INFO: 'INFO',
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH',
+  CRITICAL: 'CRITICAL'
+} as const
+
+export type InsightSeverity = (typeof InsightSeverity)[keyof typeof InsightSeverity]
+
+
+export const InsightStatus = {
+  OPEN: 'OPEN',
+  ACKNOWLEDGED: 'ACKNOWLEDGED',
+  ACTED: 'ACTED',
+  DISMISSED: 'DISMISSED',
+  EXPIRED: 'EXPIRED'
+} as const
+
+export type InsightStatus = (typeof InsightStatus)[keyof typeof InsightStatus]
+
+
+export const HandoffStatus = {
+  PENDING: 'PENDING',
+  ACCEPTED: 'ACCEPTED',
+  DECLINED: 'DECLINED',
+  COMPLETED: 'COMPLETED',
+  CANCELLED: 'CANCELLED'
+} as const
+
+export type HandoffStatus = (typeof HandoffStatus)[keyof typeof HandoffStatus]
+
+
 export const CheckoutKind = {
   AGENT: 'AGENT',
   MAYA_TOPUP: 'MAYA_TOPUP'
@@ -263,3 +330,63 @@ export const AgentRunTrigger = {
 } as const
 
 export type AgentRunTrigger = (typeof AgentRunTrigger)[keyof typeof AgentRunTrigger]
+
+
+export const CampaignStatus = {
+  BRIEF: 'BRIEF',
+  GENERATING: 'GENERATING',
+  REVIEW: 'REVIEW',
+  SCHEDULED: 'SCHEDULED',
+  PUBLISHED: 'PUBLISHED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type CampaignStatus = (typeof CampaignStatus)[keyof typeof CampaignStatus]
+
+
+export const ResearchStatus = {
+  BRIEF: 'BRIEF',
+  RESEARCHING: 'RESEARCHING',
+  READY: 'READY',
+  CLOSED: 'CLOSED',
+  ARCHIVED: 'ARCHIVED'
+} as const
+
+export type ResearchStatus = (typeof ResearchStatus)[keyof typeof ResearchStatus]
+
+
+export const FindingConfidence = {
+  LOW: 'LOW',
+  MEDIUM: 'MEDIUM',
+  HIGH: 'HIGH'
+} as const
+
+export type FindingConfidence = (typeof FindingConfidence)[keyof typeof FindingConfidence]
+
+
+export const MemoryOrigin = {
+  USER: 'USER',
+  AGENT: 'AGENT',
+  IMPORTED: 'IMPORTED'
+} as const
+
+export type MemoryOrigin = (typeof MemoryOrigin)[keyof typeof MemoryOrigin]
+
+
+export const SeoIssueSeverity = {
+  CRITICAL: 'CRITICAL',
+  HIGH: 'HIGH',
+  MEDIUM: 'MEDIUM',
+  QUICK_WIN: 'QUICK_WIN'
+} as const
+
+export type SeoIssueSeverity = (typeof SeoIssueSeverity)[keyof typeof SeoIssueSeverity]
+
+
+export const SeoIssueStatus = {
+  OPEN: 'OPEN',
+  FIXED: 'FIXED',
+  IGNORED: 'IGNORED'
+} as const
+
+export type SeoIssueStatus = (typeof SeoIssueStatus)[keyof typeof SeoIssueStatus]

@@ -56,3 +56,9 @@ apps/video/public/music.mp3
 
 # Subagent-driven-development scratch workspace (ledgers, briefs, review packages)
 .superpowers/
+
+# local dev server output
+.dev-server.log
+
+# eval run output (transcripts can be large)
+apps/ai/evals/runs/

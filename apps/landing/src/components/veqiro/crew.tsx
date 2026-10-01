@@ -59,7 +59,7 @@ function AgentCard({ emp, active, onSelect }: {
       }}>
         <Image
           src={`/${emp.name}.jpeg`}
-          alt={`${emp.name} — ${roleOf(emp)}`}
+          alt={`${emp.name}: ${roleOf(emp)}`}
           fill
           sizes="(max-width: 700px) 100vw, 380px"
           style={{
@@ -125,7 +125,7 @@ export function CrewSection({ onSelect, activeKey }: {
         <SectionHead
           eyebrow="The team"
           title="Six specialists, each with one job"
-          lede="Every agent owns a function end to end — its own tools, its own outputs, its own price. Take one, or take all six."
+          lede="Every agent owns a function end to end: its own tools, its own outputs, its own price. Take one, or take all six."
         />
 
         <div style={{
@@ -204,7 +204,7 @@ export function DeskPanel({ active, onNavigate }: {
               }}>
                 <Image
                   src={`/${emp.name}.jpeg`}
-                  alt={`${emp.name} — ${roleOf(emp)}`}
+                  alt={`${emp.name}: ${roleOf(emp)}`}
                   width={144}
                   height={144}
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}

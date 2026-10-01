@@ -79,7 +79,7 @@ function ScoreGauge({ score, label }: { score: number; label: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
       <span className={cn("font-display text-lg leading-none", color)}>{score}</span>
-      <span className="text-xs font-medium text-muted-foreground">
+      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
         {label}
       </span>
     </div>
@@ -152,7 +152,7 @@ export function KeywordClusterCard({
         icon={<Search />}
         title="Keyword research"
         badge={
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-[10px]">
             {flatList.length} keywords · {clusters.length} clusters
           </Badge>
         }
@@ -165,24 +165,30 @@ export function KeywordClusterCard({
               title={c.cluster_name}
               subtitle={`${c.keywords.length} keywords · ${c.primary_intent}`}
               badge={
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-[10px]">
                   {c.primary_intent}
                 </Badge>
               }
             >
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between px-2 pb-0.5">
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">keyword</span>
+                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    vol/mo · difficulty · relevance
+                  </span>
+                </div>
                 {c.keywords.map((kwStr) => {
                   const details = kwMap.get(kwStr.toLowerCase())
                   const isSaved = savedSet.has(kwStr.toLowerCase())
                   return (
                     <div
                       key={kwStr}
-                      className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 px-3 py-2.5"
+                      className="flex items-center gap-2 border border-border bg-background px-2 py-1.5"
                     >
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-medium">{kwStr}</p>
+                        <p className="truncate text-xs">{kwStr}</p>
                         {details && (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-[10px] text-muted-foreground">
                             {details.search_intent} · {details.suggested_content_type}
                           </p>
                         )}
@@ -190,7 +196,7 @@ export function KeywordClusterCard({
                       <div className="flex shrink-0 items-center gap-1">
                         {details?.search_volume_estimate &&
                           details.search_volume_estimate !== "N/A" && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-[10px]">
                               {details.search_volume_estimate}
                             </Badge>
                           )}
@@ -199,7 +205,7 @@ export function KeywordClusterCard({
                             <Badge
                               variant="outline"
                               className={cn(
-                                "text-xs",
+                                "text-[10px]",
                                 details.estimated_difficulty >= 70
                                   ? "border-destructive/50 text-destructive"
                                   : details.estimated_difficulty >= 40
@@ -209,7 +215,7 @@ export function KeywordClusterCard({
                             >
                               diff {details.estimated_difficulty}
                             </Badge>
-                            <Badge variant="outline" className="text-xs">
+                            <Badge variant="outline" className="text-[10px]">
                               {Math.round(details.relevance_score * 100)}%
                             </Badge>
                           </>
@@ -248,30 +254,36 @@ export function KeywordClusterCard({
           ))}
 
           {clusters.length === 0 && flatList.length > 0 && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between px-2 pb-0.5">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">keyword</span>
+                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  vol/mo · difficulty · relevance
+                </span>
+              </div>
               {flatList.map((k) => {
                 const isSaved = savedSet.has(k.keyword.toLowerCase())
                 return (
                   <div
                     key={k.keyword}
-                    className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 px-3 py-2.5"
+                    className="flex items-center gap-2 border border-border bg-background px-2 py-1.5"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{k.keyword}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="truncate text-xs">{k.keyword}</p>
+                      <p className="text-[10px] text-muted-foreground">
                         {k.search_intent} · {k.suggested_content_type}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-1">
                       {k.search_volume_estimate && k.search_volume_estimate !== "N/A" && (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="secondary" className="text-[10px]">
                           {k.search_volume_estimate}
                         </Badge>
                       )}
                       <Badge
                         variant="outline"
                         className={cn(
-                          "text-xs",
+                          "text-[10px]",
                           k.estimated_difficulty >= 70
                             ? "border-destructive/50 text-destructive"
                             : k.estimated_difficulty >= 40
@@ -281,7 +293,7 @@ export function KeywordClusterCard({
                       >
                         diff {k.estimated_difficulty}
                       </Badge>
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-[10px]">
                         {Math.round(k.relevance_score * 100)}%
                       </Badge>
                       {onFollowUpAction && (
@@ -371,12 +383,12 @@ function BlogContent({ content }: { content: string }) {
         ),
         a: ({ href, children }) => (
           <a href={href} target="_blank" rel="noopener noreferrer"
-            className="text-blue-600 underline underline-offset-2 hover:text-blue-800">
+            className="text-chart-1 underline underline-offset-2 hover:opacity-80">
             {children}
           </a>
         ),
         blockquote: ({ children }) => (
-          <blockquote className="mb-4 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 px-4 py-3 italic text-muted-foreground">
+          <blockquote className="mb-4 border-l-4 border-muted-foreground/30 pl-4 italic text-muted-foreground">
             {children}
           </blockquote>
         ),
@@ -427,20 +439,20 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
         />
         <AgentCard.Body className="flex flex-col gap-3">
           {blog.meta_description && (
-            <p className="text-xs leading-relaxed text-muted-foreground">
+            <p className="text-[10px] leading-relaxed text-muted-foreground">
               {blog.meta_description}
             </p>
           )}
 
           <div className="flex flex-wrap gap-1">
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-[10px]">
               {blog.word_count} words
             </Badge>
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-[10px]">
               {blog.target_keyword}
             </Badge>
             {blog.secondary_keywords.slice(0, 3).map((kw) => (
-              <Badge key={kw} variant="secondary" className="text-xs">
+              <Badge key={kw} variant="secondary" className="text-[10px]">
                 {kw}
               </Badge>
             ))}
@@ -452,7 +464,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
               <Kicker prefix="//">SEO tips to strengthen this post</Kicker>
               <div className="flex flex-col gap-0.5">
                 {seo_suggestions.map((s, i) => (
-                  <p key={i} className="flex items-start gap-1 text-xs text-muted-foreground">
+                  <p key={i} className="flex items-start gap-1 text-[10px] text-muted-foreground">
                     <Lightbulb className="mt-0.5 size-3 shrink-0 text-chart-3" />
                     {s}
                   </p>
@@ -490,9 +502,9 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
           <SheetHeader className="shrink-0 border-b pb-3">
             <SheetTitle className="pr-8 text-base leading-snug">{blog.title}</SheetTitle>
             <div className="flex flex-wrap gap-1 pt-1">
-              <Badge variant="outline" className="text-xs">{blog.word_count} words</Badge>
-              <Badge variant="outline" className="text-xs">{blog.target_keyword}</Badge>
-              <Badge variant="secondary" className="text-xs">
+              <Badge variant="outline" className="text-[10px]">{blog.word_count} words</Badge>
+              <Badge variant="outline" className="text-[10px]">{blog.target_keyword}</Badge>
+              <Badge variant="secondary" className="text-[10px]">
                 {isHtml ? "HTML" : "Markdown"}
               </Badge>
             </div>
@@ -500,13 +512,13 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
           <div className="min-h-0 flex-1 overflow-y-auto px-8 py-6">
             {/* Meta fields */}
             {(blog.meta_title || blog.meta_description || blog.slug || blog.schema_markup) && (
-              <div className="mb-6 rounded-md border border-border bg-background/65 text-sm">
+              <div className="mb-6 rounded-md border border-border bg-muted/30 text-[11px]">
                 <button
                   type="button"
                   className="flex w-full items-center justify-between px-4 py-2.5 text-left"
                   onClick={() => setMetaOpen((o) => !o)}
                 >
-                  <span className="text-xs font-semibold text-foreground">Meta / SEO fields</span>
+                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Meta / SEO fields</span>
                   {metaOpen
                     ? <ChevronUp className="size-3 text-muted-foreground" />
                     : <ChevronDown className="size-3 text-muted-foreground" />
@@ -535,7 +547,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                     {blog.slug && (
                       <div className="flex items-start gap-2">
                         <span className="w-28 shrink-0 text-muted-foreground">Slug</span>
-                        <span className="flex-1 font-mono text-xs">/{blog.slug}</span>
+                        <span className="flex-1 font-mono text-[10px]">/{blog.slug}</span>
                         <Button variant="ghost" size="icon" className="size-5 shrink-0" title="Copy slug" aria-label="Copy slug" onClick={() => copyText(blog.slug!, "Slug copied")}>
                           <Copy className="size-3" />
                         </Button>
@@ -545,7 +557,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                       <div className="flex flex-col gap-1">
                         <span className="text-muted-foreground">Schema markup (JSON-LD)</span>
                         <div className="relative">
-                          <pre className="overflow-x-auto rounded bg-muted p-2 font-mono text-xs leading-relaxed">
+                          <pre className="overflow-x-auto rounded bg-muted p-2 font-mono text-[10px] leading-relaxed">
                             {JSON.stringify(blog.schema_markup, null, 2)}
                           </pre>
                           <Button
@@ -599,16 +611,16 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
         {(result.word_count || result.keyword_density) && (
           <div className="flex flex-wrap gap-1">
             {result.word_count != null && result.word_count > 0 && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-[10px]">
                 {result.word_count} words
               </Badge>
             )}
             {result.keyword_density && (
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-[10px]">
                 keyword density {result.keyword_density}
               </Badge>
             )}
-            <Badge variant="outline" className="text-xs">
+            <Badge variant="outline" className="text-[10px]">
               readability: {result.readability_grade}
             </Badge>
           </div>
@@ -620,7 +632,7 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
             <Kicker prefix="//">issues to fix</Kicker>
             <div className="flex flex-col gap-0.5">
               {result.issues.map((issue, i) => (
-                <p key={i} className="flex items-start gap-1.5 text-sm">
+                <p key={i} className="flex items-start gap-1.5 text-[11px]">
                   <XCircle className="mt-0.5 size-3 shrink-0 text-destructive" />
                   {issue}
                 </p>
@@ -635,7 +647,7 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
             <Kicker prefix="//">improvements</Kicker>
             <div className="flex flex-col gap-0.5">
               {result.improvements.map((item, i) => (
-                <p key={i} className="flex items-start gap-1.5 text-sm">
+                <p key={i} className="flex items-start gap-1.5 text-[11px]">
                   <TrendingUp className="mt-0.5 size-3 shrink-0 text-chart-3" />
                   {item}
                 </p>
@@ -649,7 +661,7 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
             <Kicker prefix="//">missing keywords</Kicker>
             <div className="flex flex-wrap gap-1">
               {result.missing_keywords.map((k) => (
-                <Badge key={k} variant="outline" className="text-xs">
+                <Badge key={k} variant="outline" className="text-[10px]">
                   {k}
                 </Badge>
               ))}
@@ -658,7 +670,7 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
         )}
 
         {!result.word_count && !result.keyword_density && (
-          <p className="text-xs text-muted-foreground">
+          <p className="text-[10px] text-muted-foreground">
             Readability: {result.readability_grade}
           </p>
         )}
@@ -684,7 +696,7 @@ export function ContentBriefCard({
         title="Content brief"
         badge={
           b.content_type ? (
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-[10px]">
               {b.content_type}
             </Badge>
           ) : undefined
@@ -692,7 +704,7 @@ export function ContentBriefCard({
       />
       <AgentCard.Body className="flex flex-col gap-3">
         {/* Top stats */}
-        <div className="grid grid-cols-2 gap-2 text-sm">
+        <div className="grid grid-cols-2 gap-2 text-[11px]">
           <div>
             <Kicker prefix="//">search intent</Kicker>
             <p className="mt-0.5 capitalize">{b.search_intent}</p>
@@ -704,7 +716,7 @@ export function ContentBriefCard({
         </div>
 
         {b.estimated_traffic_potential && (
-          <p className="flex items-center gap-1 text-xs text-muted-foreground">
+          <p className="flex items-center gap-1 text-[10px] text-muted-foreground">
             <TrendingUp className="size-3 shrink-0" />
             {b.estimated_traffic_potential}
           </p>
@@ -716,7 +728,7 @@ export function ContentBriefCard({
             <Kicker prefix="//">SERP features</Kicker>
             <div className="flex flex-wrap gap-1">
               {b.serp_features.map((f) => (
-                <Badge key={f} variant="outline" className="text-xs">
+                <Badge key={f} variant="outline" className="text-[10px]">
                   {f}
                 </Badge>
               ))}
@@ -734,7 +746,7 @@ export function ContentBriefCard({
                   key={i}
                   className="flex items-start justify-between gap-2 border border-border px-2 py-1.5"
                 >
-                  <p className="text-sm">{t}</p>
+                  <p className="text-[11px]">{t}</p>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -766,7 +778,7 @@ export function ContentBriefCard({
             <Kicker prefix="//">competitor gaps to own</Kicker>
             <div className="flex flex-col gap-0.5">
               {b.competitor_gaps.map((gap, i) => (
-                <p key={i} className="flex items-start gap-1.5 text-sm">
+                <p key={i} className="flex items-start gap-1.5 text-[11px]">
                   <CheckCircle2 className="mt-0.5 size-3 shrink-0 text-chart-3" />
                   {gap}
                 </p>
@@ -782,7 +794,7 @@ export function ContentBriefCard({
 
         {/* CTA recommendation */}
         {b.cta_recommendation && (
-          <p className="rounded border border-border bg-background/65 p-2 text-sm">
+          <p className="rounded border border-border bg-muted/30 p-2 text-[11px]">
             <strong>CTA: </strong>
             {b.cta_recommendation}
           </p>
@@ -790,7 +802,7 @@ export function ContentBriefCard({
 
         {/* Topical authority tip */}
         {b.topical_authority_tip && (
-          <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
+          <p className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
             <Lightbulb className="mt-0.5 size-3 shrink-0 text-chart-2" />
             <em>{b.topical_authority_tip}</em>
           </p>
@@ -838,17 +850,17 @@ function IdeaCard({
 
       {/* Tags row */}
       <div className="flex flex-wrap items-center gap-1">
-        <Badge variant="outline" className="text-xs">
+        <Badge variant="outline" className="text-[10px]">
           {idea.target_keyword}
         </Badge>
         {idea.secondary_keywords.slice(0, 3).map((kw) => (
-          <Badge key={kw} variant="secondary" className="text-xs">
+          <Badge key={kw} variant="secondary" className="text-[10px]">
             {kw}
           </Badge>
         ))}
         <Badge
           variant="outline"
-          className={cn("text-xs", difficultyColor(idea.estimated_difficulty))}
+          className={cn("text-[10px]", difficultyColor(idea.estimated_difficulty))}
         >
           diff {idea.estimated_difficulty}
         </Badge>
@@ -856,14 +868,14 @@ function IdeaCard({
 
       {/* Content angle */}
       {idea.content_angle && (
-        <p className="text-sm leading-relaxed text-muted-foreground">
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
           {idea.content_angle}
         </p>
       )}
 
       {/* Rationale */}
       {idea.rationale && (
-        <p className="flex items-start gap-1.5 text-xs text-muted-foreground/80">
+        <p className="flex items-start gap-1.5 text-[10px] text-muted-foreground/80">
           <Lightbulb className="mt-0.5 size-3 shrink-0 text-chart-2" />
           {idea.rationale}
         </p>
@@ -919,7 +931,7 @@ export function BlogIdeasCard({
         icon={<Sparkles />}
         title="Blog ideas"
         badge={
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-[10px]">
             {ideas.length} ideas
           </Badge>
         }
@@ -930,7 +942,7 @@ export function BlogIdeasCard({
             <IdeaCard key={i} idea={idea} onFollowUpAction={onFollowUpAction} />
           ))}
           {ideas.length === 0 && (
-            <p className="text-sm text-muted-foreground">No ideas generated.</p>
+            <p className="text-[11px] text-muted-foreground">No ideas generated.</p>
           )}
         </div>
       </AgentCard.Body>
@@ -958,7 +970,7 @@ function ScoreBadge({ score, label }: { score: number; label: string }) {
         ? "border-chart-3/40 text-chart-3"
         : "border-destructive/40 text-destructive"
   return (
-    <Badge variant="outline" className={cn("text-xs font-medium", color)}>
+    <Badge variant="outline" className={cn("text-[9px] font-mono", color)}>
       {label} {score}
     </Badge>
   )
@@ -974,9 +986,9 @@ function RichCheckRow({ ok, label, context }: { ok: boolean; label: string; cont
         <XCircle className="mt-0.5 size-3 shrink-0 text-destructive" />
       )}
       <div className="flex flex-col gap-0.5">
-        <span className="text-sm leading-tight">{label}</span>
+        <span className="text-[11px] leading-tight">{label}</span>
         {context && (
-          <span className="text-xs leading-tight text-muted-foreground">{context}</span>
+          <span className="text-[10px] leading-tight text-muted-foreground">{context}</span>
         )}
       </div>
     </div>
@@ -985,7 +997,7 @@ function RichCheckRow({ ok, label, context }: { ok: boolean; label: string; cont
 
 function IssueRow({ issue }: { issue: string }) {
   return (
-    <p className="flex items-start gap-1.5 text-sm">
+    <p className="flex items-start gap-1.5 text-[11px]">
       <XCircle className="mt-0.5 size-3 shrink-0 text-destructive" />
       {issue}
     </p>
@@ -994,7 +1006,7 @@ function IssueRow({ issue }: { issue: string }) {
 
 function WinRow({ win }: { win: string }) {
   return (
-    <p className="flex items-start gap-1.5 text-sm">
+    <p className="flex items-start gap-1.5 text-[11px]">
       <Zap className="mt-0.5 size-3 shrink-0 text-chart-3" />
       {win}
     </p>
@@ -1008,13 +1020,13 @@ function MiniBar({ value, max = 100, label, note }: { value: number; max?: numbe
   return (
     <div className="flex flex-col gap-0.5">
       <div className="flex items-center justify-between">
-        <span className="text-xs">{label}</span>
-        <span className="text-xs font-medium text-muted-foreground">{value}{max !== 100 ? `/${max}` : "%"}</span>
+        <span className="text-[10px]">{label}</span>
+        <span className="font-mono text-[10px] text-muted-foreground">{value}{max !== 100 ? `/${max}` : "%"}</span>
       </div>
       <div className="h-1 w-full rounded-full bg-muted">
         <div className={cn("h-1 rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
       </div>
-      {note && <span className="text-xs text-muted-foreground">{note}</span>}
+      {note && <span className="text-[9px] text-muted-foreground">{note}</span>}
     </div>
   )
 }
@@ -1038,7 +1050,7 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className="absolute flex flex-col items-center">
         <span className="font-display text-base leading-none" style={{ color }}>{score}</span>
-        <span className="text-xs font-medium text-muted-foreground">score</span>
+        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">score</span>
       </div>
     </div>
   )
@@ -1246,7 +1258,7 @@ export function PageSeoAuditCard({
         title={
           <span className="flex flex-col gap-0.5">
             <span>Page SEO Audit</span>
-            <span className="max-w-55 truncate text-xs font-normal text-muted-foreground">
+            <span className="max-w-55 truncate text-[10px] font-normal text-muted-foreground">
               {pageUrl.replace(/^https?:\/\//, "") || "Unknown URL"}
             </span>
           </span>
@@ -1280,14 +1292,14 @@ export function PageSeoAuditCard({
           <div className="flex flex-1 flex-col gap-1">
             {radarData.map(({ dim, score }) => (
               <div key={dim} className="flex items-center gap-1.5">
-                <span className="w-16 text-xs text-muted-foreground">{dim}</span>
+                <span className="w-16 text-[9px] text-muted-foreground">{dim}</span>
                 <div className="flex-1 h-1 rounded-full bg-muted overflow-hidden">
                   <div
                     className={cn("h-full rounded-full", scoreBg(score))}
                     style={{ width: `${score}%` }}
                   />
                 </div>
-                <span className={cn("w-6 text-right font-mono text-xs", scoreColor(score))}>{score}</span>
+                <span className={cn("w-6 text-right font-mono text-[9px]", scoreColor(score))}>{score}</span>
               </div>
             ))}
           </div>
@@ -1295,12 +1307,12 @@ export function PageSeoAuditCard({
 
         {/* ── Mentor summary ── */}
         {result.mentor_summary && (
-          <div className="rounded border border-border/60 bg-background/65 px-3 py-2.5">
+          <div className="rounded border border-border/60 bg-muted/20 px-3 py-2.5">
             <p className="text-sm leading-relaxed text-foreground">{result.mentor_summary}</p>
             {result.next_move && (
               <div className="mt-2 flex items-start gap-1.5 border-t border-border/40 pt-2">
                 <ArrowRight className="mt-0.5 size-3 shrink-0 text-chart-2" />
-                <p className="text-sm font-semibold leading-tight text-chart-2">{result.next_move}</p>
+                <p className="text-[11px] font-semibold leading-tight text-chart-2">{result.next_move}</p>
               </div>
             )}
           </div>
@@ -1390,9 +1402,9 @@ export function PageSeoAuditCard({
             />
             {t.schema_issues.length > 0 && (
               <div className="mt-1 flex flex-col gap-0.5 rounded bg-chart-3/5 px-2 py-1.5">
-                <p className="text-xs font-semibold text-chart-3">Schema issues to fix</p>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-chart-3">Schema issues to fix</p>
                 {t.schema_issues.slice(0, 3).map((issue, i) => (
-                  <p key={i} className="flex items-start gap-1 text-xs text-foreground/70">
+                  <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/70">
                     <AlertTriangle className="mt-0.5 size-2.5 shrink-0 text-chart-3" /> {issue}
                   </p>
                 ))}
@@ -1407,7 +1419,7 @@ export function PageSeoAuditCard({
           defaultOpen={false}
         >
           <div className="flex flex-col gap-3">
-            <p className="text-xs text-muted-foreground">Signals detected from HTML — no browser rendering needed. Core Web Vitals (LCP, CLS, FID) require a real test in Google Search Console or PageSpeed Insights.</p>
+            <p className="text-[10px] text-muted-foreground">Signals detected from HTML — no browser rendering needed. Core Web Vitals (LCP, CLS, FID) require a real test in Google Search Console or PageSpeed Insights.</p>
             <div className="flex flex-col gap-2">
               <RichCheckRow
                 ok={speed.render_blocking_scripts <= 2}
@@ -1462,17 +1474,17 @@ export function PageSeoAuditCard({
         >
           <div className="flex flex-col gap-2">
             {img.images_total === 0 ? (
-              <p className="text-xs text-muted-foreground">No images found on this page.</p>
+              <p className="text-[10px] text-muted-foreground">No images found on this page.</p>
             ) : (
               <>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded border border-border/40 px-2 py-1.5 text-center">
                     <p className="font-display text-base">{img.images_total}</p>
-                    <p className="text-xs text-muted-foreground">total images</p>
+                    <p className="text-[9px] text-muted-foreground">total images</p>
                   </div>
                   <div className={cn("rounded border px-2 py-1.5 text-center", img.images_missing_alt > 0 ? "border-destructive/30" : "border-chart-2/30")}>
                     <p className={cn("font-display text-base", img.images_missing_alt > 0 ? "text-destructive" : "text-chart-2")}>{img.images_missing_alt}</p>
-                    <p className="text-xs text-muted-foreground">missing alt text</p>
+                    <p className="text-[9px] text-muted-foreground">missing alt text</p>
                   </div>
                 </div>
                 <MiniBar
@@ -1510,22 +1522,22 @@ export function PageSeoAuditCard({
             <div className="grid grid-cols-3 gap-2">
               <div className="flex flex-col items-center rounded border border-border/40 px-1 py-1.5">
                 <span className="font-display text-sm">{op.word_count.toLocaleString()}</span>
-                <span className="text-xs text-muted-foreground">words</span>
+                <span className="text-[9px] text-muted-foreground">words</span>
               </div>
               <div className="flex flex-col items-center rounded border border-border/40 px-1 py-1.5">
                 <span className="font-display text-sm">{op.reading_time_minutes}</span>
-                <span className="text-xs text-muted-foreground">min read</span>
+                <span className="text-[9px] text-muted-foreground">min read</span>
               </div>
               <div className="flex flex-col items-center rounded border border-border/40 px-1 py-1.5">
                 <span className="font-display text-sm">{op.keyword_density}</span>
-                <span className="text-xs text-muted-foreground">kw density</span>
+                <span className="text-[9px] text-muted-foreground">kw density</span>
               </div>
             </div>
 
             {(op.readability_grade || op.content_depth_assessment) && (
-              <div className="rounded bg-background/65 px-2.5 py-2">
-                {op.readability_grade && <p className="text-xs"><span className="font-bold">Readability:</span> {op.readability_grade}</p>}
-                {op.content_depth_assessment && <p className="mt-0.5 text-xs text-foreground/80">{op.content_depth_assessment}</p>}
+              <div className="rounded bg-muted/20 px-2.5 py-2">
+                {op.readability_grade && <p className="text-[10px]"><span className="font-bold">Readability:</span> {op.readability_grade}</p>}
+                {op.content_depth_assessment && <p className="mt-0.5 text-[10px] text-foreground/80">{op.content_depth_assessment}</p>}
               </div>
             )}
 
@@ -1577,20 +1589,20 @@ export function PageSeoAuditCard({
             {(op.lsi_keywords_found.length > 0 || op.lsi_keywords_missing.length > 0) && (
               <div>
                 <Kicker prefix="//">semantic keyword coverage</Kicker>
-                <p className="mt-1 text-xs text-muted-foreground">LSI (Latent Semantic Indexing) keywords are related terms Google expects to see on a page that genuinely covers this topic.</p>
+                <p className="mt-1 text-[10px] text-muted-foreground">LSI (Latent Semantic Indexing) keywords are related terms Google expects to see on a page that genuinely covers this topic.</p>
                 {op.lsi_keywords_found.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-0.5">
                     {op.lsi_keywords_found.slice(0, 6).map((k) => (
-                      <Badge key={k} variant="secondary" className="text-xs">✓ {k}</Badge>
+                      <Badge key={k} variant="secondary" className="text-[9px]">✓ {k}</Badge>
                     ))}
                   </div>
                 )}
                 {op.lsi_keywords_missing.length > 0 && (
                   <>
-                    <p className="mt-1.5 text-xs text-muted-foreground">Add these missing terms naturally to improve topical depth:</p>
+                    <p className="mt-1.5 text-[10px] text-muted-foreground">Add these missing terms naturally to improve topical depth:</p>
                     <div className="mt-0.5 flex flex-wrap gap-0.5">
                       {op.lsi_keywords_missing.slice(0, 7).map((k) => (
-                        <Badge key={k} variant="outline" className="text-xs border-chart-3/40 text-chart-3">{k}</Badge>
+                        <Badge key={k} variant="outline" className="text-[9px] border-chart-3/40 text-chart-3">{k}</Badge>
                       ))}
                     </div>
                   </>
@@ -1605,7 +1617,7 @@ export function PageSeoAuditCard({
                 {op.paa_answered.length > 0 && (
                   <div className="mt-1 flex flex-col gap-0.5">
                     {op.paa_answered.map((q, i) => (
-                      <p key={i} className="flex items-start gap-1 text-xs">
+                      <p key={i} className="flex items-start gap-1 text-[10px]">
                         <CheckCircle2 className="mt-0.5 size-2.5 shrink-0 text-chart-2" /> {q}
                       </p>
                     ))}
@@ -1613,10 +1625,10 @@ export function PageSeoAuditCard({
                 )}
                 {op.paa_unanswered.length > 0 && (
                   <>
-                    <p className="mt-1.5 text-xs font-bold text-chart-3">{op.paa_unanswered.length} unanswered PAA questions — add these to your FAQ or body content:</p>
+                    <p className="mt-1.5 text-[10px] font-bold text-chart-3">{op.paa_unanswered.length} unanswered PAA questions — add these to your FAQ or body content:</p>
                     <div className="mt-0.5 flex flex-col gap-0.5">
                       {op.paa_unanswered.slice(0, 4).map((q, i) => (
-                        <p key={i} className="flex items-start gap-1 text-xs text-muted-foreground">
+                        <p key={i} className="flex items-start gap-1 text-[10px] text-muted-foreground">
                           <AlertTriangle className="mt-0.5 size-2.5 shrink-0 text-chart-3" /> {q}
                         </p>
                       ))}
@@ -1628,7 +1640,7 @@ export function PageSeoAuditCard({
 
             {/* Content freshness */}
             {(op.content_freshness || op.last_modified) && (
-              <div className="flex gap-3 text-xs">
+              <div className="flex gap-3 text-[10px]">
                 {op.content_freshness && (
                   <span className="flex items-center gap-1 text-muted-foreground">
                     <Clock className="size-2.5" />Published: {op.content_freshness}
@@ -1642,7 +1654,7 @@ export function PageSeoAuditCard({
               </div>
             )}
             {!op.content_freshness && (
-              <p className="text-xs text-chart-3">⚠ No publication date detected — add datePublished to your Article schema or a meta article:published_time tag. Google values content freshness for competitive queries.</p>
+              <p className="text-[10px] text-chart-3">⚠ No publication date detected — add datePublished to your Article schema or a meta article:published_time tag. Google values content freshness for competitive queries.</p>
             )}
           </div>
         </CollapsibleSection>
@@ -1653,7 +1665,7 @@ export function PageSeoAuditCard({
           defaultOpen={false}
         >
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is Google's framework for evaluating content quality — especially critical for YMYL topics (health, finance, legal).</p>
+            <p className="text-[10px] text-muted-foreground">E-E-A-T (Experience, Expertise, Authoritativeness, Trustworthiness) is Google&apos;s framework for evaluating content quality — especially critical for YMYL topics (health, finance, legal).</p>
             <RichCheckRow
               ok={eeat.has_author_byline}
               label={eeat.has_author_byline ? "Author byline detected" : "No author byline found"}
@@ -1685,10 +1697,10 @@ export function PageSeoAuditCard({
               context={!eeat.has_social_proof_schema ? "Review schema can trigger star ratings in search results, dramatically increasing CTR. If you have reviews, add AggregateRating to your schema." : "Review schema present — eligible for star ratings in SERP."}
             />
             {eeat.missing_signals.length > 0 && (
-              <div className="mt-1 rounded bg-background/65 px-2 py-1.5">
-                <p className="text-xs font-semibold text-foreground">Signals to add</p>
+              <div className="mt-1 rounded bg-muted/20 px-2 py-1.5">
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Signals to add</p>
                 {eeat.missing_signals.slice(0, 4).map((s, i) => (
-                  <p key={i} className="mt-0.5 text-xs text-foreground/70">• {s}</p>
+                  <p key={i} className="mt-0.5 text-[10px] text-foreground/70">• {s}</p>
                 ))}
               </div>
             )}
@@ -1705,9 +1717,9 @@ export function PageSeoAuditCard({
             {/* Word count bar chart */}
             {wcData.length > 1 && (
               <div>
-                <p className="mb-1 text-xs font-semibold text-foreground">Word count vs. competitors</p>
+                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Word count vs. competitors</p>
                 {comp.word_count_verdict && (
-                  <p className="mb-2 text-xs leading-relaxed text-foreground/80">{comp.word_count_verdict}</p>
+                  <p className="mb-2 text-[10px] leading-relaxed text-foreground/80">{comp.word_count_verdict}</p>
                 )}
                 <ResponsiveContainer width="100%" height={wcData.length * 28 + 8}>
                   <BarChart data={wcData} layout="vertical" margin={{ left: 0, right: 8, top: 0, bottom: 0 }}>
@@ -1728,7 +1740,7 @@ export function PageSeoAuditCard({
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
-                <p className="mt-1 text-xs text-muted-foreground">Studies show top-ranking pages average 1,447+ words for competitive queries. More depth ≠ more words — cover topics comprehensively.</p>
+                <p className="mt-1 text-[9px] text-muted-foreground">Studies show top-ranking pages average 1,447+ words for competitive queries. More depth ≠ more words — cover topics comprehensively.</p>
               </div>
             )}
 
@@ -1738,10 +1750,10 @@ export function PageSeoAuditCard({
                 <Kicker prefix="//">serp features for this keyword</Kicker>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {comp.serp_features_present.map((f) => (
-                    <Badge key={f} variant="secondary" className="text-xs">✓ {f.replace(/_/g, " ")}</Badge>
+                    <Badge key={f} variant="secondary" className="text-[9px]">✓ {f.replace(/_/g, " ")}</Badge>
                   ))}
                   {comp.serp_features_missing.map((f) => (
-                    <Badge key={f} variant="outline" className="text-xs border-chart-3/40 text-chart-3">{f.replace(/_/g, " ")}</Badge>
+                    <Badge key={f} variant="outline" className="text-[9px] border-chart-3/40 text-chart-3">{f.replace(/_/g, " ")}</Badge>
                   ))}
                 </div>
               </div>
@@ -1752,13 +1764,13 @@ export function PageSeoAuditCard({
               <div className="rounded border border-chart-3/30 bg-chart-3/5 px-2.5 py-2">
                 {comp.featured_snippet_holder ? (
                   <>
-                    <p className="text-xs font-bold text-foreground">Featured snippet currently held by: <span className="text-chart-3">{comp.featured_snippet_holder}</span>{comp.featured_snippet_format ? ` (${comp.featured_snippet_format.replace(/_/g, " ")} format)` : ""}</p>
-                    {comp.featured_snippet_tip && <p className="mt-1 text-xs text-foreground/80">{comp.featured_snippet_tip}</p>}
+                    <p className="text-[10px] font-bold text-foreground">Featured snippet currently held by: <span className="text-chart-3">{comp.featured_snippet_holder}</span>{comp.featured_snippet_format ? ` (${comp.featured_snippet_format.replace(/_/g, " ")} format)` : ""}</p>
+                    {comp.featured_snippet_tip && <p className="mt-1 text-[10px] text-foreground/80">{comp.featured_snippet_tip}</p>}
                   </>
                 ) : (
                   <>
-                    <p className="text-xs font-bold text-foreground">Featured snippet opportunity available</p>
-                    {comp.featured_snippet_tip && <p className="mt-0.5 text-xs text-foreground/80">{comp.featured_snippet_tip}</p>}
+                    <p className="text-[10px] font-bold text-foreground">Featured snippet opportunity available</p>
+                    {comp.featured_snippet_tip && <p className="mt-0.5 text-[10px] text-foreground/80">{comp.featured_snippet_tip}</p>}
                   </>
                 )}
               </div>
@@ -1770,7 +1782,7 @@ export function PageSeoAuditCard({
                 <Kicker prefix="//">content gaps (what competitors cover that you don&apos;t)</Kicker>
                 <div className="mt-1 flex flex-col gap-1">
                   {comp.content_gaps.map((gap, i) => (
-                    <p key={i} className="flex items-start gap-1.5 text-sm">
+                    <p key={i} className="flex items-start gap-1.5 text-[11px]">
                       <AlertTriangle className="mt-0.5 size-3 shrink-0 text-chart-3" />
                       {gap}
                     </p>
@@ -1782,8 +1794,8 @@ export function PageSeoAuditCard({
             {/* Unique angle */}
             {comp.unique_angle_opportunity && (
               <div className="rounded border border-chart-2/30 bg-chart-2/5 px-2.5 py-2">
-                <p className="text-xs font-semibold text-chart-2">Untapped opportunity</p>
-                <p className="mt-0.5 text-xs text-foreground/80">{comp.unique_angle_opportunity}</p>
+                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-chart-2">Untapped opportunity</p>
+                <p className="mt-0.5 text-[10px] text-foreground/80">{comp.unique_angle_opportunity}</p>
               </div>
             )}
 
@@ -1795,16 +1807,16 @@ export function PageSeoAuditCard({
                   {competitors.map((c, i) => (
                     <div key={i} className="rounded border border-border/50 px-2.5 py-2">
                       <div className="flex items-start justify-between gap-2">
-                        <p className="text-xs font-medium leading-tight">{c.title || c.url}</p>
-                        <Badge variant="outline" className="shrink-0 text-xs">{c.word_count_estimate.toLocaleString()}w</Badge>
+                        <p className="text-[10px] font-medium leading-tight">{c.title || c.url}</p>
+                        <Badge variant="outline" className="shrink-0 text-[9px]">{c.word_count_estimate.toLocaleString()}w</Badge>
                       </div>
                       {c.main_h2s.length > 0 && (
-                        <p className="mt-0.5 text-xs text-muted-foreground">Covers: {c.main_h2s.slice(0, 3).join(" · ")}</p>
+                        <p className="mt-0.5 text-[9px] text-muted-foreground">Covers: {c.main_h2s.slice(0, 3).join(" · ")}</p>
                       )}
                       {c.schema_types.length > 0 && (
                         <div className="mt-0.5 flex flex-wrap gap-0.5">
                           {c.schema_types.map((s) => (
-                            <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>
+                            <Badge key={s} variant="secondary" className="text-[9px]">{s}</Badge>
                           ))}
                         </div>
                       )}
@@ -1823,13 +1835,13 @@ export function PageSeoAuditCard({
               {result.action_plan_30d?.length > 0 && (
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-chart-2/15 text-xs font-bold text-chart-2">30d</div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-chart-2/15 text-[9px] font-bold text-chart-2">30d</div>
                     <div className="w-0.5 flex-1 bg-border/40" />
                   </div>
                   <div className="flex-1 pb-2">
-                    <p className="mb-1 text-xs font-bold text-chart-2">First 30 days — Foundation</p>
+                    <p className="mb-1 text-[10px] font-bold text-chart-2">First 30 days — Foundation</p>
                     {result.action_plan_30d.map((a, i) => (
-                      <p key={i} className="flex items-start gap-1 text-xs text-foreground/80">
+                      <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/80">
                         <ArrowRight className="mt-0.5 size-2.5 shrink-0 text-chart-2" /> {a}
                       </p>
                     ))}
@@ -1839,13 +1851,13 @@ export function PageSeoAuditCard({
               {result.action_plan_60d?.length > 0 && (
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center gap-1">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-chart-3/15 text-xs font-bold text-chart-3">60d</div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-chart-3/15 text-[9px] font-bold text-chart-3">60d</div>
                     <div className="w-0.5 flex-1 bg-border/40" />
                   </div>
                   <div className="flex-1 pb-2">
-                    <p className="mb-1 text-xs font-bold text-chart-3">Days 30–60 — Growth</p>
+                    <p className="mb-1 text-[10px] font-bold text-chart-3">Days 30–60 — Growth</p>
                     {result.action_plan_60d.map((a, i) => (
-                      <p key={i} className="flex items-start gap-1 text-xs text-foreground/80">
+                      <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/80">
                         <ArrowRight className="mt-0.5 size-2.5 shrink-0 text-chart-3" /> {a}
                       </p>
                     ))}
@@ -1855,12 +1867,12 @@ export function PageSeoAuditCard({
               {result.action_plan_90d?.length > 0 && (
                 <div className="flex gap-3">
                   <div className="flex flex-col items-center">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-chart-1/15 text-xs font-bold text-chart-1">90d</div>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-chart-1/15 text-[9px] font-bold text-chart-1">90d</div>
                   </div>
                   <div className="flex-1">
-                    <p className="mb-1 text-xs font-bold text-chart-1">Days 60–90 — Authority</p>
+                    <p className="mb-1 text-[10px] font-bold text-chart-1">Days 60–90 — Authority</p>
                     {result.action_plan_90d.map((a, i) => (
-                      <p key={i} className="flex items-start gap-1 text-xs text-foreground/80">
+                      <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/80">
                         <ArrowRight className="mt-0.5 size-2.5 shrink-0 text-chart-1" /> {a}
                       </p>
                     ))}
@@ -1876,7 +1888,7 @@ export function PageSeoAuditCard({
           <CollapsibleSection title="High Priority Fixes" defaultOpen={false}>
             <div className="flex flex-col gap-1">
               {result.high_priority.map((item, i) => (
-                <p key={i} className="flex items-start gap-1.5 text-sm">
+                <p key={i} className="flex items-start gap-1.5 text-[11px]">
                   <AlertTriangle className="mt-0.5 size-3 shrink-0 text-chart-3" />
                   {item}
                 </p>
@@ -1927,7 +1939,7 @@ export function SiteAuditCard({
           icon={<Globe />}
           title="Site Audit"
           badge={
-            <Badge variant="outline" className="max-w-40 truncate text-xs">
+            <Badge variant="outline" className="max-w-40 truncate text-[9px]">
               {result.domain}
             </Badge>
           }
@@ -1935,13 +1947,13 @@ export function SiteAuditCard({
         />
         <AgentCard.Body>
           <div className="flex flex-wrap gap-1.5">
-            <Badge variant="outline" className="text-xs">{result.total_audited} pages audited</Badge>
-            <Badge variant="outline" className={cn("text-xs", avgScore >= 80 ? "border-chart-2/40 text-chart-2" : avgScore >= 60 ? "border-chart-3/40 text-chart-3" : "border-destructive/40 text-destructive")}>
+            <Badge variant="outline" className="text-[9px]">{result.total_audited} pages audited</Badge>
+            <Badge variant="outline" className={cn("text-[9px]", avgScore >= 80 ? "border-chart-2/40 text-chart-2" : avgScore >= 60 ? "border-chart-3/40 text-chart-3" : "border-destructive/40 text-destructive")}>
               avg {avgScore}/100
             </Badge>
           </div>
           {pages.length === 0 && (
-            <p className="mt-2 text-sm text-muted-foreground">No pages were audited. Check that the URLs are accessible.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">No pages were audited. Check that the URLs are accessible.</p>
           )}
         </AgentCard.Body>
       </AgentCard>
@@ -1949,7 +1961,7 @@ export function SiteAuditCard({
       {/* Individual page audit cards */}
       {pages.map((page, i) => (
         <div key={page.url ?? i} className="flex flex-col gap-0.5">
-          <p className="px-1 text-xs font-medium text-muted-foreground">
+          <p className="px-1 text-[9px] uppercase tracking-widest text-muted-foreground">
             Page {i + 1} of {pages.length}
           </p>
           <PageSeoAuditCard result={page} onFollowUpAction={onFollowUpAction} />

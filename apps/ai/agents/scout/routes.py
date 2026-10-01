@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from core.llm import LLMClient
 from core.rag import RAGService
@@ -71,6 +71,19 @@ class ResearchTopicResponse(BaseModel):
     keywords_found: list[str] = []
     tokens_used: int = 0
     model_used: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def _legacy_keys(cls, data):
+        # Reports used to be {"findings", "synthesis"}. A model that slips back to those
+        # names (or an old saved result) must still fill the card, not render it empty.
+        if isinstance(data, dict):
+            data = dict(data)
+            if not data.get("market_overview") and data.get("findings"):
+                data["market_overview"] = data["findings"]
+            if not data.get("bottom_line") and data.get("synthesis"):
+                data["bottom_line"] = data["synthesis"]
+        return data
 
 class ResearchCompanyRequest(BaseModel):
     user_id: str
