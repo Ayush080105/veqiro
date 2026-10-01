@@ -70,7 +70,7 @@ export function BrandImagesSelector({
                   <Check className="size-2.5" strokeWidth={3} />
                 </span>
               )}
-              <span className="w-full truncate pb-0.5 text-center font-mono text-[9px] tracking-[0.02em] text-muted-foreground">
+              <span className="w-full truncate pb-0.5 text-center text-xs text-muted-foreground">
                 {img.name || "—"}
               </span>
             </button>

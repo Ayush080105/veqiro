@@ -112,16 +112,7 @@ function DrillDownModal({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <BarChart2 className="size-4" />
-            <span
-              style={{
-                fontFamily: "var(--font-mono, monospace)",
-                fontSize: 12,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.15em",
-                color: "var(--foreground)",
-              }}
-            >
+            <span className="text-sm font-semibold text-foreground">
               {label}
             </span>
             {trend && (
@@ -176,13 +167,7 @@ function DrillDownModal({
                   : points[points.length - 1].value.toLocaleString()}
               </span>
               {trend && (
-                <span
-                  style={{
-                    fontFamily: "var(--font-mono, monospace)",
-                    fontSize: 11,
-                    color: trendColor,
-                  }}
-                >
+                <span className="text-xs font-medium" style={{ color: trendColor }}>
                   {trend === "up" ? "↑" : trend === "down" ? "↓" : "→"} vs {points[0].date.slice(0, 7)}
                 </span>
               )}
@@ -196,11 +181,11 @@ function DrillDownModal({
                 overflow: "hidden",
               }}
             >
-              <table className="w-full text-[10px]">
+              <table className="w-full text-xs">
                 <thead>
                   <tr style={{ background: "var(--muted)", color: "var(--foreground)" }}>
-                    <th className="px-2 py-1 text-left" style={{ fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.1em" }}>DATE</th>
-                    <th className="px-2 py-1 text-right" style={{ fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.1em" }}>VALUE</th>
+                    <th className="px-2 py-1 text-left font-medium">Date</th>
+                    <th className="px-2 py-1 text-right font-medium">Value</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -218,13 +203,7 @@ function DrillDownModal({
               </table>
             </div>
 
-            <p
-              style={{
-                fontFamily: "var(--font-mono, monospace)",
-                fontSize: 10,
-                color: "var(--muted-foreground)",
-              }}
-            >
+            <p className="text-xs text-muted-foreground">
               {points.length} data points · {ds?.name ?? metric} · {ds?.period ?? "monthly"}
             </p>
           </div>
@@ -239,7 +218,7 @@ function DrillDownModal({
           >
             <Database className="size-8 text-muted-foreground" />
             <p className="text-[12px] font-medium">No data for {label}</p>
-            <p className="text-[11px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Upload a CSV in the Data tab to see the historical trend here.
             </p>
           </div>
@@ -273,7 +252,7 @@ function KpiTileBtn({
         className
       )}
     >
-      <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <span className="text-[13px] font-semibold leading-tight">{value}</span>
     </button>
   )
@@ -295,7 +274,7 @@ export function KpiStrip({ onOpenDataTab }: { onOpenDataTab?: () => void }) {
 
   if (!snapshot.ready) {
     return (
-      <div className="flex items-center gap-2 border-b border-border bg-muted/30 px-4 py-2 text-[11px] text-muted-foreground">
+      <div className="flex items-center gap-2 border-b border-border bg-background/80 px-4 py-2 text-xs text-muted-foreground">
         <Database className="size-3.5 shrink-0" />
         <span>Connect data to see live numbers</span>
         {onOpenDataTab && (
@@ -315,7 +294,7 @@ export function KpiStrip({ onOpenDataTab }: { onOpenDataTab?: () => void }) {
 
   return (
     <>
-      <div className="flex items-center gap-1 border-b border-border bg-muted/20 px-3 py-1.5 overflow-x-auto">
+      <div className="flex items-center gap-1 overflow-x-auto border-b border-border bg-background/65 px-3 py-1.5">
         <KpiTileBtn
           label="MRR"
           value={fmtCurrency(d.mrr)}

@@ -57,7 +57,7 @@ export function MayaTopUpButton({ organizationId }: { organizationId: string }) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-background"
+        className="flex items-center gap-1 rounded-full bg-muted px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-background"
       >
         <Plus className="size-3" /> Top up
       </button>
@@ -71,7 +71,7 @@ export function MayaTopUpButton({ organizationId }: { organizationId: string }) 
           </DialogHeader>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <label className="text-xs font-medium text-muted-foreground">
               Amount
             </label>
             <div className="flex gap-1.5">

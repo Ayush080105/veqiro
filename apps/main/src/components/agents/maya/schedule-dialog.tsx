@@ -55,7 +55,7 @@ function DateTimePicker({
   return (
     <div className="flex gap-3">
       <div className="flex flex-col gap-1 flex-1">
-        <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Date</label>
+        <label className="text-xs font-medium text-muted-foreground">Date</label>
         <Popover>
           <PopoverTrigger className={cn(inputClass, "w-full cursor-pointer text-left font-semibold")}>
             {date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}
@@ -71,7 +71,7 @@ function DateTimePicker({
         </Popover>
       </div>
       <div className="flex flex-col gap-1">
-        <label className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Time</label>
+        <label className="text-xs font-medium text-muted-foreground">Time</label>
         <TimeSelect value={time} onChange={onTimeChange} />
       </div>
     </div>

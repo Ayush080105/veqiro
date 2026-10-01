@@ -20,10 +20,10 @@ interface SliderProps {
 
 function LabeledSlider({ label, value, min, max, step, unit = "", onChange }: SliderProps) {
   return (
-    <div className="flex flex-col gap-0.5">
+    <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between">
-        <span className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">{label}</span>
-        <span className="text-[11px] font-medium">
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-xs font-semibold tabular-nums">
           {value > 0 ? "+" : ""}{value.toLocaleString()}{unit}
         </span>
       </div>
@@ -34,7 +34,7 @@ function LabeledSlider({ label, value, min, max, step, unit = "", onChange }: Sl
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 w-full accent-primary"
+        className="h-1.5 w-full cursor-pointer accent-primary"
       />
     </div>
   )
@@ -64,27 +64,27 @@ function LiveScenarioTable({ result, editingIdx, burnDelta, mrrDelta, growthOver
   })
 
   return (
-    <div className="border border-border overflow-hidden">
-      <table className="w-full text-[11px]">
+    <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
+      <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border bg-muted/30">
-            <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Scenario</th>
-            <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Runway</th>
-            <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">vs Base</th>
-            <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Status</th>
+          <tr className="border-b border-border/60 bg-background/65">
+            <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Scenario</th>
+            <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Runway</th>
+            <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">vs Base</th>
+            <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Status</th>
           </tr>
         </thead>
         <tbody>
           {result.base_case && (
-            <tr className="border-b border-border bg-muted/10">
-              <td className="px-2 py-1 text-muted-foreground">Base</td>
-              <td className="px-2 py-1 text-right">
+            <tr className="border-b border-border/60 bg-muted/10">
+              <td className="px-3 py-2 text-muted-foreground">Base</td>
+              <td className="px-3 py-2 text-right tabular-nums">
                 {result.base_case.runway_months != null
                   ? `${(result.base_case.runway_months as number).toFixed(1)} mo`
                   : "Profitable"}
               </td>
-              <td className="px-2 py-1 text-right">—</td>
-              <td className="px-2 py-1 text-right">
+              <td className="px-3 py-2 text-right">—</td>
+              <td className="px-3 py-2 text-right">
                 <StatusPill level={verdictLevel(result.base_case.verdict as string)}>
                   {result.base_case.verdict as string}
                 </StatusPill>
@@ -94,22 +94,22 @@ function LiveScenarioTable({ result, editingIdx, burnDelta, mrrDelta, growthOver
           {scenarios.map((s, i) => {
             const delta = s.vs_base?.runway_delta
             return (
-              <tr key={i} className={cn("border-b border-border last:border-0", i === editingIdx && "bg-primary/5")}>
-                <td className="px-2 py-1">
+              <tr key={i} className={cn("border-b border-border/60 last:border-0", i === editingIdx && "bg-primary/5")}>
+                <td className="px-3 py-2">
                   {s.name}
-                  {i === editingIdx && <span className="ml-1 text-[9px] text-muted-foreground">(live)</span>}
+                  {i === editingIdx && <span className="ml-1 text-xs text-muted-foreground">(live)</span>}
                 </td>
-                <td className="px-2 py-1 text-right">
+                <td className="px-3 py-2 text-right tabular-nums">
                   {s.runway_months != null ? `${(s.runway_months as number).toFixed(1)} mo` : "Profitable"}
                 </td>
-                <td className="px-2 py-1 text-right">
+                <td className="px-3 py-2 text-right tabular-nums">
                   {delta != null ? (
                     <span className={cn(delta > 0 ? "text-chart-2" : "text-destructive")}>
                       {delta > 0 ? "+" : ""}{delta}mo
                     </span>
                   ) : "—"}
                 </td>
-                <td className="px-2 py-1 text-right">
+                <td className="px-3 py-2 text-right">
                   <StatusPill level={verdictLevel(s.verdict as string)}>{s.verdict as string}</StatusPill>
                 </td>
               </tr>
@@ -178,8 +178,8 @@ export function ScenarioSliders({
               type="button"
               onClick={() => setEditingIdx(i)}
               className={cn(
-                "border border-border px-2 py-0.5 text-[10px]",
-                editingIdx === i ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
+                "rounded-[var(--vq-r-sm)] border border-border px-2.5 py-1 text-xs font-medium transition-colors",
+                editingIdx === i ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
               )}
             >
               {s.name}
@@ -188,8 +188,8 @@ export function ScenarioSliders({
         </div>
       )}
 
-      <div className="flex flex-col gap-2 border border-border bg-muted/10 p-3">
-        <p className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+      <div className="flex flex-col gap-3 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-3">
+        <p className="text-xs font-semibold text-foreground">
           Adjust: {initialResult.scenarios[editingIdx]?.name}
         </p>
         <LabeledSlider
@@ -220,8 +220,8 @@ export function ScenarioSliders({
           onChange={handleGrowthPct}
         />
         {recomputeMut.isPending && (
-          <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-            <RefreshCw className="size-2.5 animate-spin" /> Recalculating…
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <RefreshCw className="size-3 animate-spin" /> Recalculating...
           </div>
         )}
       </div>
@@ -234,7 +234,7 @@ export function ScenarioSliders({
         growthOverride={growthPct / 100}
       />
 
-      <p className="text-[11px] leading-relaxed">{result.recommendation}</p>
+      <p className="text-sm leading-relaxed">{result.recommendation}</p>
 
     </div>
   )

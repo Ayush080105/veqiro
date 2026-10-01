@@ -72,16 +72,16 @@ export function VideoTemplatePicker({
               className="pl-8"
             />
           </div>
-          <div className="flex max-h-96 flex-col gap-3 overflow-y-auto rounded border border-border p-2">
+          <div className="flex max-h-96 flex-col gap-3 overflow-y-auto rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-2">
             {groups.length === 0 && (
-              <p className="p-2 text-xs text-muted-foreground">No templates match &ldquo;{query}&rdquo;.</p>
+              <p className="p-2 text-sm text-muted-foreground">No templates match &ldquo;{query}&rdquo;.</p>
             )}
             {groups.map((g) => (
-              <div key={g.category} className="flex flex-col gap-1.5">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <div key={g.category} className="flex flex-col gap-2">
+                <span className="text-sm font-medium text-foreground">
                   {g.category}
                 </span>
-                <div className="flex flex-wrap gap-1.5">
+                <div className="grid gap-1.5 sm:grid-cols-2">
                   {g.templates.map((tpl) => (
                     <button
                       key={tpl.id}
@@ -91,15 +91,12 @@ export function VideoTemplatePicker({
                         onOpenChange(false)
                       }}
                       title={tpl.description}
-                      className="rounded-full px-2.5 py-1 text-xs transition-colors"
-                      style={{
-                        border: "2px solid var(--border)",
-                        background: "transparent",
-                        color: "var(--foreground)",
-                        fontWeight: 400,
-                      }}
+                      className="rounded-[var(--vq-r-sm)] border border-border/60 bg-background px-3 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted/50"
                     >
                       {tpl.slashCommand}
+                      <span className="mt-0.5 block truncate text-xs font-normal text-muted-foreground">
+                        {tpl.label}
+                      </span>
                     </button>
                   ))}
                 </div>

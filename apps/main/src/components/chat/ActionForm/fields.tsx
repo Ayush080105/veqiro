@@ -30,7 +30,7 @@ export function FormRow({
         {required && <span className="ml-0.5 text-destructive">*</span>}
       </Label>
       {children}
-      {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-xs leading-relaxed text-muted-foreground">{hint}</p>}
     </div>
   )
 }
@@ -231,7 +231,7 @@ export function CountedTextarea({
         <div className="flex justify-end">
           <span
             className={cn(
-              "text-[10px]",
+              "text-xs",
               value.length > max ? "text-destructive" : "text-muted-foreground"
             )}
           >
@@ -265,7 +265,7 @@ export function DataPointTable({
   return (
     <div className="flex flex-col gap-1.5">
       {value.length === 0 && (
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           No data points yet — add at least 3.
         </p>
       )}
@@ -302,7 +302,7 @@ export function DataPointTable({
       >
         <Plus data-icon="inline-start" /> Add row
       </Button>
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Tip: paste CSV (date,value per line) into the first cell to bulk-import.
       </p>
     </div>

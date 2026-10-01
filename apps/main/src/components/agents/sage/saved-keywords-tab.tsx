@@ -59,7 +59,7 @@ export function SageSavedKeywordsTab({
   if (keywords.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <div className="grid size-14 place-items-center rounded-full border border-border bg-muted/30">
+        <div className="grid size-14 place-items-center rounded-[var(--vq-r)] border border-border/60 bg-background/65">
           <Bookmark className="size-6 text-muted-foreground" />
         </div>
         <div>
@@ -83,23 +83,15 @@ export function SageSavedKeywordsTab({
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        {/* Column header */}
-        <div className="flex items-center justify-between border-b border-border pb-1.5">
-          <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60">keyword</span>
-          <div className="flex items-center gap-2">
-            <span className="text-[9px] uppercase tracking-widest text-muted-foreground/60">vol/mo · diff · rel</span>
-          </div>
-        </div>
-
+      <div className="flex flex-col gap-2">
         {keywords.map((kw) => (
           <div
             key={kw.id}
-            className="flex items-center gap-2 border border-border bg-background px-2 py-2"
+            className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 px-3 py-2.5"
           >
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-medium">{kw.keyword}</p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="truncate text-sm font-medium">{kw.keyword}</p>
+              <p className="text-xs text-muted-foreground">
                 {kw.searchIntent}{kw.suggestedContentType ? ` · ${kw.suggestedContentType}` : ""}
               </p>
             </div>
@@ -107,14 +99,14 @@ export function SageSavedKeywordsTab({
             {/* Stat badges */}
             <div className="flex shrink-0 items-center gap-1">
               {kw.searchVolumeEstimate && kw.searchVolumeEstimate !== "N/A" && (
-                <Badge variant="secondary" className="text-[10px]">
+                <Badge variant="secondary" className="text-xs">
                   {kw.searchVolumeEstimate}
                 </Badge>
               )}
-              <Badge variant="outline" className={cn("text-[10px]", diffColor(kw.estimatedDifficulty))}>
+              <Badge variant="outline" className={cn("text-xs", diffColor(kw.estimatedDifficulty))}>
                 {kw.estimatedDifficulty}
               </Badge>
-              <Badge variant="outline" className="text-[10px]">
+              <Badge variant="outline" className="text-xs">
                 {Math.round(kw.relevanceScore * 100)}%
               </Badge>
             </div>
@@ -143,7 +135,7 @@ export function SageSavedKeywordsTab({
         ))}
       </div>
 
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         Click <FileText className="inline size-3" /> on any keyword to open the blog generator pre-filled with it.
       </p>
     </div>

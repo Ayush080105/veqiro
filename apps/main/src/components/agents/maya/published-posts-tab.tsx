@@ -81,7 +81,7 @@ function PostCard({ post }: { post: PublishedPost }) {
   }
 
   return (
-    <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-white overflow-hidden">
+    <div className="overflow-hidden rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-card">
       {post.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -99,12 +99,12 @@ function PostCard({ post }: { post: PublishedPost }) {
         {/* platform + time row */}
         <div className="flex items-center justify-between">
           <span
-            className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 text-white"
+            className="px-1.5 py-0.5 text-xs font-medium text-white"
             style={{ background: cfg.color }}
           >
             {cfg.label}
           </span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {isScheduled ? `Scheduled ${format(date, "h:mm a")}` : format(date, "h:mm a")}
           </span>
         </div>
@@ -116,7 +116,7 @@ function PostCard({ post }: { post: PublishedPost }) {
 
         {/* hashtags */}
         {post.hashtags.length > 0 && (
-          <p className="text-[10px] text-[#0077B5] truncate">
+          <p className="truncate text-xs text-[#0077B5]">
             {post.hashtags.slice(0, 5).map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ")}
             {post.hashtags.length > 5 && ` +${post.hashtags.length - 5}`}
           </p>
@@ -124,7 +124,7 @@ function PostCard({ post }: { post: PublishedPost }) {
 
         {/* error message */}
         {isFailed && post.error && (
-          <p className="text-[10px] text-red-600 line-clamp-2" title={post.error}>
+          <p className="line-clamp-2 text-xs text-red-600" title={post.error}>
             {post.error}
           </p>
         )}
@@ -132,7 +132,7 @@ function PostCard({ post }: { post: PublishedPost }) {
         {/* status + link row */}
         <div className="flex items-center justify-between pt-0.5">
           <span
-            className={`text-[10px] font-medium px-1.5 py-0.5 border ${
+            className={`border px-1.5 py-0.5 text-xs font-medium ${
               isSuccess
                 ? "border-green-600 text-green-700 bg-green-50"
                 : isFailed
@@ -159,7 +159,7 @@ function PostCard({ post }: { post: PublishedPost }) {
               type="button"
               onClick={handleCancel}
               disabled={cancelScheduledPost.isPending}
-              className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-red-600 disabled:opacity-60"
+              className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-red-600 disabled:opacity-60"
               title="Cancel scheduled post"
             >
               <X className="size-3" /> Cancel
@@ -168,7 +168,7 @@ function PostCard({ post }: { post: PublishedPost }) {
           {!isScheduled && post.platformPostId && (
             <a
               href={`#`}
-              className="flex items-center gap-0.5 text-[10px] text-muted-foreground hover:text-foreground"
+              className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground"
               title="View on platform"
             >
               View <ExternalLink className="size-3" />
@@ -259,7 +259,7 @@ export function MayaPublishedPostsTab() {
             {DAYS.map((d) => (
               <div
                 key={d}
-                className="text-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground py-2 border-r border-(--vq-line-2) last:border-r-0"
+                className="border-r border-(--vq-line-2) py-2 text-center text-xs font-medium text-muted-foreground last:border-r-0"
               >
                 {d}
               </div>
@@ -316,7 +316,7 @@ export function MayaPublishedPostsTab() {
                           )
                         })}
                         {dayPosts.length > 3 && (
-                          <span className={`text-[9px] font-bold ${isSelected ? "text-white" : "text-muted-foreground"}`}>
+                          <span className={`text-xs font-medium ${isSelected ? "text-white" : "text-muted-foreground"}`}>
                             +{dayPosts.length - 3}
                           </span>
                         )}
@@ -341,7 +341,7 @@ export function MayaPublishedPostsTab() {
                 <p className="text-xs font-bold text-foreground">
                   {format(selectedDay, "EEEE, MMMM d")}
                 </p>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   {selectedPosts.length} post{selectedPosts.length !== 1 ? "s" : ""}
                 </p>
               </div>

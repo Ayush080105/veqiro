@@ -33,10 +33,10 @@ export function TodayPanel({ organizationId }: { organizationId: string }) {
       <button
         type="button"
         onClick={() => setCollapsed((c) => !c)}
-        className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-muted/20"
+        className="flex w-full items-center gap-2 px-4 py-2 text-left hover:bg-background/65"
       >
         <Pin className="size-3.5 text-muted-foreground" />
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="text-xs font-medium text-muted-foreground">
           Today — {pins.length} pinned
         </span>
         <span className="ml-auto">

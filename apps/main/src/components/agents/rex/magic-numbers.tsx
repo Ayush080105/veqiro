@@ -75,7 +75,7 @@ function MagicTile({
       )}
     >
       <div className="flex w-full items-center justify-between">
-        <span className="font-mono text-[9px] uppercase tracking-[0.2em] text-muted-foreground">{label}</span>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
         {dot && (
           <span className="inline-block size-1.5 rounded-full" style={{ background: dot }} />
         )}
@@ -190,10 +190,10 @@ export function MagicNumbers({
   return (
     <div className="flex flex-col gap-1.5 border-b border-border bg-muted/10 px-3 py-2">
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[9px] uppercase tracking-[0.22em] text-muted-foreground">
+        <span className="text-sm font-semibold text-foreground">
           Magic numbers
         </span>
-        <span className="text-[10px] text-muted-foreground">— company health at a glance</span>
+        <span className="text-xs text-muted-foreground">— company health at a glance</span>
       </div>
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
         <MagicTile

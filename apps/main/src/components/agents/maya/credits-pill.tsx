@@ -16,7 +16,7 @@ export function MayaCreditsPill({ organizationId }: { organizationId: string }) 
   if (isPending || error || isNoMayaSubscription(error) || !data) return null
 
   return (
-    <div className="flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground">
+    <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
       <span className="flex items-center gap-1 rounded-full bg-muted px-2 py-1">
         <Sparkles className="size-3" />
         {data.credits.remaining} credits

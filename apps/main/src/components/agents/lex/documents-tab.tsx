@@ -100,7 +100,7 @@ export function LexDocumentsTab({
   if (!sources || sources.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-        <div className="grid size-14 place-items-center rounded-full border border-border bg-muted/30">
+        <div className="grid size-14 place-items-center rounded-[var(--vq-r)] border border-border/60 bg-background/65">
           <FileText className="size-6 text-muted-foreground" />
         </div>
         <div>
@@ -131,7 +131,7 @@ export function LexDocumentsTab({
         </Button>
       </div>
 
-      <div className="border border-border bg-background">
+      <div className="overflow-hidden rounded-[var(--vq-r)] border border-border/60 bg-background">
         <Table>
           <TableHeader>
             <TableRow>
@@ -155,7 +155,7 @@ export function LexDocumentsTab({
                   </div>
                   {s.summary && (
                     <p
-                      className="mt-1 line-clamp-2 text-[10px] leading-snug text-muted-foreground"
+                      className="mt-1 line-clamp-2 text-xs leading-snug text-muted-foreground"
                       title={s.summary}
                     >
                       {s.summary}
@@ -163,7 +163,7 @@ export function LexDocumentsTab({
                   )}
                 </TableCell>
                 <TableCell>
-                  <Badge variant="outline" className="text-[10px] capitalize">
+                  <Badge variant="outline" className="text-xs capitalize">
                     {s.typeDetected || s.type}
                   </Badge>
                 </TableCell>

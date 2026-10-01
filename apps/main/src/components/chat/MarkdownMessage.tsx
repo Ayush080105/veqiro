@@ -45,7 +45,7 @@ const markdownComponents: Components = {
     const isBlock = className?.includes("language-")
     if (isBlock) {
       return (
-        <code className="block my-1.5 rounded bg-background/50 p-2 font-mono text-xs overflow-x-auto">
+        <code className="my-1.5 block overflow-x-auto rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-2 font-mono text-xs">
           {children}
         </code>
       )
@@ -74,7 +74,7 @@ const markdownComponents: Components = {
     </a>
   ),
   blockquote: ({ children }: { children?: React.ReactNode }) => (
-    <blockquote className="my-1.5 border-l-2 border-muted-foreground/30 pl-3 italic text-muted-foreground text-sm">
+    <blockquote className="my-1.5 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 px-3 py-2 text-sm italic text-muted-foreground">
       {children}
     </blockquote>
   ),

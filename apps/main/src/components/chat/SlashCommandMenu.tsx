@@ -3,7 +3,6 @@
 import * as React from "react"
 import * as Icons from "lucide-react"
 
-import { FONT } from "@/lib/fonts"
 import { cn } from "@/lib/utils"
 import type { AgentActionMeta } from "@/lib/agents/actions"
 
@@ -29,22 +28,7 @@ export interface SlashCommandMenuProps {
 export function SlashCommandMenu({ items, selectedIndex, onHover, onSelect }: SlashCommandMenuProps) {
   if (items.length === 0) {
     return (
-      <div
-        style={{
-          position: "absolute",
-          bottom: "calc(100% + 8px)",
-          left: 0,
-          right: 0,
-          background: "var(--card)",
-          border: "1px solid var(--vq-line-2)",
-          borderRadius: 14,
-          boxShadow: "var(--vq-shadow-lg)",
-          padding: "10px 14px",
-          fontFamily: FONT.body,
-          fontSize: 12.5,
-          color: "var(--muted-foreground)",
-        }}
-      >
+      <div className="absolute inset-x-0 bottom-[calc(100%+8px)] rounded-[var(--vq-r)] border border-border/60 bg-card px-3.5 py-2.5 text-sm text-muted-foreground shadow-[var(--vq-shadow-lg)]">
         No matching actions.
       </div>
     )
@@ -53,19 +37,7 @@ export function SlashCommandMenu({ items, selectedIndex, onHover, onSelect }: Sl
   return (
     <div
       role="listbox"
-      style={{
-        position: "absolute",
-        bottom: "calc(100% + 8px)",
-        left: 0,
-        right: 0,
-        maxHeight: 280,
-        overflowY: "auto",
-        background: "var(--card)",
-        border: "1px solid var(--vq-line-2)",
-        borderRadius: 14,
-        boxShadow: "var(--vq-shadow-lg)",
-        padding: 6,
-      }}
+      className="absolute inset-x-0 bottom-[calc(100%+8px)] max-h-[280px] overflow-y-auto rounded-[var(--vq-r)] border border-border/60 bg-card p-1.5 shadow-[var(--vq-shadow-lg)]"
     >
       {items.map((a, i) => {
         const Icon = resolveIcon(a.icon)
@@ -83,12 +55,12 @@ export function SlashCommandMenu({ items, selectedIndex, onHover, onSelect }: Sl
               onSelect(a)
             }}
             className={cn(
-              "flex w-full items-center gap-2.5 rounded-lg border border-transparent p-2 text-left transition-colors",
+              "flex w-full items-center gap-2.5 rounded-[var(--vq-r-sm)] border border-transparent p-2 text-left transition-colors",
+              selected && "border-border/60 bg-muted/50",
               a.locked ? "cursor-not-allowed opacity-50" : "cursor-pointer",
             )}
-            style={{ background: selected ? "var(--muted)" : "transparent" }}
           >
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-md bg-background ring-1 ring-border">
+            <div className="flex size-7 shrink-0 items-center justify-center rounded-[var(--vq-r-sm)] bg-background ring-1 ring-border/70">
               {a.locked ? (
                 <Icons.Lock className="size-3.5 text-muted-foreground" />
               ) : (
@@ -96,15 +68,15 @@ export function SlashCommandMenu({ items, selectedIndex, onHover, onSelect }: Sl
               )}
             </div>
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="flex items-center gap-1.5 truncate text-[12.5px] font-medium text-foreground">
+              <span className="flex items-center gap-1.5 truncate text-sm font-medium text-foreground">
                 {a.label}
                 {a.locked && (
-                  <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  <span className="text-xs font-medium text-muted-foreground">
                     Soon
                   </span>
                 )}
               </span>
-              <span className="truncate text-[10.5px] text-muted-foreground">{a.description}</span>
+              <span className="truncate text-xs text-muted-foreground">{a.description}</span>
             </div>
           </button>
         )

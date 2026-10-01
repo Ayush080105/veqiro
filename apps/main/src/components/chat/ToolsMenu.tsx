@@ -43,7 +43,7 @@ export function ToolsMenu({
             return a rich result.
           </DialogDescription>
         </DialogHeader>
-        <div className="flex max-h-[50vh] flex-col gap-1 overflow-y-auto">
+        <div className="flex max-h-[50vh] flex-col gap-1.5 overflow-y-auto">
           {actions.map((a) => {
             const Icon = resolveIcon(a.icon)
             return (
@@ -57,11 +57,11 @@ export function ToolsMenu({
                   onOpenChange(false)
                 }}
                 className={cn(
-                  "group flex items-start gap-2.5 border border-transparent bg-muted/30 p-2.5 text-left transition-colors",
-                  a.locked ? "cursor-not-allowed opacity-50" : "hover:border-border hover:bg-muted"
+                  "group flex items-start gap-2.5 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-2.5 text-left transition-colors",
+                  a.locked ? "cursor-not-allowed opacity-50" : "hover:bg-muted/50"
                 )}
               >
-                <div className="flex size-8 shrink-0 items-center justify-center bg-background ring-1 ring-border">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-[var(--vq-r-sm)] bg-background ring-1 ring-border/70">
                   {a.locked ? (
                     <Icons.Lock className="size-4 text-muted-foreground" />
                   ) : (
@@ -69,15 +69,15 @@ export function ToolsMenu({
                   )}
                 </div>
                 <div className="flex flex-1 flex-col gap-0.5 min-w-0">
-                  <p className="flex items-center gap-1.5 text-xs font-medium text-foreground">
+                  <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                     {a.label}
                     {a.locked && (
-                      <span className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <span className="text-xs font-medium text-muted-foreground">
                         Coming soon
                       </span>
                     )}
                   </p>
-                  <p className="line-clamp-2 text-[10px] text-muted-foreground leading-relaxed">
+                  <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
                     {a.description}
                   </p>
                 </div>

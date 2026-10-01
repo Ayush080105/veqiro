@@ -44,7 +44,10 @@ function AgentCardRoot({
   const agentColor = React.useContext(AgentColorContext)
   const tintStyle: React.CSSProperties =
     variant === "default" && agentColor
-      ? { background: `color-mix(in srgb, ${agentColor} 28%, var(--card))` }
+      ? {
+          background: `color-mix(in srgb, ${agentColor} 8%, var(--card))`,
+          borderColor: `color-mix(in srgb, ${agentColor} 18%, var(--border))`,
+        }
       : {}
 
   return (
@@ -52,7 +55,7 @@ function AgentCardRoot({
       variant={variant}
       size={size}
       className={cn(
-        variant === "default" && "rounded-xl shadow-sm border border-border/40 bg-white ring-0",
+        variant === "default" && "rounded-xl shadow-sm border border-border/40 bg-card ring-0",
         variant === "brand" && "px-4",
         className
       )}
@@ -86,7 +89,7 @@ function AgentCardHeader({
         <span className="shrink-0 text-muted-foreground [&_svg]:size-3.5">{icon}</span>
       )}
       {kicker && (
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="text-xs font-medium text-muted-foreground">
           {kicker}
         </span>
       )}

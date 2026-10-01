@@ -55,6 +55,13 @@ export interface RexDataset {
 
 // ── API helpers ───────────────────────────────────────────────────────────────
 
+const rexSurfaceCls =
+  "rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65"
+const rexLabelCls = "text-xs font-semibold text-foreground"
+const rexTextCls = "text-sm leading-relaxed text-muted-foreground"
+const rexMiniButtonCls =
+  "inline-flex items-center gap-1.5 rounded-[var(--vq-r-sm)] border border-border bg-card px-2.5 py-1 text-xs font-medium transition-colors hover:bg-muted disabled:opacity-50"
+
 const fetchDatasets = () =>
   apiFetch<RexDataset[]>("/agents/rex/datasets")
 
@@ -235,8 +242,8 @@ export function RexDataTab({
         onDragLeave={() => setDragOver(false)}
         onDrop={handleDrop}
         className={cn(
-          "flex flex-col items-center justify-center gap-2 border border-dashed p-8 text-center transition-colors",
-          dragOver ? "border-primary bg-primary/5" : "border-border",
+          "flex flex-col items-center justify-center gap-2 rounded-[var(--vq-r)] border border-dashed p-8 text-center transition-colors",
+          dragOver ? "border-primary bg-primary/5" : "border-border/70 bg-background/65",
         )}
       >
         {uploading ? (
@@ -247,9 +254,9 @@ export function RexDataTab({
         <p className="text-sm font-medium">
           {uploading ? "Uploading…" : "Drop a CSV or Excel file here"}
         </p>
-        <p className="text-[11px] text-muted-foreground">or</p>
+        <p className="text-xs text-muted-foreground">or</p>
         <label className="cursor-pointer">
-          <span className="border border-border px-3 py-1.5 text-xs hover:bg-muted">
+          <span className={rexMiniButtonCls}>
             Browse file
           </span>
           <input
@@ -260,13 +267,13 @@ export function RexDataTab({
             onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleFile(f) }}
           />
         </label>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-xs text-muted-foreground">
           CSV or Excel · max 10 MB 
         </p>
       </div>
 
       {uploadError && (
-        <div className="flex items-center gap-2 border border-destructive/30 bg-destructive/5 p-3 text-[11px] text-destructive">
+        <div className="flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
           <AlertCircle className="size-3.5 shrink-0" />
           {uploadError}
         </div>
@@ -274,16 +281,16 @@ export function RexDataTab({
 
       {/* Smart post-save section */}
       {savedRecords && savedRecords.length > 0 && !parseResult && (
-        <div className="flex flex-col gap-3 rounded-(--vq-r) border border-chart-2/40 bg-[color-mix(in_srgb,var(--chart-2)_8%,var(--card))] p-4">
+        <div className="flex flex-col gap-3 rounded-[var(--vq-r)] border border-chart-2/30 bg-[color-mix(in_srgb,var(--chart-2)_8%,var(--card))] p-4">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-start gap-2">
               <CheckCircle className="mt-0.5 size-4 shrink-0 text-chart-2" />
               <div>
-                <p className="text-[13px] font-semibold text-foreground">
+                <p className="text-sm font-semibold text-foreground">
                   Saved {savedRecords.length} dataset{savedRecords.length > 1 ? "s" : ""}
                 </p>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+                <p className="mt-0.5 text-sm text-muted-foreground">
                   {savedRecords.map((d) => d.name).join(", ")}
                 </p>
               </div>
@@ -291,7 +298,7 @@ export function RexDataTab({
             <button
               type="button"
               onClick={() => { setSavedRecords(null); setSavedRawTable(null); setQuickQuery("") }}
-              className="text-[10px] text-muted-foreground underline hover:text-foreground shrink-0"
+              className="shrink-0 text-xs font-medium text-muted-foreground underline underline-offset-2 hover:text-foreground"
             >
               Dismiss
             </button>
@@ -300,16 +307,16 @@ export function RexDataTab({
           {/* Column type legend */}
           {savedRawTable && (
             <div className="flex flex-wrap items-center gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground mr-1">Detected:</span>
+              <span className="mr-1 text-xs font-semibold text-muted-foreground">Detected:</span>
               {Object.entries(savedRawTable.columnTypes).map(([col, type]) => (
                 <span
                   key={col}
                   className={cn(
-                    "border px-1.5 py-0.5 font-mono text-[9px]",
+                    "rounded-[var(--vq-r-sm)] border px-2 py-1 text-xs font-medium",
                     type === "date" && "border-blue-200 bg-blue-50 text-blue-700",
                     type === "numeric" && "border-green-200 bg-green-50 text-green-700",
                     type === "categorical" && "border-purple-200 bg-purple-50 text-purple-700",
-                    type === "text" && "border-border bg-muted/30 text-muted-foreground",
+                    type === "text" && "border-border bg-background/65 text-muted-foreground",
                   )}
                 >
                   {col} <span className="opacity-60">({type})</span>
@@ -320,7 +327,7 @@ export function RexDataTab({
 
           {/* Ask REX section */}
           <div className="flex flex-col gap-2">
-            <p className="text-[11px] font-semibold text-foreground flex items-center gap-1.5">
+            <p className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
               <MessageSquare className="size-3" /> Ask REX about this data
             </p>
 
@@ -347,7 +354,7 @@ export function RexDataTab({
                       onClick={() => { setQuickQuery(s); void handleQuickQuery(s) }}
                       disabled={!!queryingDatasetId}
                       className={cn(
-                        "border border-dashed border-chart-2/60 bg-card px-2 py-0.5 text-[10px] hover:bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))] disabled:opacity-50",
+                        "rounded-[var(--vq-r-sm)] border border-dashed border-chart-2/60 bg-card px-2.5 py-1 text-xs font-medium transition-colors hover:bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))] disabled:opacity-50",
                         quickQuery === s && "border-solid border-chart-2 bg-[color-mix(in_srgb,var(--chart-2)_10%,var(--card))] font-medium"
                       )}
                     >
@@ -366,13 +373,13 @@ export function RexDataTab({
                 onChange={(e) => setQuickQuery(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && quickQuery.trim()) void handleQuickQuery(quickQuery) }}
                 placeholder="Ask anything… e.g. 'Show me a bar chart of sales by region'"
-                className="flex-1 border border-border bg-card px-2.5 py-1.5 text-[11px] placeholder:text-muted-foreground focus:outline-none"
+                className="flex-1 rounded-[var(--vq-r-sm)] border border-border bg-card px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20"
               />
               <button
                 type="button"
                 onClick={() => void handleQuickQuery(quickQuery)}
                 disabled={!quickQuery.trim() || !!queryingDatasetId}
-                className="flex items-center gap-1.5 rounded-(--vq-r-sm) border border-(--vq-line-2) bg-card px-3 py-1.5 text-[11px] font-medium shadow-(--vq-shadow-sm) hover:bg-background disabled:opacity-50"
+                className={rexMiniButtonCls}
               >
                 {queryingDatasetId ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
                 Ask
@@ -387,7 +394,7 @@ export function RexDataTab({
             if (!hasFinancialMetric) return null
             return (
               <div className="flex flex-wrap gap-2 border-t border-chart-2/20 pt-2.5">
-                <p className="w-full font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Financial tools</p>
+                <p className="w-full text-xs font-semibold text-muted-foreground">Financial tools</p>
                 {hasForecastable && (
                   <button
                     type="button"
@@ -395,7 +402,7 @@ export function RexDataTab({
                       const ds = savedRecords.find((d) => ["mrr", "revenue", "arr"].includes(d.metricKey))
                       onOpenAction("rex:forecast", ds ? { metric_name: ds.metricKey, historical_data: ds.points, horizon_days: 90 } : undefined)
                     }}
-                    className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[10px] hover:bg-muted"
+                    className={rexMiniButtonCls}
                   >
                     <TrendingUp className="size-3" /> Forecast 90 days
                   </button>
@@ -404,7 +411,7 @@ export function RexDataTab({
                   <button
                     type="button"
                     onClick={() => onOpenAction("rex:analyze-metrics")}
-                    className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[10px] hover:bg-muted"
+                    className={rexMiniButtonCls}
                   >
                     <LineChart className="size-3" /> Analyze metrics
                   </button>
@@ -413,7 +420,7 @@ export function RexDataTab({
                   <button
                     type="button"
                     onClick={() => onOpenAction("rex:financial-analysis")}
-                    className="flex items-center gap-1.5 border border-border bg-card px-2.5 py-1 text-[10px] hover:bg-muted"
+                    className={rexMiniButtonCls}
                   >
                     <DollarSign className="size-3" /> Financial analysis
                   </button>
@@ -426,28 +433,28 @@ export function RexDataTab({
 
       {/* Inferred mapping confirmation */}
       {parseResult && editableDatasets.length > 0 && (
-        <div className="flex flex-col gap-3 border border-border p-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <div className={cn("flex flex-col gap-3 p-3", rexSurfaceCls)}>
+          <p className={rexLabelCls}>
             Review inferred datasets
           </p>
-          <p className="text-[11px] text-muted-foreground">
+          <p className={rexTextCls}>
             {editableDatasets.length === 1 && editableDatasets[0]?.metricKey === "table"
               ? `REX detected ${parseResult.headers.length} columns — saving as a unified table for Q&A, analysis, and reports.`
               : `REX detected ${editableDatasets.length} metric column${editableDatasets.length > 1 ? "s" : ""} from ${parseResult.headers.length} header${parseResult.headers.length !== 1 ? "s" : ""}. Adjust names and period before saving.`
             }
           </p>
           {parseResult.saved_mapping && parseResult.saved_mapping.valueColumns.length > 0 && (
-            <p className="text-[10.5px] text-muted-foreground">
+            <p className="text-xs text-muted-foreground">
               Saved mapping found from prior upload — applied automatically.
             </p>
           )}
           {editableDatasets.map((d, i) => {
             const isTable = d.metricKey === "table" || d.points.length === 0
             return (
-              <div key={i} className="flex flex-col gap-2 border border-border bg-muted/10 p-2">
+              <div key={i} className={cn("flex flex-col gap-2 p-2.5", rexSurfaceCls)}>
                 <div className={isTable ? "w-full" : "grid grid-cols-2 gap-2"}>
                   <div>
-                    <p className="mb-0.5 text-[10px] text-muted-foreground">Name</p>
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">Name</p>
                     <Input
                       value={d.name}
                       onChange={(e) => updateEditable(i, { name: e.target.value })}
@@ -456,11 +463,11 @@ export function RexDataTab({
                   </div>
                   {!isTable && (
                     <div>
-                      <p className="mb-0.5 text-[10px] text-muted-foreground">Period</p>
+                      <p className="mb-1 text-xs font-medium text-muted-foreground">Period</p>
                       <select
                         value={d.period}
                         onChange={(e) => updateEditable(i, { period: e.target.value })}
-                        className="h-7 w-full border border-border bg-background px-2 text-xs"
+                        className="h-8 w-full rounded-[var(--vq-r-sm)] border border-border bg-background px-2 text-xs"
                       >
                         {["daily", "weekly", "monthly", "quarterly"].map((p) => (
                           <option key={p} value={p}>{p}</option>
@@ -469,14 +476,14 @@ export function RexDataTab({
                     </div>
                   )}
                 </div>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   {isTable ? (
                     <span className="text-blue-600">
                       {`General table · ${parseResult?.rawTable?.headers.length ?? 0} columns · ${parseResult?.rawTable?.rows.length ?? 0} rows · Ask REX anything, query, analyze, or generate a report`}
                     </span>
                   ) : (
                     <>
-                      <span className="font-mono">{d.metricKey}</span>
+                      <span className="font-medium">{d.metricKey}</span>
                       <span>·</span>
                       <span>{d.points.length} data points</span>
                       <span>·</span>
@@ -492,14 +499,14 @@ export function RexDataTab({
                         type="button"
                         onClick={() => updateEditable(i, { purpose: p })}
                         className={cn(
-                          "border border-border px-2 py-0.5 text-[10px] capitalize",
-                          d.purpose === p ? "bg-primary text-primary-foreground border-primary" : "hover:bg-muted"
+                          "rounded-[var(--vq-r-sm)] border border-border px-2.5 py-1 text-xs font-medium capitalize transition-colors",
+                          d.purpose === p ? "border-primary bg-primary text-primary-foreground" : "hover:bg-muted"
                         )}
                       >
                         {p}
                       </button>
                     ))}
-                    <span className="text-[10px] text-muted-foreground">
+                    <span className="text-xs text-muted-foreground">
                       Tag as &ldquo;budget&rdquo; to enable variance analysis.
                     </span>
                   </div>
@@ -525,13 +532,13 @@ export function RexDataTab({
 
       {/* Saved datasets list */}
       <div className="flex flex-col gap-2">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <p className={rexLabelCls}>
           Saved datasets ({datasets.length})
         </p>
         {isLoading ? (
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
         ) : datasets.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             No datasets yet. Upload a CSV to get started.
           </p>
         ) : (
@@ -542,12 +549,12 @@ export function RexDataTab({
             return (
               <div
                 key={ds.id}
-                className="flex items-center gap-2 border border-border bg-muted/10 px-3 py-2"
+                className={cn("flex items-center gap-2 px-3 py-2", rexSurfaceCls)}
               >
                 <BarChart2 className="size-3.5 shrink-0 text-muted-foreground" />
                 <div className="flex-1 min-w-0">
-                  <p className="truncate text-[12px] font-medium">{ds.name}</p>
-                  <p className="text-[10px] text-muted-foreground">
+                  <p className="truncate text-sm font-medium">{ds.name}</p>
+                  <p className="text-xs text-muted-foreground">
                     {ds.metricKey} · {rowCount} {hasTimeSeries ? "pts" : "rows"} · {ds.period}
                   </p>
                 </div>
@@ -559,7 +566,7 @@ export function RexDataTab({
                     setSavedRawTable(meta?.rawTable ?? null)
                     setQuickQuery("")
                   }}
-                  className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
+                  className={rexMiniButtonCls}
                 >
                   <MessageSquare className="size-2.5" /> Ask
                 </button>
@@ -568,7 +575,7 @@ export function RexDataTab({
                   title="Generate DOCX report"
                   onClick={() => void handleGenerateReport(ds.id)}
                   disabled={generatingReportId === ds.id}
-                  className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted disabled:opacity-50"
+                  className={rexMiniButtonCls}
                 >
                   {generatingReportId === ds.id
                     ? <Loader2 className="size-2.5 animate-spin" />

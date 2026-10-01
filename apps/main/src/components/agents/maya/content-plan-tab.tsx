@@ -71,8 +71,8 @@ function DayCell({
   return (
     <div className="flex min-h-[132px] min-w-0 flex-col gap-1.5 border-r border-b border-(--vq-line-2) p-2 last:border-r-0">
       <div className="flex items-baseline gap-1.5">
-        <span className="font-mono text-[10px] tracking-widest text-muted-foreground">{label}</span>
-        {date && <span className="text-[10px] text-muted-foreground/60">{date.getUTCDate()}</span>}
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        {date && <span className="text-xs text-muted-foreground/60">{date.getUTCDate()}</span>}
       </div>
 
       {items.length === 0 ? (
@@ -100,14 +100,14 @@ function DayCell({
                   className="size-1.5 shrink-0 rounded-full"
                   style={{ background: meta.color }}
                 />
-                <span className="font-mono text-[9px] tracking-wider text-muted-foreground">
+                <span className="text-xs font-medium text-muted-foreground">
                   {meta.short}
                 </span>
                 {item.isGapFiller && (
                   <HelpCircle className="size-2.5 shrink-0 text-muted-foreground/60" />
                 )}
               </span>
-              <span className="line-clamp-3 text-[11px] font-medium leading-snug">{item.hook}</span>
+              <span className="line-clamp-3 text-xs font-medium leading-snug">{item.hook}</span>
             </button>
           )
         })
@@ -132,14 +132,14 @@ function ItemDetail({
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-xs font-semibold">{item.day || item.date}</span>
         <span
-          className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]"
+          className="flex items-center gap-1 rounded-[var(--vq-r-sm)] px-2 py-0.5 text-xs"
           style={{ background: meta.color, color: "var(--foreground)" }}
         >
           <Icon className="size-3" />
           {meta.label}
         </span>
         {item.isGapFiller && (
-          <span className="flex items-center gap-1 rounded-full bg-background px-2 py-0.5 text-[10px] text-muted-foreground">
+          <span className="flex items-center gap-1 rounded-[var(--vq-r-sm)] bg-background px-2 py-0.5 text-xs text-muted-foreground">
             <HelpCircle className="size-3" />
             No strong signal
           </span>
@@ -155,13 +155,13 @@ function ItemDetail({
       {(item.reason || item.formatReason) && (
         <div className="flex flex-col gap-1 border-t border-(--vq-line-2) pt-2">
           {item.reason && (
-            <p className="text-[11px] leading-relaxed">
+            <p className="text-sm leading-relaxed">
               <span className="font-medium">Why: </span>
               <span className="text-muted-foreground">{item.reason}</span>
             </p>
           )}
           {item.formatReason && (
-            <p className="text-[11px] leading-relaxed">
+            <p className="text-sm leading-relaxed">
               <span className="font-medium">Why {meta.label.toLowerCase()}: </span>
               <span className="text-muted-foreground">{item.formatReason}</span>
             </p>
@@ -253,7 +253,7 @@ function PlanView({
     <div className="flex flex-col gap-3">
       <div className="overflow-hidden rounded-lg border border-(--vq-line-2)">
         <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-3 py-2">
-          <h3 className="font-mono text-[11px] uppercase tracking-widest text-primary-foreground">
+          <h3 className="text-sm font-semibold text-primary-foreground">
             {fmt(weekStart)} – {fmt(weekEnd)}
           </h3>
           <div className="flex items-center gap-3">
@@ -264,7 +264,7 @@ function PlanView({
                   className="size-1.5 rounded-full"
                   style={{ background: FORMAT[key].color }}
                 />
-                <span className="font-mono text-[9px] uppercase tracking-wider text-primary-foreground/70">
+                <span className="text-xs font-medium text-primary-foreground/70">
                   {FORMAT[key].short}
                 </span>
               </span>
@@ -361,7 +361,7 @@ export function MayaContentPlanTab({
           </p>
         </div>
         {alreadyPlanned ? (
-          <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+          <span className="shrink-0 text-xs font-medium text-muted-foreground">
             Next week is planned
           </span>
         ) : (
@@ -398,7 +398,7 @@ export function MayaContentPlanTab({
 
           {older.length > 0 && (
             <div className="flex flex-col gap-3">
-              <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <h3 className="text-sm font-semibold text-foreground">
                 Earlier plans
               </h3>
               {older.map((plan) => (

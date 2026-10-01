@@ -3,6 +3,7 @@
 import * as React from "react"
 import { toast } from "sonner"
 import { useQueryClient } from "@tanstack/react-query"
+import { Loader2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -202,15 +203,21 @@ export function ActionDialog<TInput, TResult>({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       {/* flex + max-h so tall forms scroll inside the dialog and the footer stays visible */}
-      <DialogContent className="sm:max-w-lg flex flex-col max-h-[90vh]" onKeyDown={handleKeyDown}>
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="flex max-h-[90vh] flex-col gap-0 p-0 sm:max-w-xl" onKeyDown={handleKeyDown}>
+        <DialogHeader className="shrink-0 border-b border-border/60 px-5 pb-4 pt-5 pr-12">
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        <div className="flex flex-col gap-3 flex-1 overflow-y-auto min-h-0 pr-1">
+        {stage && (
+          <div className="mx-5 mt-4 flex items-center gap-2 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 px-3 py-2 text-sm text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin text-foreground" />
+            <span className="min-w-0 flex-1 truncate">{stage.label}</span>
+          </div>
+        )}
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-5 py-4">
           {renderForm({ value, onChange, submit, submitting, stage, onDisableSubmit: setFormBlocked })}
         </div>
-        <DialogFooter className="flex-shrink-0">
+        <DialogFooter className="shrink-0 border-t border-border/60 px-5 py-4">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -219,7 +226,8 @@ export function ActionDialog<TInput, TResult>({
             Cancel
           </Button>
           <Button onClick={handleSubmit} disabled={submitting || formBlocked}>
-            {submitting ? "Running…" : submitLabel}
+            {submitting && <Loader2 data-icon="inline-start" className="animate-spin" />}
+            {submitting ? "Running..." : submitLabel}
           </Button>
         </DialogFooter>
       </DialogContent>

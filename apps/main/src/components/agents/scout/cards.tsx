@@ -14,11 +14,10 @@ import {
   Sparkles,
   Search,
 } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 import { AgentCard } from "@/components/ui/agent-card"
 import { InfoSection } from "@/components/ui/info-section"
-import { Kicker } from "@/components/ui/kicker"
-import { MarkdownMessage } from "@/components/chat/MarkdownMessage"
+import { ActionRow } from "@/components/ui/action-row"
+import { StatusPill } from "@/components/ui/status-pill"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import type {
@@ -31,13 +30,29 @@ import type {
 
 type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 
+const scoutSurfaceCls =
+  "rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-3"
+const scoutLabelCls = "text-xs font-semibold text-foreground"
+const scoutBodyCls = "text-sm leading-relaxed text-foreground"
+
 // ─── Research topic ──────────────────────────────────────────────────────────
 
 function ResearchSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <Kicker prefix="//">{label}</Kicker>
-      <div className="text-[11px] leading-relaxed">{children}</div>
+    <section className="flex flex-col gap-2">
+      <p className={scoutLabelCls}>{label}</p>
+      <div className={scoutBodyCls}>{children}</div>
+    </section>
+  )
+}
+
+function ScoutSurface({
+  children,
+  className,
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn(scoutSurfaceCls, className)}>
+      {children}
     </div>
   )
 }
@@ -56,7 +71,7 @@ function SourcesList({ sources }: { sources: SourceEntry[] }) {
   if (sources.length === 0) return null
   return (
     <div className="flex flex-col gap-1.5 border-t border-border/50 pt-3">
-      <Kicker prefix="//">sources</Kicker>
+      <p className={scoutLabelCls}>Sources</p>
       <div className="flex flex-wrap gap-1.5">
         {sources.map((s) => {
           const url = typeof s === "string" ? s : s.url
@@ -68,7 +83,7 @@ function SourcesList({ sources }: { sources: SourceEntry[] }) {
               target="_blank"
               rel="noopener noreferrer"
               title={url}
-              className="group inline-flex max-w-55 items-center gap-1.5 rounded-full border border-border bg-muted/30 px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 hover:text-foreground"
+              className="group inline-flex max-w-55 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <span className="truncate">{label}</span>
               <ExternalLink className="size-2.5 shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
@@ -97,10 +112,10 @@ export function ResearchReportCard({
 
         {/* Bottom line */}
         {result.bottom_line && (
-          <div className="border-l-2 border-primary pl-3">
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground mb-1">Bottom line</p>
-            <p className="text-[11px] leading-relaxed text-foreground">{result.bottom_line}</p>
-          </div>
+          <ScoutSurface className="space-y-1.5">
+            <p className={scoutLabelCls}>Bottom line</p>
+            <p className={scoutBodyCls}>{result.bottom_line}</p>
+          </ScoutSurface>
         )}
 
         {/* Key stats grid */}
@@ -108,10 +123,10 @@ export function ResearchReportCard({
           <ResearchSection label="key stats">
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
               {result.key_stats.map((s, i) => (
-                <div key={i} className="flex flex-col gap-0.5 border border-border bg-muted/30 p-2">
-                  <p className="text-[10px] text-muted-foreground">{s.label}</p>
-                  <p className="text-xs font-semibold text-foreground">{s.value}</p>
-                </div>
+                <ScoutSurface key={i} className="space-y-1 p-2.5">
+                  <p className="text-xs text-muted-foreground">{s.label}</p>
+                  <p className="text-sm font-semibold text-foreground">{s.value}</p>
+                </ScoutSurface>
               ))}
             </div>
           </ResearchSection>
@@ -134,13 +149,13 @@ export function ResearchReportCard({
         {/* Key players */}
         {result.key_players?.length > 0 && (
           <ResearchSection label="key players">
-            <div className="flex flex-col divide-y divide-border border border-border">
+            <div className="flex flex-col divide-y divide-border overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
               {result.key_players.map((p, i) => (
-                <div key={i} className="flex items-start gap-2 px-2 py-1.5">
+                <div key={i} className="flex items-start gap-2 bg-background/65 px-3 py-2">
                   <div className="flex-1">
                     <span className="font-medium text-foreground">{p.name}</span>
-                    {p.role && <span className="ml-1.5 text-[10px] text-muted-foreground">· {p.role}</span>}
-                    {p.note && <p className="mt-0.5 text-[10px] text-muted-foreground">{p.note}</p>}
+                    {p.role && <span className="ml-1.5 text-xs text-muted-foreground">· {p.role}</span>}
+                    {p.note && <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{p.note}</p>}
                   </div>
                 </div>
               ))}
@@ -183,9 +198,7 @@ export function ResearchReportCard({
           <ResearchSection label="emerging trends">
             <div className="flex flex-wrap gap-1.5">
               {result.emerging_trends.map((t) => (
-                <span key={t} className="rounded border border-border bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
-                  {t}
-                </span>
+                <StatusPill key={t} icon={null}>{t}</StatusPill>
               ))}
             </div>
           </ResearchSection>
@@ -209,9 +222,7 @@ export function ResearchReportCard({
         {result.keywords_found?.length > 0 && (
           <div className="flex flex-wrap gap-1 border-t border-border/50 pt-3">
             {result.keywords_found.map((k) => (
-              <Badge key={k} variant="outline" className="text-[10px]">
-                {k}
-              </Badge>
+              <StatusPill key={k} icon={null}>{k}</StatusPill>
             ))}
           </div>
         )}
@@ -220,7 +231,7 @@ export function ResearchReportCard({
         {result.sources_scraped?.length > 0 && <SourcesList sources={result.sources_scraped} />}
 
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+          <ActionRow className="border-t border-border/50 pt-3">
             <Button
               variant="chat-action"
               onClick={() => onFollowUpAction("maya:draft-content", {
@@ -248,7 +259,7 @@ export function ResearchReportCard({
             >
               <Search data-icon="inline-start" /> Find keywords · Sage
             </Button>
-          </div>
+          </ActionRow>
         )}
 
       </AgentCard.Body>
@@ -270,10 +281,10 @@ export function CompanyProfileCard({
     <AgentCard size="sm">
       <AgentCard.Header icon={<Building2 />} title={c.name} />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
+        <p className="text-sm leading-relaxed text-muted-foreground">
           {c.description}
         </p>
-        <div className="grid grid-cols-1 gap-2 text-[11px] sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {c.founded && (
             <FactCell label="Founded" value={c.founded} />
           )}
@@ -286,12 +297,12 @@ export function CompanyProfileCard({
         )}
         {c.pricing && Object.keys(c.pricing).length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Kicker prefix="//">pricing</Kicker>
-            <div className="border border-border">
+            <p className={scoutLabelCls}>Pricing</p>
+            <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
               {Object.entries(c.pricing).map(([tier, price]) => (
                 <div
                   key={tier}
-                  className="flex justify-between border-b border-border px-2 py-1 text-[11px] last:border-0"
+                  className="flex justify-between gap-3 border-b border-border/60 bg-background/65 px-3 py-2 text-sm last:border-0"
                 >
                   <span>{tier}</span>
                   <span className="font-medium">{price}</span>
@@ -306,10 +317,10 @@ export function CompanyProfileCard({
         </div>
         {c.recent_news.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Kicker prefix="//">recent news</Kicker>
-            <ul className="m-0 flex list-none flex-col gap-0.5 p-0 text-[11px]">
+            <p className={scoutLabelCls}>Recent news</p>
+            <ul className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm leading-relaxed">
               {c.recent_news.map((n, i) => (
-                <li key={i} className="border-l-2 border-border pl-2">
+                <li key={i} className={cn(scoutSurfaceCls, "p-2.5")}>
                   {n}
                 </li>
               ))}
@@ -320,7 +331,7 @@ export function CompanyProfileCard({
         {c.sources && c.sources.length > 0 && <SourcesList sources={c.sources} />}
 
         {onFollowUpAction && (
-          <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-3">
+          <ActionRow className="border-t border-border/50 pt-3">
             <Button
               variant="chat-action"
               onClick={() => onFollowUpAction("maya:draft-content", {
@@ -331,7 +342,7 @@ export function CompanyProfileCard({
             >
               <PenLine data-icon="inline-start" /> Draft post · Maya
             </Button>
-          </div>
+          </ActionRow>
         )}
       </AgentCard.Body>
     </AgentCard>
@@ -340,12 +351,10 @@ export function CompanyProfileCard({
 
 function FactCell({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-1 border border-border bg-muted/20 p-2.5">
-      <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-        {label}
-      </p>
-      <p className="text-xs leading-relaxed text-foreground">{value}</p>
-    </div>
+    <ScoutSurface className="space-y-1 p-2.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="text-sm leading-relaxed text-foreground">{value}</p>
+    </ScoutSurface>
   )
 }
 
@@ -367,10 +376,10 @@ export function DiscoverCompetitorsCard({
             return (
               <div
                 key={c.url}
-                className="flex flex-col gap-1 border border-border bg-muted/30 p-2"
+                className={cn(scoutSurfaceCls, "flex flex-col gap-2")}
               >
                 <div className="flex items-center gap-1.5">
-                  <p className="flex-1 text-xs font-medium">{c.name}</p>
+                  <p className="flex-1 text-sm font-semibold">{c.name}</p>
                   <a
                     href={c.url}
                     target="_blank"
@@ -382,9 +391,7 @@ export function DiscoverCompetitorsCard({
                   {onFollowUpAction && (
                     <Button
                       type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-6 gap-1 px-2 text-[10px]"
+                      variant="chat-utility"
                       onClick={() =>
                         onFollowUpAction("scout:research-company", {
                           company_name: c.name,
@@ -396,12 +403,10 @@ export function DiscoverCompetitorsCard({
                     </Button>
                   )}
                 </div>
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   {c.why_competitive}
                 </p>
-                <p className="text-[10px] text-muted-foreground">
-                  Pricing: {c.pricing_model}
-                </p>
+                <StatusPill icon={null}>Pricing: {c.pricing_model}</StatusPill>
               </div>
             )
           })}
@@ -415,10 +420,10 @@ export function DiscoverCompetitorsCard({
 
 function TrendSection({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">{label}</p>
-      <div className="text-[11px] leading-relaxed text-foreground">{children}</div>
-    </div>
+    <section className="flex flex-col gap-1.5">
+      <p className={scoutLabelCls}>{label}</p>
+      <div className={scoutBodyCls}>{children}</div>
+    </section>
   )
 }
 
@@ -447,33 +452,26 @@ export function TrendsBoardCard({
                 : t.momentum === "declining"
                   ? "text-destructive"
                   : "text-muted-foreground"
-            const momentumBg =
-              t.momentum === "rising"
-                ? "bg-chart-2/10 text-chart-2"
-                : t.momentum === "declining"
-                  ? "bg-destructive/10 text-destructive"
-                  : "bg-muted text-muted-foreground"
             return (
               <div
                 key={i}
-                className="flex flex-col gap-3 border border-border bg-muted/20 p-3"
+                className={cn(scoutSurfaceCls, "flex flex-col gap-3")}
               >
                 {/* Title + badges */}
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-start gap-1.5">
                     <Icon className={cn("mt-0.5 size-3.5 shrink-0", momentumColor)} />
-                    <p className="flex-1 text-xs font-semibold leading-snug">{t.topic}</p>
+                    <p className="flex-1 text-sm font-semibold leading-snug">{t.topic}</p>
                   </div>
-                  <div className="flex flex-wrap gap-1">
-                    <span className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-medium capitalize", momentumBg)}>
-                      <Icon className="size-2.5" />{t.momentum}
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                      {Math.round(t.relevance_score * 100)}% relevant
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-border px-1.5 py-0.5 text-[10px] text-muted-foreground">
-                      {t.search_volume_estimate}
-                    </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    <StatusPill
+                      level={t.momentum === "declining" ? "warn" : t.momentum === "rising" ? "ok" : "info"}
+                      icon={<Icon />}
+                    >
+                      {t.momentum}
+                    </StatusPill>
+                    <StatusPill icon={null}>{Math.round(t.relevance_score * 100)}% relevant</StatusPill>
+                    <StatusPill icon={null}>{t.search_volume_estimate}</StatusPill>
                   </div>
                 </div>
 
@@ -491,9 +489,7 @@ export function TrendsBoardCard({
                     <TrendSection label="Key players">
                       <div className="flex flex-wrap gap-1 mt-0.5">
                         {t.key_players.map((p) => (
-                          <span key={p} className="rounded bg-muted border border-border px-1.5 py-0.5 text-[10px]">
-                            {p}
-                          </span>
+                          <StatusPill key={p} icon={null}>{p}</StatusPill>
                         ))}
                       </div>
                     </TrendSection>
@@ -520,9 +516,7 @@ export function TrendsBoardCard({
                     <TrendSection label="Related trends">
                       <div className="flex flex-wrap gap-1 mt-0.5">
                         {t.related_trends.map((r) => (
-                          <span key={r} className="rounded bg-muted border border-border px-1.5 py-0.5 text-[10px]">
-                            {r}
-                          </span>
+                          <StatusPill key={r} icon={null}>{r}</StatusPill>
                         ))}
                       </div>
                     </TrendSection>
@@ -531,17 +525,17 @@ export function TrendsBoardCard({
                     <TrendSection label="Content angle">{t.content_angle}</TrendSection>
                   )}
                   {t.content_hook && (
-                    <div className="rounded border border-dashed border-border bg-background px-2.5 py-2">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-foreground mb-1">Hook idea</p>
-                      <p className="text-[11px] italic text-foreground">&ldquo;{t.content_hook}&rdquo;</p>
-                    </div>
+                    <ScoutSurface className="space-y-1.5 border-dashed">
+                      <p className={scoutLabelCls}>Hook idea</p>
+                      <p className="text-sm italic leading-relaxed text-foreground">&ldquo;{t.content_hook}&rdquo;</p>
+                    </ScoutSurface>
                   )}
                   {t.next_steps && t.next_steps.length > 0 && (
                     <TrendSection label="Next steps">
                       <ol className="mt-0.5 flex flex-col gap-1">
                         {t.next_steps.map((s, si) => (
                           <li key={si} className="flex gap-1.5">
-                            <span className="shrink-0 text-[10px] font-bold text-primary">{si + 1}.</span>
+                            <span className="shrink-0 text-xs font-semibold text-primary">{si + 1}.</span>
                             {s}
                           </li>
                         ))}
@@ -550,7 +544,7 @@ export function TrendsBoardCard({
                   )}
 
                   {onFollowUpAction && (
-                    <div className="flex flex-wrap gap-1.5 border-t border-border/50 pt-2">
+                    <ActionRow className="border-t border-border/50 pt-2">
                       <Button
                         variant="chat-action"
                         onClick={() => onFollowUpAction("maya:draft-content", {
@@ -569,7 +563,7 @@ export function TrendsBoardCard({
                       >
                         <Sparkles className="size-3" /> Generate ideas · Maya
                       </Button>
-                    </div>
+                    </ActionRow>
                   )}
                 </div>
               </div>

@@ -269,7 +269,7 @@ function ChatMessageComponent({
           {message.deliveryStatus && (
             <div
               aria-live="polite"
-              className="mt-1.5 flex items-center justify-end gap-2 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+              className="mt-1.5 flex items-center justify-end gap-2 text-xs font-medium text-muted-foreground"
             >
               {message.deliveryStatus === "sending" ? (
                 <span>sending…</span>
@@ -307,7 +307,7 @@ function ChatMessageComponent({
         // sit alongside it and double the offset (see PR history).
         <div style={{ width: 32, flexShrink: 0 }} />
       )}
-      <div className="flex flex-col min-w-0" style={{ maxWidth: runId ? "680px" : actionId ? "520px" : "min(85%, 600px)" }}>
+      <div className="flex flex-col min-w-0" style={{ maxWidth: runId ? "680px" : actionId ? "680px" : "min(85%, 600px)" }}>
         {runId ? (
           // A planned run owns the whole bubble: the graph carries the step
           // detail that the action card and tool-trace strip would otherwise
@@ -317,7 +317,7 @@ function ChatMessageComponent({
               <div
                 style={{
                   background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
-                  borderLeft: `3px solid ${agentColor}`,
+                  border: "1px solid var(--border)",
                   color: "var(--foreground)",
                   borderRadius: "18px 18px 18px 4px",
                   boxShadow: "var(--vq-shadow-sm)",
@@ -366,7 +366,7 @@ function ChatMessageComponent({
           <div
             style={{
               background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
-              borderLeft: `3px solid ${agentColor}`,
+              border: "1px solid var(--border)",
               color: "var(--foreground)",
               borderRadius: "18px 18px 18px 4px",
               boxShadow: "var(--vq-shadow-sm)",
@@ -395,7 +395,7 @@ function ChatMessageComponent({
             {message.deliveryStatus === "failed" && (
               <div
                 role="alert"
-                className="mt-1.5 font-mono text-[10px] uppercase tracking-wider text-destructive"
+                className="mt-1.5 text-xs font-medium text-destructive"
               >
                 reply interrupted{message.content ? " — showing partial reply" : ""}
               </div>

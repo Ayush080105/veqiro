@@ -39,14 +39,14 @@ export function HelpSheet({
         <div className="flex flex-col gap-3 overflow-y-auto p-4 pt-0">
           <div className="flex flex-wrap gap-1">
             {agent.specialties.map((s) => (
-              <Badge key={s} variant="outline" className="text-[10px]">
+              <Badge key={s} variant="outline" className="text-xs">
                 {s}
               </Badge>
             ))}
           </div>
           <Separator />
           <div>
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="mb-2 text-sm font-medium text-foreground">
               Chat
             </p>
             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -56,7 +56,7 @@ export function HelpSheet({
           </div>
           <Separator />
           <div>
-            <p className="mb-2 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            <p className="mb-2 text-sm font-medium text-foreground">
               Structured actions
             </p>
             <p className="mb-2 text-xs text-muted-foreground leading-relaxed">
@@ -70,14 +70,14 @@ export function HelpSheet({
                 return (
                   <div
                     key={a.id}
-                    className="flex items-start gap-2.5 border border-border bg-muted/20 p-2.5"
+                    className="flex items-start gap-2.5 rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-2.5"
                   >
-                    <div className="flex size-8 shrink-0 items-center justify-center bg-background ring-1 ring-border">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-[var(--vq-r-sm)] bg-background ring-1 ring-border/70">
                       <Icon className="size-4" />
                     </div>
                     <div className="flex flex-col gap-0.5 min-w-0">
-                      <p className="text-xs font-medium">{a.label}</p>
-                      <p className="text-[10px] text-muted-foreground leading-relaxed">
+                      <p className="text-sm font-medium">{a.label}</p>
+                      <p className="text-xs leading-relaxed text-muted-foreground">
                         {a.description}
                       </p>
                     </div>

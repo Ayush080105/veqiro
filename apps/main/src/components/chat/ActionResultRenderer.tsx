@@ -190,9 +190,12 @@ export function ActionResultRenderer({ actionId, result, input, agentColor, onFo
 
     default:
       return (
-        <pre className="max-h-72 overflow-auto rounded border border-border bg-muted/20 p-2 text-[10px]">
-          {JSON.stringify(result, null, 2)}
-        </pre>
+        <div className="rounded-[var(--vq-r)] border border-border/60 bg-background/70 p-3">
+          <p className="mb-2 text-xs font-semibold text-foreground">Result data</p>
+          <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-3 text-xs leading-relaxed text-muted-foreground">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
       )
   } })()
 

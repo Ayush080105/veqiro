@@ -58,6 +58,18 @@ import type {
 
 type FollowUp = (actionId: AgentActionId, prefill?: Record<string, unknown>) => void
 
+const rexSurfaceCls =
+  "rounded-[var(--vq-r-sm)] border border-border/60 bg-background/65 p-3"
+const rexLabelCls = "text-xs font-semibold text-foreground"
+const rexBodyCls = "text-sm leading-relaxed text-foreground"
+
+function RexSurface({
+  children,
+  className,
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn(rexSurfaceCls, className)}>{children}</div>
+}
+
 // ─── Confidence footer ───────────────────────────────────────────────────────
 
 function ConfidenceFooter({
@@ -80,8 +92,8 @@ function ConfidenceFooter({
           style={{ background: dot }}
         />
       )}
-      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
-        {[label, dataPoints ? `${dataPoints} data pts` : null, note].filter(Boolean).join(" · ")}
+      <span className="text-xs font-medium text-muted-foreground">
+        {[label, dataPoints ? `${dataPoints} data pts` : null, note].filter(Boolean).join(" / ")}
       </span>
     </div>
   )
@@ -215,16 +227,14 @@ export function MetricsAnalysisCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-[11px] leading-relaxed">{analysis.summary}</p>
+        <p className={rexBodyCls}>{analysis.summary}</p>
         {Object.keys(charts_data).length > 0 && (
           <div className="grid gap-2 sm:grid-cols-2">
             {Object.entries(charts_data).map(([name, data]) => (
-              <div key={name} className="border border-border bg-muted/20 p-2">
-                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
-                  {name}
-                </p>
+              <RexSurface key={name} className="space-y-2 p-2.5">
+                <p className={rexLabelCls}>{name}</p>
                 <Sparkline data={data} />
-              </div>
+              </RexSurface>
             ))}
           </div>
         )}
@@ -296,10 +306,10 @@ export function ForecastCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <div className="border border-border bg-muted/20 p-2">
+        <RexSurface className="p-2.5">
           <Sparkline data={points} band={band} height={80} />
-        </div>
-        <p className="text-[11px] leading-relaxed">{result.summary}</p>
+        </RexSurface>
+        <p className={rexBodyCls}>{result.summary}</p>
         {onFollowUpAction && (
           <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
@@ -450,11 +460,9 @@ export function BriefingCard({
             const sectionObj = isObj ? (body as RexBriefingSectionObj) : null
             const textContent = isObj ? sectionObj?.summary : (body as string)
             return (
-              <div key={title} className="border-l-2 border-border pl-2">
+              <RexSurface key={title} className="space-y-1.5 p-2.5">
                 <div className="mb-0.5 flex items-center gap-1.5">
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
-                    {title}
-                  </p>
+                  <p className={rexLabelCls}>{title}</p>
                   {sectionObj?.status && (
                     <StatusPill level={healthLevel(sectionObj.status)}>
                       {sectionObj.status}
@@ -462,7 +470,7 @@ export function BriefingCard({
                   )}
                 </div>
                 {textContent && (
-                  <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{textContent}</p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{textContent}</p>
                 )}
                 {sectionObj?.key_actions && sectionObj.key_actions.length > 0 && (
                   <ul className="mt-1 space-y-0.5">
@@ -474,7 +482,7 @@ export function BriefingCard({
                     ))}
                   </ul>
                 )}
-              </div>
+              </RexSurface>
             )
           })}
         </div>
@@ -531,30 +539,30 @@ export function RunwayCard({
           </p>
         )}
         {result.scenarios?.length > 0 && (
-          <div className="border border-border overflow-hidden">
-            <table className="w-full text-[11px]">
+          <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Scenario</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Runway</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Zero date</th>
+                <tr className="border-b border-border/60 bg-muted/30">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Scenario</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Runway</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Zero date</th>
                 </tr>
               </thead>
               <tbody>
                 {result.scenarios.map((s, i) => (
-                  <tr key={i} className="border-b border-border last:border-0">
-                    <td className="px-2 py-1 capitalize">{s.name}</td>
-                    <td className="px-2 py-1 text-right">
+                  <tr key={i} className="border-b border-border/60 last:border-0">
+                    <td className="px-3 py-2 capitalize">{s.name}</td>
+                    <td className="px-3 py-2 text-right">
                       {s.months != null ? `${s.months} mo` : "Profitable"}
                     </td>
-                    <td className="px-2 py-1 text-right text-muted-foreground">{s.date_of_zero}</td>
+                    <td className="px-3 py-2 text-right text-muted-foreground">{s.date_of_zero}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-        <p className="text-[11px] leading-relaxed">{result.recommendation}</p>
+        <p className={rexBodyCls}>{result.recommendation}</p>
         {onFollowUpAction && (
           <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
@@ -621,7 +629,7 @@ export function UnitEconomicsCard({
             suffix=" mo"
           />
         </div>
-        <p className="text-[11px] leading-relaxed">{result.benchmark_context}</p>
+        <p className={rexBodyCls}>{result.benchmark_context}</p>
         {result.recommendations?.length > 0 && (
           <InfoSection label="recommendations" bullets={result.recommendations} />
         )}
@@ -705,24 +713,24 @@ export function WeeklyDigestCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-[12px] font-medium leading-snug">{result.headline}</p>
+        <p className="text-sm font-medium leading-snug">{result.headline}</p>
 
         {result.wow_changes?.length > 0 && (
-          <div className="border border-border overflow-hidden">
-            <table className="w-full text-[11px]">
+          <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Metric</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Current</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">WoW</th>
+                <tr className="border-b border-border/60 bg-muted/30">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Metric</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Current</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">WoW</th>
                 </tr>
               </thead>
               <tbody>
                 {result.wow_changes.map((c, i) => (
-                  <tr key={i} className="border-b border-border last:border-0">
-                    <td className="px-2 py-1 capitalize">{c.metric}</td>
-                    <td className="px-2 py-1 text-right">{c.current?.toLocaleString()}</td>
-                    <td className="px-2 py-1 text-right">
+                  <tr key={i} className="border-b border-border/60 last:border-0">
+                    <td className="px-3 py-2 capitalize">{c.metric}</td>
+                    <td className="px-3 py-2 text-right">{c.current?.toLocaleString()}</td>
+                    <td className="px-3 py-2 text-right">
                       <span className={cn("flex items-center justify-end gap-0.5", c.direction === "up" ? "text-chart-2" : "text-destructive")}>
                         {c.direction === "up" ? <ArrowUp className="size-3" /> : <ArrowDown className="size-3" />}
                         {Math.abs(c.change_pct ?? 0).toFixed(1)}%
@@ -737,7 +745,7 @@ export function WeeklyDigestCard({
 
         {result.alerts?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Alerts</p>
+            <p className={rexLabelCls}>Alerts</p>
             {result.alerts.map((a, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <XCircle className={cn("mt-0.5 size-3 shrink-0", severityColor(a.severity))} />
@@ -749,7 +757,7 @@ export function WeeklyDigestCard({
 
         {result.green_flags?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Green flags</p>
+            <p className={rexLabelCls}>Green flags</p>
             {result.green_flags.map((f, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <CheckCircle className="mt-0.5 size-3 shrink-0 text-chart-2" />
@@ -828,7 +836,7 @@ export function InvestorUpdateCard({
             <button
               type="button"
               onClick={copy}
-              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
+              className="flex items-center gap-1 rounded-[var(--vq-r-sm)] border border-border px-2 py-1 text-xs font-medium hover:bg-muted"
             >
               <Copy className="size-3" />
               {copied ? "Copied!" : "Copy email"}
@@ -837,10 +845,10 @@ export function InvestorUpdateCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+        <p className="text-sm font-semibold leading-snug text-foreground">
           {result.subject_line}
         </p>
-        <p className="text-[11px] leading-relaxed">{result.executive_summary}</p>
+        <p className={rexBodyCls}>{result.executive_summary}</p>
 
         {result.highlights_section?.length > 0 && (
           <InfoSection label="Highlights" bullets={result.highlights_section} />
@@ -852,11 +860,11 @@ export function InvestorUpdateCard({
           <InfoSection label="Where you can help" bullets={result.asks_section} />
         )}
 
-        <details className="text-[10px]">
-          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
+        <details className="text-xs">
+          <summary className="cursor-pointer font-semibold text-muted-foreground hover:text-foreground">
             Full email body
           </summary>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap border border-border bg-muted/20 p-2 text-[10px] leading-relaxed">
+          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded-[var(--vq-r-sm)] border border-border/60 bg-muted/20 p-3 text-xs leading-relaxed">
             {result.full_email_body}
           </pre>
         </details>
@@ -902,24 +910,24 @@ export function VarianceCard({
           />
         </div>
         {result.rows.length > 0 && (
-          <div className="border border-border overflow-hidden">
-            <table className="w-full text-[11px]">
+          <div className="overflow-hidden rounded-[var(--vq-r-sm)] border border-border/60">
+            <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Date</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Actual</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Budget</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Δ</th>
+                <tr className="border-b border-border/60 bg-muted/30">
+                  <th className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">Date</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Actual</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Budget</th>
+                  <th className="px-3 py-2 text-right text-xs font-semibold text-muted-foreground">Delta</th>
                 </tr>
               </thead>
               <tbody>
                 {result.rows.map((r, i) => (
-                  <tr key={i} className="border-b border-border last:border-0">
-                    <td className="px-2 py-1">{r.date}</td>
-                    <td className="px-2 py-1 text-right font-mono">{fmtCurrency(r.actual)}</td>
-                    <td className="px-2 py-1 text-right font-mono text-muted-foreground">{fmtCurrency(r.budget)}</td>
+                  <tr key={i} className="border-b border-border/60 last:border-0">
+                    <td className="px-3 py-2">{r.date}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtCurrency(r.actual)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{fmtCurrency(r.budget)}</td>
                     <td className={cn(
-                      "px-2 py-1 text-right",
+                      "px-3 py-2 text-right tabular-nums",
                       r.direction === "over" ? "text-destructive" : r.direction === "under" ? "text-amber-500" : "text-muted-foreground"
                     )}>
                       {r.variance_pct > 0 ? "+" : ""}
@@ -931,7 +939,7 @@ export function VarianceCard({
             </table>
           </div>
         )}
-        <p className="text-[11px] leading-relaxed">{result.narrative}</p>
+        <p className={rexBodyCls}>{result.narrative}</p>
         {onFollowUpAction && (
           <div className="flex flex-wrap justify-end gap-1.5 pt-1">
             <FollowUpBtn
@@ -977,7 +985,7 @@ export function BoardDeckCard({
             <button
               type="button"
               onClick={copyHtml}
-              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
+              className="flex items-center gap-1 rounded-[var(--vq-r-sm)] border border-border px-2 py-1 text-xs font-medium hover:bg-muted"
             >
               <Copy className="size-3" />
               {copied ? "Copied!" : "Copy HTML"}
@@ -985,7 +993,7 @@ export function BoardDeckCard({
             <button
               type="button"
               onClick={() => setPreviewOpen(true)}
-              className="flex items-center gap-1 border border-border px-2 py-0.5 text-[10px] hover:bg-muted"
+              className="flex items-center gap-1 rounded-[var(--vq-r-sm)] border border-border px-2 py-1 text-xs font-medium hover:bg-muted"
             >
               <ArrowRight className="size-3" /> Preview
             </button>
@@ -993,15 +1001,15 @@ export function BoardDeckCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="text-[12px] font-medium leading-snug">{result.headline}</p>
+        <p className="text-sm font-medium leading-snug">{result.headline}</p>
         <div className="flex flex-col gap-2">
           {Object.entries(result.sections).map(([key, body]) => (
-            <div key={key} className="border-l-2 border-border pl-2">
-              <p className="mb-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <RexSurface key={key} className="space-y-1.5 p-2.5">
+              <p className={rexLabelCls}>
                 {key.replace(/_/g, " ")}
               </p>
-              <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body || "—"}</p>
-            </div>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{body || "—"}</p>
+            </RexSurface>
           ))}
         </div>
         {onFollowUpAction && (
@@ -1047,20 +1055,20 @@ function DynamicChart({ spec }: { spec: RexQueryDatasetChartSpec }) {
   if (spec.type === "table") {
     const allKeys = spec.xKey ? [spec.xKey, ...spec.yKeys.map((y) => y.key)] : spec.yKeys.map((y) => y.key)
     return (
-      <div className="overflow-x-auto">
-        <table className="w-full text-[11px] border-collapse">
+      <div className="overflow-hidden overflow-x-auto rounded-[var(--vq-r-sm)] border border-border/60">
+        <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
+            <tr className="border-b border-border/60 bg-muted/30">
               {allKeys.map((k) => (
-                <th key={k} className="px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{k}</th>
+                <th key={k} className="px-3 py-2 text-left text-xs font-semibold text-muted-foreground">{k}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {spec.data.map((row, i) => (
-              <tr key={i} className={cn("border-b border-border/50", i % 2 === 0 ? "bg-background" : "bg-muted/20")}>
+              <tr key={i} className="border-b border-border/50 last:border-0">
                 {allKeys.map((k) => (
-                  <td key={k} className="px-2 py-1.5">{String(row[k] ?? "—")}</td>
+                  <td key={k} className="px-3 py-2">{String(row[k] ?? "—")}</td>
                 ))}
               </tr>
             ))}
@@ -1187,15 +1195,15 @@ export function RexQueryDatasetCard({
       />
       <AgentCard.Body className="flex flex-col gap-3">
         {query && (
-          <div className="border-l-2 pl-2" style={{ borderColor: "var(--vq-green)" }}>
-            <p className="text-[11px] italic text-muted-foreground leading-snug">"{query}"</p>
-          </div>
+          <RexSurface className="border-dashed p-2.5">
+            <p className="text-sm italic leading-snug text-muted-foreground">"{query}"</p>
+          </RexSurface>
         )}
-        <p className="text-[12px] leading-relaxed whitespace-pre-wrap">{result.answer}</p>
+        <p className="whitespace-pre-wrap text-sm leading-relaxed">{result.answer}</p>
         {result.chart && (
           <div className="flex flex-col gap-1.5">
             {result.chart.title && (
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+              <p className={rexLabelCls}>
                 {result.chart.title}
               </p>
             )}
@@ -1264,7 +1272,7 @@ export function RexAnalyzeDatasetCard({
         {/* Key findings */}
         {result.key_findings?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <p className={cn(rexLabelCls, "flex items-center gap-1.5")}>
               <TrendUp className="size-3" /> Key findings
             </p>
             <ul className="flex flex-col gap-1">
@@ -1284,7 +1292,7 @@ export function RexAnalyzeDatasetCard({
             {allCharts.map((chart, ci) => (
               <div key={ci} className="flex flex-col gap-1.5">
                 {chart.title && (
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+                  <p className={rexLabelCls}>
                     {chart.title}
                   </p>
                 )}
@@ -1297,7 +1305,7 @@ export function RexAnalyzeDatasetCard({
         {/* Insights */}
         {result.insights?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <p className={cn(rexLabelCls, "flex items-center gap-1.5")}>
               <Lightbulb className="size-3" /> Insights
             </p>
             <ul className="flex flex-col gap-1">
@@ -1314,7 +1322,7 @@ export function RexAnalyzeDatasetCard({
         {/* Recommendations */}
         {result.recommendations?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <p className={cn(rexLabelCls, "flex items-center gap-1.5")}>
               <CheckCircle2 className="size-3" /> Recommendations
             </p>
             <ul className="flex flex-col gap-1">
