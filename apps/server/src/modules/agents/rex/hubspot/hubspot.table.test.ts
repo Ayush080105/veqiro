@@ -51,12 +51,13 @@ describe("shapeRecords for deals", () => {
     assert.equal(t.rows[0]!.deal_type, "New business");
   });
 
-  it("cleans numbers, keeps ISO dates and turns missing values into empty cells", () => {
+  it("cleans numbers, writes dates as plain days and turns missing values into empty cells", () => {
     assert.equal(t.rows[0]!.amount, "1000.50");
-    assert.equal(t.rows[0]!.close_date, "2026-03-01T10:00:00.000Z");
+    assert.equal(t.rows[0]!.close_date, "2026-03-01");
     assert.equal(t.rows[2]!.amount, "");
     assert.equal(t.rows[2]!.deal_name, "");
-    assert.equal(t.rows[1]!.owner_name, "");
+    assert.equal(t.rows[1]!.owner_name, "Unassigned");
+    assert.equal(shapeRecords(OBJECT_SPECS.deals!, plan(), [rec("9", { hubspot_owner_id: "404" })], lookups).rows[0]!.owner_name, "Former owner");
   });
 
   it("derives open, won, lost, probability and weighted amount from the stage", () => {
@@ -113,7 +114,7 @@ describe("shapeRecords for other objects", () => {
     const cols = planColumns(OBJECT_SPECS.companies!, [p("name"), p("is_customer", "bool", { hubspotDefined: false }), p("renewal", "date", { hubspotDefined: false })], { extra: ["is_customer", "renewal"], includePii: [] }).columns;
     const t = shapeRecords(OBJECT_SPECS.companies!, cols, [rec("1", { name: "x", is_customer: "TRUE", renewal: "1772323200000" })], { owners: new Map() });
     assert.equal(t.rows[0]!.is_customer, "true");
-    assert.equal(t.rows[0]!.renewal, "2026-03-01T00:00:00.000Z");
+    assert.equal(t.rows[0]!.renewal, "2026-03-01");
   });
 });
 

@@ -39,12 +39,17 @@ function cleanNumber(raw: string): string {
   return s !== "" && Number.isFinite(n) ? String(n) : "";
 }
 
+/** Calendar date (UTC) as YYYY-MM-DD. Dashboards bucket by day, and one uniform format keeps the
+ *  AI service's strict date parsing from ever meeting date-only and timezone-stamped values in a column. */
 function cleanDate(raw: string): string {
   if (/^\d{10,}$/.test(raw)) {
     const d = new Date(Number(raw));
-    return Number.isNaN(d.getTime()) ? "" : d.toISOString();
+    return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
   }
-  return raw;
+  const iso = raw.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (iso) return iso[1]!;
+  const t = Date.parse(raw);
+  return Number.isNaN(t) ? "" : new Date(t).toISOString().slice(0, 10);
 }
 
 function shapeValue(plan: ColumnPlan, raw: string | null | undefined): string {
@@ -63,8 +68,9 @@ function shapeValue(plan: ColumnPlan, raw: string | null | undefined): string {
 function shapeCell(spec: ObjectSpec, plan: ColumnPlan, record: RawRecord, lookups: Lookups): string {
   if (plan.special === "id") return record.id;
   const raw = record.properties[plan.property];
+  // An owner column reads better as a category than as a blank bar.
+  if (plan.special === "owner") return raw ? (lookups.owners.get(raw) ?? "Former owner") : "Unassigned";
   if (raw === null || raw === undefined || raw === "") return "";
-  if (plan.special === "owner") return lookups.owners.get(raw) ?? "";
   if (plan.special === "stage") return lookups.stages?.get(raw)?.stage ?? plan.options?.get(raw) ?? raw;
   if (plan.special === "pipeline") return lookups.pipelines?.get(raw) ?? plan.options?.get(raw) ?? raw;
   return shapeValue(plan, raw);
