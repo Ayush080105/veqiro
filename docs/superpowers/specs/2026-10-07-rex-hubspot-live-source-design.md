@@ -187,3 +187,106 @@ runs against a real HubSpot account when a token is supplied.
 3. **Row cap 100k / 40 MB per object** in v1.
 4. **A real HubSpot test account/token** from you for Phase 0 and the smoke test.
 5. **New env var** `INTEGRATION_SECRET_KEY` must be set in every environment (local, Coolify) before deploy.
+
+---
+
+# Addendum (2026-10-07, after review): live updates, entity/field modelling, connect UX + OAuth
+
+Decisions in section 11 are approved. These three sections extend the design; where they conflict with
+sections 1-10 they win (notably: sync cadence is 5 min not 15, OAuth is built now behind configuration,
+and objects beyond the first four are in scope).
+
+## 12. Live updates
+
+HubSpot cannot push to a token connection (webhooks need a project-based app; the webhooks *journal* is a
+pull API that also needs that app and avoids a public endpoint, so it is the Phase 2 path once OAuth is
+registered). So "live" here means **fresh on demand, polled cheaply**, which is honest and robust:
+
+| Moment | What happens | Freshness |
+|---|---|---|
+| Editor open | Browser refetches the dashboard every 30s while the tab is visible. Each fetch calls `ensureFresh(datasets, 60s)`: if a HubSpot dataset was last synced more than 60s ago and nothing is syncing, an incremental sync starts in the background and the *next* poll picks up the new rows. | about 1 min |
+| Public link open | Public page refetches every 60s; the public endpoint calls `ensureFresh(datasets, 120s)`, gated by the existing per-token limiter. | about 2 min |
+| Nobody watching | Cron every 5 min syncs HubSpot datasets that a dashboard uses. | at most 5 min |
+| **Refresh button** | Runs an incremental sync *now* and waits (up to 25s) before recomputing; if HubSpot is slow it answers "still syncing" and the UI keeps polling. A "Full resync" menu item does the full pull. | immediate |
+
+An incremental sync with no changes costs one search call per object, so an always-open dashboard uses
+roughly 6k calls/day against the 250k+ plan budget (the 40% daily guard still applies). The UI shows a
+**Live pill**: "Live, updated 12s ago", turning amber ("Updating") during a sync and red with a plain
+reason on failure. Known limit: deletions in HubSpot show up after the nightly reconcile or a Full resync.
+
+The existing **Refresh** also needs fixing generally: today it only recomputes from stored files and never
+re-fetches a linked sheet. It will now sync HubSpot sources first (linked sheets are left as is and flagged to you).
+
+## 13. Entities and fields: how HubSpot's breadth becomes usable tables
+
+**Principle:** one table per object, one row per record, flat columns, human-readable values, explicit join
+keys. Dashboards are limited to 5 datasets, so relationships are denormalised instead of added as extra tables.
+
+*Objects (generic `ObjectSpec`, so adding one is data not code):*
+- Tier 1, on by default: **deals, companies, contacts, tickets**.
+- Tier 2, opt-in: **products, line items, quotes, calls, meetings, tasks** (activity objects capped at 50k rows).
+- Tier 3, opt-in, discovered at connect time from `GET /crm/v3/schemas`: **custom objects**, same generic pipeline.
+- Not supported (Phase 2): emails and notes (huge, mostly free text), marketing events, forms, lists.
+
+*Fields:*
+- Pull the property catalogue (`/crm/v3/properties/{type}`) and classify each: **recommended** (curated set that
+  exists in this portal, about 15-25 per object), **custom** (portal-defined), **other** (HubSpot-defined, rest).
+  Hidden properties, `json`/`object_coordinates` types and sensitive-flagged properties are never offered.
+- Default selection = recommended. The picker shows counts and lets the user add custom/other fields grouped by
+  HubSpot's own `groupName`, searchable, with type icons. **Hard cap: 60 columns per object** (derived columns
+  count), so the AI schema prompt and DuckDB stay small and fast.
+- PII properties (email, phone, names, address) stay off unless opted in per column (section 8).
+
+*Value shaping (so dashboards and the AI get clean data):*
+- Enumerations store the **label**, not the internal id (`Closed won`, not `closedwon`); owners become
+  `owner_name`; deal/ticket stages and pipelines come from the pipelines API.
+- Numbers as plain numerics; date/datetime as ISO text typed `date`; booleans as `true`/`false` categoricals;
+  multi-select values keep HubSpot's `;` separator.
+- Friendly stable column names for the curated set (`deal_name`, `amount`, `close_date`, `stage`, `pipeline`,
+  `owner_name`, `created_at`); other properties keep HubSpot's internal name so renames in HubSpot never break
+  a dashboard.
+- Every table has `id` (HubSpot record id) as its first column.
+- **Derived columns that make dashboards easy:** deals: `is_open`, `is_won`, `is_lost`, `stage_probability`,
+  `weighted_amount`; tickets: `is_open`; deals, contacts and tickets: `associated_company_id` and
+  `associated_company_name` (primary association). Join: `deals.associated_company_id = companies.id`.
+- Currency: `amount` stays in the deal's currency; `deal_currency_code` is included. A dashboard over several
+  currencies is flagged in the dataset note (no conversion in v1).
+
+*Making it show up well in dashboards:* no AI-service change. The New dashboard dialog offers **HubSpot
+templates** (Sales pipeline, Revenue and win rate, Lead sources and lifecycle, Support tickets) whose prompts
+name the real columns (`is_won`, `stage`, `owner_name`, ...) and appear only when the needed objects are synced.
+Missing objects show a one-click "Add Deals" instead.
+
+## 14. Connect experience and OAuth
+
+**Wizard (one dialog, four steps, resumable):**
+1. **Connect.** Two clear options. *Connect with HubSpot* (OAuth, one click, shown when the server has a HubSpot
+   app configured) and *Use a Service Key / private app token*, with a numbered how-to, a "Copy required scopes"
+   button, a link to the right HubSpot settings page and the plain note that new private apps close on
+   26 Oct 2026. The token field masks input and validates on blur.
+2. **Verify.** Shows the HubSpot account and, per object, a green check or an amber "needs scope X" with the
+   exact fix and a Re-check button.
+3. **Choose data.** Objects as cards with record counts and a recommended-fields summary; "Customise fields"
+   opens the picker; PII toggles with a one-line explanation; a warning if an object exceeds the 100k cap.
+4. **Syncing.** Per-object progress (rows pulled), then "Build a dashboard" with the templates, or "Done".
+
+**Connections panel** (Data tab): one row per connection with a status chip (Live / Syncing / Needs reconnect /
+Paused), account name, last sync, per-object row counts, *Sync now*, *Full resync*, *Edit data*, *Reconnect*,
+*Disconnect* (with the keep-or-delete choice). Errors are phrased as actions ("HubSpot says the key was revoked.
+Reconnect"), never raw status codes.
+
+**OAuth (built now, enabled by configuration):**
+- Env: `HUBSPOT_CLIENT_ID`, `HUBSPOT_CLIENT_SECRET`, `HUBSPOT_REDIRECT_URI`. With these unset the OAuth button is
+  hidden and the token path works unchanged. Registering the HubSpot app (a project-based public app, since
+  legacy public app creation is closed) is a one-time step on your side; the code and tests are ready before it.
+- Flow: `POST /connections/hubspot/oauth/start` returns the authorize URL (`app.hubspot.com/oauth/authorize`)
+  with an HMAC-signed `state` (org, user, return path, nonce, 10-min expiry) and read scopes as required plus
+  optional scopes (tickets, custom objects, products) so smaller plans still connect. The browser is redirected
+  (full page, no popup blockers); HubSpot returns to the public callback
+  `GET /connections/hubspot/oauth/callback`, which verifies `state` (no session cookie is needed, so cross-domain
+  cookies cannot break it), exchanges the code, stores access and refresh tokens encrypted, then redirects back to
+  the page the user came from with the wizard on step 2.
+- Access tokens last 30 minutes: the client refreshes proactively (1 min before expiry) and once on a 401,
+  serialised per connection so concurrent syncs never race two refreshes. A failed refresh marks the connection
+  *Needs reconnect*.
+- Composio token reuse stays a Phase 2 spike; it would give OAuth without our own HubSpot app.
