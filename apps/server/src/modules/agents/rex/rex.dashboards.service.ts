@@ -601,9 +601,11 @@ export async function getPublicDashboard(token: string, state: FilterState = {})
       await ensureStateComputed(d, key, valid);
     }
   }
+  const live = (await prisma.rexDataset.count({ where: { id: { in: d.datasetIds }, sourceKind: "hubspot" } })) > 0;
   return {
     title: d.title,
     description: d.description,
+    live,
     filters: filters.map((f) => ({ id: f.id, label: f.label, type: f.type, options: f.options ?? null })),
     widgets: d.widgets.map((w) => ({
       id: w.id, kind: w.kind, title: w.title, spec: w.spec, layout: w.layout, filterIds: w.filterIds,

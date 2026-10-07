@@ -15,16 +15,23 @@ export function PublicDashboardView({ token }: { token: string }) {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
+  const live = data?.live === true
+
   React.useEffect(() => {
     let cancelled = false
-    setLoading(true)
-    setError(null)
-    fetchPublicDashboard(token, state)
-      .then((d) => { if (!cancelled) setData(d) })
-      .catch((err: unknown) => { if (!cancelled) setError(err instanceof Error ? err.message : "Couldn't load") })
-      .finally(() => { if (!cancelled) setLoading(false) })
-    return () => { cancelled = true }
-  }, [token, state])
+    const load = (quiet: boolean) => {
+      if (!quiet) { setLoading(true); setError(null) }
+      return fetchPublicDashboard(token, state)
+        .then((d) => { if (!cancelled) setData(d) })
+        .catch((err: unknown) => { if (!cancelled && !quiet) setError(err instanceof Error ? err.message : "Couldn't load") })
+        .finally(() => { if (!cancelled && !quiet) setLoading(false) })
+    }
+    void load(false)
+    // A page on a live source re-reads itself once a minute while it is on screen; that read is
+    // also what asks the server to bring the data up to date.
+    const timer = live ? setInterval(() => { if (document.visibilityState === "visible") void load(true) }, 60_000) : undefined
+    return () => { cancelled = true; if (timer) clearInterval(timer) }
+  }, [token, state, live])
 
   if (data === undefined && loading) {
     return (
@@ -51,8 +58,9 @@ export function PublicDashboardView({ token }: { token: string }) {
           <h1 className="text-2xl font-semibold tracking-tight">{d.title}</h1>
           {d.description && <p className="text-sm text-muted-foreground">{d.description}</p>}
           {d.lastRefreshedAt && (
-            <p className="text-xs text-muted-foreground">
-              Updated {formatDistanceToNow(new Date(d.lastRefreshedAt), { addSuffix: true })}
+            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              {d.live && <span className="size-1.5 animate-pulse rounded-full bg-[#1DBC87]" aria-hidden />}
+              {d.live ? "Live. Updated" : "Updated"} {formatDistanceToNow(new Date(d.lastRefreshedAt), { addSuffix: true })}
             </p>
           )}
         </header>

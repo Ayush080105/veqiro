@@ -19,6 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { ConnectionsPanel } from "@/components/agents/rex/connections/ConnectionsPanel"
 import { cn } from "@/lib/utils"
 import { qk } from "@/lib/query-keys"
 import type { RexRawTable } from "@/lib/types/agents"
@@ -278,6 +279,9 @@ export function RexDataTab({
 
   return (
     <div className="flex flex-col gap-4 p-4">
+      {/* Live sources: HubSpot, kept up to date on its own */}
+      <ConnectionsPanel />
+
       {/* Drop zone */}
       <div
         onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
@@ -611,7 +615,9 @@ export function RexDataTab({
         ) : (
           datasets.map((ds) => {
             const meta = (ds as RexDataset & { meta?: { rawTable?: RexRawTable } | null }).meta
-            const rowCount = meta?.rawTable?.rows?.length ?? (ds.points as DataPoint[]).length
+            const stored = (ds as RexDataset & { rowCount?: number | null }).rowCount
+            // A HubSpot table's preview holds 500 rows; the real size is what was stored.
+            const rowCount = ds.sourceKind === "hubspot" ? (stored ?? 0) : (meta?.rawTable?.rows?.length ?? (ds.points as DataPoint[]).length)
             const hasTimeSeries = (ds.points as DataPoint[]).length > 0
             return (
               <div
@@ -623,9 +629,9 @@ export function RexDataTab({
                   <p className="truncate text-[12px] font-medium">{ds.name}</p>
                   <p className="text-[10px] text-muted-foreground">
                     {ds.metricKey} · {rowCount} {hasTimeSeries ? "pts" : "rows"} · {ds.period}
-                    {ds.sourceKind === "link" && (
+                    {(ds.sourceKind === "link" || ds.sourceKind === "hubspot") && (
                       <span className={cn("ml-1", ds.syncError ? "text-destructive" : "text-chart-2")}>
-                        · {ds.syncError ? "sync failed" : "live link"}
+                        · {ds.syncError ? "sync failed" : ds.sourceKind === "hubspot" ? "HubSpot, live" : "live link"}
                       </span>
                     )}
                   </p>

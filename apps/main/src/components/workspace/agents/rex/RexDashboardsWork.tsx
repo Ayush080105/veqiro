@@ -5,12 +5,15 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { formatDistanceToNow } from "date-fns"
-import { ArrowLeft, Globe, LayoutDashboard, Link2, Loader2, Plus, Sparkles, Trash2 } from "lucide-react"
+import { ArrowLeft, Globe, LayoutDashboard, Link2, Loader2, Plug, Plus, Sparkles, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { apiFetch } from "@/lib/api/client"
 import { qk } from "@/lib/query-keys"
 import { useCreateDashboard, useDashboards, useDeleteDashboard } from "@/lib/api/rexDashboards"
+import { HUBSPOT_ERROR_COPY, useHubspotReturn } from "@/lib/api/rexConnections"
+import { ConnectHubSpotDialog, type WizardStep } from "@/components/agents/rex/connections/ConnectHubSpotDialog"
+import { HUBSPOT_TEMPLATES } from "@/components/agents/rex/connections/templates"
 import type { WorkDetailProps, WorkListProps } from "@/lib/workspace/types"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -32,6 +35,7 @@ interface DatasetRow {
   id: string
   name: string
   sourceKind?: string
+  rowCount?: number | null
   syncError?: string | null
   updatedAt: string
   meta?: { rawTable?: { headers?: string[]; rows?: unknown[]; fileKey?: string; sheets?: Record<string, unknown> } } | null
@@ -112,12 +116,12 @@ function NewDashboardDialog({
             <Skeleton className="h-16 rounded-md" />
           ) : sources.length === 0 ? (
             <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-              No spreadsheets yet. Upload one or paste a Google Sheets link under Datasets first.
+              No data yet. Upload a spreadsheet, paste a Google Sheets link, or connect HubSpot first.
             </p>
           ) : (
             <div className="flex max-h-48 flex-col gap-1 overflow-y-auto">
               {sources.map((s) => {
-                const rows = s.meta?.rawTable?.rows?.length ?? 0
+                const rows = s.sourceKind === "hubspot" ? (s.rowCount ?? 0) : (s.meta?.rawTable?.rows?.length ?? 0)
                 const sheets = Object.keys(s.meta?.rawTable?.sheets ?? {}).length
                 return (
                   <label key={s.id} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-muted/40">
@@ -127,11 +131,13 @@ function NewDashboardDialog({
                       onCheckedChange={(v) => setPicked((p) => (v ? [...p, s.id] : p.filter((x) => x !== s.id)))}
                     />
                     <span className="min-w-0 flex-1 truncate">{s.name}</span>
-                    {s.sourceKind === "link" && (
-                      <span className="inline-flex items-center gap-1 text-[10px] text-[#1DBC87]"><Link2 className="size-3" /> live</span>
+                    {(s.sourceKind === "link" || s.sourceKind === "hubspot") && (
+                      <span className="inline-flex items-center gap-1 text-[10px] text-[#1DBC87]">
+                        {s.sourceKind === "hubspot" ? <Plug className="size-3" /> : <Link2 className="size-3" />} live
+                      </span>
                     )}
                     <span className="text-[10px] text-muted-foreground">
-                      {sheets > 1 ? `${sheets} sheets` : `${rows >= 500 ? "500+" : rows} rows`}
+                      {sheets > 1 ? `${sheets} sheets` : s.sourceKind === "hubspot" ? `${rows.toLocaleString("en-US")} rows` : `${rows >= 500 ? "500+" : rows} rows`}
                     </span>
                   </label>
                 )
@@ -148,6 +154,21 @@ function NewDashboardDialog({
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. Monthly revenue trend, top 10 products, sales by region, and a KPI for total orders"
           />
+          {sources.some((s) => picked.includes(s.id) && s.sourceKind === "hubspot") && (
+            <div className="flex flex-wrap gap-1.5" aria-label="HubSpot dashboard ideas">
+              {HUBSPOT_TEMPLATES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setPrompt(t.prompt)}
+                  title={t.blurb}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#1DBC87]/40 px-2.5 py-1 text-left text-[11px] text-foreground hover:bg-[#1DBC87]/10"
+                >
+                  <Plug className="size-3 text-[#1DBC87]" /> {t.title}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="flex flex-wrap gap-1.5">
             {EXAMPLES.map((ex) => (
               <button
@@ -180,12 +201,23 @@ export function RexDashboardsWork({ organizationId }: WorkListProps) {
   const { data = [], isLoading } = useDashboards()
   const remove = useDeleteDashboard()
   const [creating, setCreating] = React.useState(false)
+  const [wizard, setWizard] = React.useState<{ connectionId?: string; step: WizardStep } | null>(null)
+  const returned = useHubspotReturn()
+
+  React.useEffect(() => {
+    if (!returned) return
+    if (returned.status === "connected" && returned.connectionId) setWizard({ connectionId: returned.connectionId, step: "verify" })
+    else toast.error(HUBSPOT_ERROR_COPY[returned.reason ?? ""] ?? "HubSpot wasn't connected.")
+  }, [returned])
 
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm text-muted-foreground">Live dashboards built from your spreadsheets. Share any of them with a link.</p>
-        <Button size="sm" onClick={() => setCreating(true)}><Plus className="size-3.5" /> New dashboard</Button>
+        <p className="text-sm text-muted-foreground">Live dashboards built from your spreadsheets and HubSpot. Share any of them with a link.</p>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setWizard({ step: "connect" })}><Plug className="size-3.5" /> Connect HubSpot</Button>
+          <Button size="sm" onClick={() => setCreating(true)}><Plus className="size-3.5" /> New dashboard</Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -232,6 +264,12 @@ export function RexDashboardsWork({ organizationId }: WorkListProps) {
       )}
 
       <NewDashboardDialog organizationId={organizationId} open={creating} onOpenChange={setCreating} />
+      <ConnectHubSpotDialog
+        open={wizard !== null}
+        onOpenChange={(o) => !o && setWizard(null)}
+        connectionId={wizard?.connectionId}
+        initialStep={wizard?.step}
+      />
     </div>
   )
 }

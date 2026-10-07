@@ -1,8 +1,10 @@
 "use client"
 
-import { ExternalLink, Globe, Lock } from "lucide-react"
+import * as React from "react"
+import { AlertTriangle, ExternalLink, Globe, Lock } from "lucide-react"
 import { toast } from "sonner"
 
+import { ApiError } from "@/lib/api/client"
 import { publicDashboardUrl, useShareDashboard, type Dashboard } from "@/lib/api/rexDashboards"
 import { Button } from "@/components/ui/button"
 import { CopyButton } from "@/components/ui/copy-button"
@@ -28,11 +30,19 @@ export function ShareDialog({
   const share = useShareDashboard(dashboard.id)
   const url = dashboard.shareToken ? publicDashboardUrl(dashboard.shareToken) : ""
   const hasTables = dashboard.widgets.some((w) => w.kind === "table")
+  // The server refuses to publish personal data until the owner says yes; keep its wording.
+  const [confirmText, setConfirmText] = React.useState<string | null>(null)
 
-  const toggle = (isPublic: boolean) =>
-    share.mutate(isPublic, {
-      onSuccess: () => toast.success(isPublic ? "Anyone with the link can view it" : "Link turned off"),
-      onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't change sharing"),
+  const toggle = (isPublic: boolean, confirmPii = false) =>
+    share.mutate({ isPublic, confirmPii }, {
+      onSuccess: () => {
+        setConfirmText(null)
+        toast.success(isPublic ? "Anyone with the link can view it" : "Link turned off")
+      },
+      onError: (err) => {
+        if (err instanceof ApiError && err.status === 409) setConfirmText(err.message)
+        else toast.error(err instanceof Error ? err.message : "Couldn't change sharing")
+      },
     })
 
   return (
@@ -52,6 +62,16 @@ export function ShareDialog({
           </span>
           <Switch checked={dashboard.isPublic} disabled={share.isPending} onCheckedChange={(v) => toggle(!!v)} />
         </label>
+
+        {confirmText && (
+          <div role="alert" className="flex flex-col gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <p className="flex items-start gap-2"><AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />{confirmText}</p>
+            <div className="flex justify-end gap-2">
+              <Button size="sm" variant="ghost" onClick={() => setConfirmText(null)}>Keep it private</Button>
+              <Button size="sm" onClick={() => toggle(true, true)} disabled={share.isPending}>Make it public</Button>
+            </div>
+          </div>
+        )}
 
         {dashboard.isPublic && url && (
           <div className="flex flex-col gap-2">
