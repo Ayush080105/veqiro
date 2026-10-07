@@ -5,6 +5,8 @@ let counter = 0;
 const nextId = (p: string) => `${p}${++counter}`;
 
 export class FakeStore implements Store {
+  /** Tests move this to control the "database clock". */
+  clock: () => Date = () => new Date();
   connections = new Map<string, ConnectionRecord>();
   datasets = new Map<string, DatasetRecord>();
   dashboards: Array<{ id: string; organizationId: string; datasetIds: string[] }> = [];
@@ -50,14 +52,14 @@ export class FakeStore implements Store {
     const row: DatasetRecord = {
       id: nextId("ds"), organizationId: input.organizationId, userId: input.userId, name: input.name, sourceKind: "hubspot",
       connectionId: input.connectionId, sourceObject: input.sourceObject, meta: null, syncCursor: null, lastFullSyncAt: null,
-      syncStartedAt: null, lastSyncedAt: null, syncError: null, syncEnabled: true, contentHash: null, rowCount: null, syncNote: null, updatedAt: new Date(),
+      syncStartedAt: null, lastSyncedAt: null, syncError: null, syncEnabled: true, contentHash: null, rowCount: null, syncNote: null, updatedAt: this.clock(),
     };
     this.datasets.set(row.id, row);
     return { ...row };
   }
   async updateDataset(id: string, patch: DatasetPatch) {
     const d = this.datasets.get(id);
-    if (d) this.datasets.set(id, { ...d, ...patch, updatedAt: new Date() });
+    if (d) this.datasets.set(id, { ...d, ...patch, updatedAt: this.clock() });
   }
   async tryLockDataset(id: string, staleBefore: Date, now: Date) {
     const d = this.datasets.get(id);

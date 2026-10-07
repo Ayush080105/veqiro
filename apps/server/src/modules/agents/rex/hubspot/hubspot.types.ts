@@ -50,7 +50,7 @@ export interface DatasetRecord {
   connectionId: string | null;
   sourceObject: string | null;
   meta: unknown;
-  syncCursor: { modifiedSince?: string } | null;
+  syncCursor: { modifiedSince?: string; tail?: Record<string, string> } | null;
   lastFullSyncAt: Date | null;
   syncStartedAt: Date | null;
   lastSyncedAt: Date | null;
