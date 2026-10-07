@@ -57,6 +57,7 @@ export type RexDatasetMinAggregateOutputType = {
   syncStartedAt: Date | null
   rowCount: number | null
   syncNote: string | null
+  containsPii: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -84,6 +85,7 @@ export type RexDatasetMaxAggregateOutputType = {
   syncStartedAt: Date | null
   rowCount: number | null
   syncNote: string | null
+  containsPii: boolean | null
   createdAt: Date | null
   updatedAt: Date | null
 }
@@ -114,6 +116,7 @@ export type RexDatasetCountAggregateOutputType = {
   syncStartedAt: number
   rowCount: number
   syncNote: number
+  containsPii: number
   createdAt: number
   updatedAt: number
   _all: number
@@ -151,6 +154,7 @@ export type RexDatasetMinAggregateInputType = {
   syncStartedAt?: true
   rowCount?: true
   syncNote?: true
+  containsPii?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -178,6 +182,7 @@ export type RexDatasetMaxAggregateInputType = {
   syncStartedAt?: true
   rowCount?: true
   syncNote?: true
+  containsPii?: true
   createdAt?: true
   updatedAt?: true
 }
@@ -208,6 +213,7 @@ export type RexDatasetCountAggregateInputType = {
   syncStartedAt?: true
   rowCount?: true
   syncNote?: true
+  containsPii?: true
   createdAt?: true
   updatedAt?: true
   _all?: true
@@ -325,6 +331,7 @@ export type RexDatasetGroupByOutputType = {
   syncStartedAt: Date | null
   rowCount: number | null
   syncNote: string | null
+  containsPii: boolean
   createdAt: Date
   updatedAt: Date
   _count: RexDatasetCountAggregateOutputType | null
@@ -378,6 +385,7 @@ export type RexDatasetWhereInput = {
   syncStartedAt?: Prisma.DateTimeNullableFilter<"RexDataset"> | Date | string | null
   rowCount?: Prisma.IntNullableFilter<"RexDataset"> | number | null
   syncNote?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  containsPii?: Prisma.BoolFilter<"RexDataset"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
 }
@@ -408,6 +416,7 @@ export type RexDatasetOrderByWithRelationInput = {
   syncStartedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   rowCount?: Prisma.SortOrderInput | Prisma.SortOrder
   syncNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  containsPii?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -441,6 +450,7 @@ export type RexDatasetWhereUniqueInput = Prisma.AtLeast<{
   syncStartedAt?: Prisma.DateTimeNullableFilter<"RexDataset"> | Date | string | null
   rowCount?: Prisma.IntNullableFilter<"RexDataset"> | number | null
   syncNote?: Prisma.StringNullableFilter<"RexDataset"> | string | null
+  containsPii?: Prisma.BoolFilter<"RexDataset"> | boolean
   createdAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
   updatedAt?: Prisma.DateTimeFilter<"RexDataset"> | Date | string
 }, "id">
@@ -471,6 +481,7 @@ export type RexDatasetOrderByWithAggregationInput = {
   syncStartedAt?: Prisma.SortOrderInput | Prisma.SortOrder
   rowCount?: Prisma.SortOrderInput | Prisma.SortOrder
   syncNote?: Prisma.SortOrderInput | Prisma.SortOrder
+  containsPii?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
   _count?: Prisma.RexDatasetCountOrderByAggregateInput
@@ -509,6 +520,7 @@ export type RexDatasetScalarWhereWithAggregatesInput = {
   syncStartedAt?: Prisma.DateTimeNullableWithAggregatesFilter<"RexDataset"> | Date | string | null
   rowCount?: Prisma.IntNullableWithAggregatesFilter<"RexDataset"> | number | null
   syncNote?: Prisma.StringNullableWithAggregatesFilter<"RexDataset"> | string | null
+  containsPii?: Prisma.BoolWithAggregatesFilter<"RexDataset"> | boolean
   createdAt?: Prisma.DateTimeWithAggregatesFilter<"RexDataset"> | Date | string
   updatedAt?: Prisma.DateTimeWithAggregatesFilter<"RexDataset"> | Date | string
 }
@@ -539,6 +551,7 @@ export type RexDatasetCreateInput = {
   syncStartedAt?: Date | string | null
   rowCount?: number | null
   syncNote?: string | null
+  containsPii?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -569,6 +582,7 @@ export type RexDatasetUncheckedCreateInput = {
   syncStartedAt?: Date | string | null
   rowCount?: number | null
   syncNote?: string | null
+  containsPii?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -599,6 +613,7 @@ export type RexDatasetUpdateInput = {
   syncStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   syncNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  containsPii?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -629,6 +644,7 @@ export type RexDatasetUncheckedUpdateInput = {
   syncStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   syncNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  containsPii?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -659,6 +675,7 @@ export type RexDatasetCreateManyInput = {
   syncStartedAt?: Date | string | null
   rowCount?: number | null
   syncNote?: string | null
+  containsPii?: boolean
   createdAt?: Date | string
   updatedAt?: Date | string
 }
@@ -689,6 +706,7 @@ export type RexDatasetUpdateManyMutationInput = {
   syncStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   syncNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  containsPii?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -719,6 +737,7 @@ export type RexDatasetUncheckedUpdateManyInput = {
   syncStartedAt?: Prisma.NullableDateTimeFieldUpdateOperationsInput | Date | string | null
   rowCount?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   syncNote?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  containsPii?: Prisma.BoolFieldUpdateOperationsInput | boolean
   createdAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
   updatedAt?: Prisma.DateTimeFieldUpdateOperationsInput | Date | string
 }
@@ -749,6 +768,7 @@ export type RexDatasetCountOrderByAggregateInput = {
   syncStartedAt?: Prisma.SortOrder
   rowCount?: Prisma.SortOrder
   syncNote?: Prisma.SortOrder
+  containsPii?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -780,6 +800,7 @@ export type RexDatasetMaxOrderByAggregateInput = {
   syncStartedAt?: Prisma.SortOrder
   rowCount?: Prisma.SortOrder
   syncNote?: Prisma.SortOrder
+  containsPii?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -807,6 +828,7 @@ export type RexDatasetMinOrderByAggregateInput = {
   syncStartedAt?: Prisma.SortOrder
   rowCount?: Prisma.SortOrder
   syncNote?: Prisma.SortOrder
+  containsPii?: Prisma.SortOrder
   createdAt?: Prisma.SortOrder
   updatedAt?: Prisma.SortOrder
 }
@@ -843,6 +865,7 @@ export type RexDatasetSelect<ExtArgs extends runtime.Types.Extensions.InternalAr
   syncStartedAt?: boolean
   rowCount?: boolean
   syncNote?: boolean
+  containsPii?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexDataset"]>
@@ -873,6 +896,7 @@ export type RexDatasetSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Ex
   syncStartedAt?: boolean
   rowCount?: boolean
   syncNote?: boolean
+  containsPii?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexDataset"]>
@@ -903,6 +927,7 @@ export type RexDatasetSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Ex
   syncStartedAt?: boolean
   rowCount?: boolean
   syncNote?: boolean
+  containsPii?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }, ExtArgs["result"]["rexDataset"]>
@@ -933,11 +958,12 @@ export type RexDatasetSelectScalar = {
   syncStartedAt?: boolean
   rowCount?: boolean
   syncNote?: boolean
+  containsPii?: boolean
   createdAt?: boolean
   updatedAt?: boolean
 }
 
-export type RexDatasetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "sourceId" | "name" | "metricKey" | "unit" | "period" | "purpose" | "points" | "meta" | "sourceKind" | "sourceUrl" | "downloadUrl" | "contentHash" | "lastSyncedAt" | "syncError" | "syncEnabled" | "connectionId" | "sourceObject" | "syncCursor" | "lastFullSyncAt" | "syncStartedAt" | "rowCount" | "syncNote" | "createdAt" | "updatedAt", ExtArgs["result"]["rexDataset"]>
+export type RexDatasetOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "organizationId" | "userId" | "sourceId" | "name" | "metricKey" | "unit" | "period" | "purpose" | "points" | "meta" | "sourceKind" | "sourceUrl" | "downloadUrl" | "contentHash" | "lastSyncedAt" | "syncError" | "syncEnabled" | "connectionId" | "sourceObject" | "syncCursor" | "lastFullSyncAt" | "syncStartedAt" | "rowCount" | "syncNote" | "containsPii" | "createdAt" | "updatedAt", ExtArgs["result"]["rexDataset"]>
 
 export type $RexDatasetPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "RexDataset"
@@ -1043,6 +1069,10 @@ export type $RexDatasetPayload<ExtArgs extends runtime.Types.Extensions.Internal
      * Plain-language note shown with the dataset, e.g. that it was truncated at the row cap.
      */
     syncNote: string | null
+    /**
+     * True when the stored table includes personal-data columns the customer opted into.
+     */
+    containsPii: boolean
     /**
      * Creation timestamp.
      */
@@ -1499,6 +1529,7 @@ export interface RexDatasetFieldRefs {
   readonly syncStartedAt: Prisma.FieldRef<"RexDataset", 'DateTime'>
   readonly rowCount: Prisma.FieldRef<"RexDataset", 'Int'>
   readonly syncNote: Prisma.FieldRef<"RexDataset", 'String'>
+  readonly containsPii: Prisma.FieldRef<"RexDataset", 'Boolean'>
   readonly createdAt: Prisma.FieldRef<"RexDataset", 'DateTime'>
   readonly updatedAt: Prisma.FieldRef<"RexDataset", 'DateTime'>
 }

@@ -193,6 +193,7 @@ export function createSync(deps: SyncDeps) {
       meta: { ...((current.meta as object | null) ?? {}), source: "hubspot", rawTable: toRawTable(built, key) },
       contentHash: hash,
       rowCount: built.rows.length,
+      containsPii: columns.some((c) => c.pii),
       syncNote: truncated ? `Showing the first ${built.rows.length.toLocaleString("en-US")} records; this is the most Rex keeps per object.` : null,
     });
     if (prevKey && prevKey !== key) await blobs.del(prevKey).catch(() => undefined);
@@ -281,6 +282,24 @@ export function createSync(deps: SyncDeps) {
     return { results };
   }
 
+  /** The Refresh button: sync the HubSpot datasets among these ids now, waiting up to `waitMs` in total. */
+  async function syncMany(
+    organizationId: string,
+    datasetIds: string[],
+    opts: { mode?: SyncMode; waitMs?: number; allowFullReconcile?: boolean } = {},
+  ) {
+    const deadline = opts.waitMs ? Date.now() + opts.waitMs : undefined;
+    const results: Array<{ datasetId: string; status: SyncStatus; message?: string }> = [];
+    for (const id of datasetIds) {
+      const d = await store.findDataset(id);
+      if (!d || d.organizationId !== organizationId || d.sourceKind !== "hubspot") continue;
+      const waitMs = deadline ? Math.max(1_000, deadline - Date.now()) : undefined;
+      const r = await syncDataset(id, { mode: opts.mode, waitMs, allowFullReconcile: opts.allowFullReconcile });
+      results.push({ datasetId: id, status: r.status, message: r.message });
+    }
+    return results;
+  }
+
   /** Called whenever a dashboard is read. Starts a background sync for stale HubSpot datasets; never throws or waits. */
   function ensureFresh(organizationId: string, datasetIds: string[], maxAgeMs: number): void {
     void (async () => {
@@ -314,7 +333,7 @@ export function createSync(deps: SyncDeps) {
     await Promise.all(Array.from({ length: Math.min(MAX_PARALLEL_CONNECTIONS, queue.length) }, worker));
   }
 
-  return { syncDataset, syncConnection, ensureFresh, syncAllHubspot };
+  return { syncDataset, syncConnection, syncMany, ensureFresh, syncAllHubspot };
 }
 
 export type HubspotSync = ReturnType<typeof createSync>;

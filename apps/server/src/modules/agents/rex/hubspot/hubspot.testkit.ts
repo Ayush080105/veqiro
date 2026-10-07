@@ -52,7 +52,7 @@ export class FakeStore implements Store {
     const row: DatasetRecord = {
       id: nextId("ds"), organizationId: input.organizationId, userId: input.userId, name: input.name, sourceKind: "hubspot",
       connectionId: input.connectionId, sourceObject: input.sourceObject, meta: null, syncCursor: null, lastFullSyncAt: null,
-      syncStartedAt: null, lastSyncedAt: null, syncError: null, syncEnabled: true, contentHash: null, rowCount: null, syncNote: null, updatedAt: this.clock(),
+      syncStartedAt: null, lastSyncedAt: null, syncError: null, syncEnabled: true, contentHash: null, rowCount: null, syncNote: null, containsPii: false, updatedAt: this.clock(),
     };
     this.datasets.set(row.id, row);
     return { ...row };

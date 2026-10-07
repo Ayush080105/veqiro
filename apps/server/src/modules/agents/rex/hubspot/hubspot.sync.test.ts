@@ -343,6 +343,19 @@ describe("ensureFresh", () => {
   });
 });
 
+describe("syncMany (the Refresh button)", () => {
+  it("syncs the HubSpot datasets among the ids it is given and ignores everything else", async () => {
+    const c = setup(); seed(c.hs);
+    const conn = await c.connection(); const ds = await c.dataset(conn.id);
+    const sheet = await c.store.createConnectorDataset({ organizationId: "org1", userId: "u1", connectionId: conn.id, sourceObject: "x", name: "sheet", metricKey: "x" });
+    await c.store.updateDataset(sheet.id, { connectionId: null });
+    (c.store.datasets.get(sheet.id) as DatasetRecord).sourceKind = "link";
+    const results = await c.sync.syncMany("org1", [ds.id, sheet.id, "missing"], { waitMs: 5000 });
+    assert.deepEqual(results.map((r) => [r.datasetId, r.status]), [[ds.id, "synced"]]);
+    assert.isTrue((await c.store.findDataset(ds.id))!.containsPii === false);
+  });
+});
+
 describe("syncAllHubspot", () => {
   it("syncs only datasets that a dashboard reads and that are due", async () => {
     const c = setup(); seed(c.hs);

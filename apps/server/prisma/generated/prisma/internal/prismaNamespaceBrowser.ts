@@ -859,6 +859,7 @@ export const RexDatasetScalarFieldEnum = {
   syncStartedAt: 'syncStartedAt',
   rowCount: 'rowCount',
   syncNote: 'syncNote',
+  containsPii: 'containsPii',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const

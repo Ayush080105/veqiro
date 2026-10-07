@@ -59,6 +59,7 @@ export interface DatasetRecord {
   contentHash: string | null;
   rowCount: number | null;
   syncNote: string | null;
+  containsPii: boolean;
   updatedAt: Date;
 }
 

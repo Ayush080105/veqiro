@@ -19,6 +19,8 @@ import { deleteObject, uploadBuffer } from "../../../common/utils/r2.js";
 import { parseBuffer, type RawTable } from "./rex.csv.js";
 import { datasetPayloadForAI, parseDataset } from "./rex.service.js";
 import { fetchLinkedSheet, resolveShareLink } from "./rex.links.js";
+import { ConflictError } from "../../../common/errors/conflict.js";
+import { hubspotSync } from "./hubspot/hubspot.runtime.js";
 
 export const MAX_DATASETS = 5;
 export const MAX_STORED_COMBINATIONS = 200;
@@ -27,6 +29,11 @@ const REFRESH_LOCK_MS = 5 * 60_000;
 const STALE_SYNC_MS = 15 * 60_000;
 // Generating a dashboard is a model call plus a query per widget, over files up to 50 MB.
 const AI_TIMEOUT_MS = 180_000;
+// How old a HubSpot snapshot may be before opening a dashboard triggers a sync.
+const EDITOR_FRESH_MS = 60_000;
+const PUBLIC_FRESH_MS = 120_000;
+// The Refresh button waits this long for HubSpot before answering "still syncing".
+const REFRESH_WAIT_MS = 25_000;
 
 // ── Types shared with the AI service ────────────────────────────────────────
 
@@ -218,12 +225,16 @@ function namespaceIds(dashboardId: string, widgets: WidgetDef[], results: Widget
 async function sourceStatus(organizationId: string, datasetIds: string[]) {
   const rows = await prisma.rexDataset.findMany({
     where: { organizationId, id: { in: datasetIds } },
-    select: { id: true, name: true, sourceKind: true, sourceUrl: true, lastSyncedAt: true, syncError: true, updatedAt: true },
+    select: {
+      id: true, name: true, sourceKind: true, sourceUrl: true, lastSyncedAt: true, syncError: true, updatedAt: true,
+      rowCount: true, syncNote: true, connectionId: true, containsPii: true,
+    },
   });
   return rows;
 }
 
 async function editorView(d: DashboardRow, key = "all") {
+  const sources = await sourceStatus(d.organizationId, d.datasetIds);
   return {
     id: d.id,
     title: d.title,
@@ -239,7 +250,8 @@ async function editorView(d: DashboardRow, key = "all") {
     refreshStatus: d.refreshStatus,
     refreshError: d.refreshError,
     lastRefreshedAt: d.lastRefreshedAt,
-    sources: await sourceStatus(d.organizationId, d.datasetIds),
+    sources,
+    containsPii: sources.some((s) => s.containsPii),
     updatedAt: d.updatedAt,
   };
 }
@@ -299,6 +311,8 @@ export async function createDashboard(
 export async function getDashboard(organizationId: string, id: string, state: FilterState = {}) {
   const d = await findOwned(organizationId, id);
   void syncStaleSources(organizationId, d.datasetIds);
+  // HubSpot data: a stale snapshot is refreshed in the background; the next poll shows it.
+  hubspotSync.ensureFresh(organizationId, d.datasetIds, EDITOR_FRESH_MS);
   const key = filterKey(validateState(d.filters as unknown as FilterDef[], state));
   if (key !== "all") await ensureStateComputed(d, key, state);
   return editorView(await findOwned(organizationId, id), key);
@@ -529,10 +543,30 @@ async function ensureStateComputed(d: DashboardRow, key: string, state: FilterSt
   await storeResults(d.id, d.dataVersion, data.results);
 }
 
+/** The Refresh button: bring HubSpot sources up to date first, then recompute. A sync that found
+ *  changes already recomputed the dashboard, so it is not done twice. */
+export async function refreshWithSources(organizationId: string, id: string, opts: { full?: boolean } = {}) {
+  const d = await findOwned(organizationId, id);
+  const sync = await hubspotSync.syncMany(organizationId, d.datasetIds, {
+    mode: opts.full ? "full" : "auto",
+    allowFullReconcile: Boolean(opts.full),
+    waitMs: REFRESH_WAIT_MS,
+  });
+  const alreadyRefreshed = sync.some((r) => r.status === "synced");
+  const result = alreadyRefreshed ? { skipped: "refreshed by the sync" } : await refreshDashboard(organizationId, id, { force: true });
+  return { ...result, sync };
+}
+
 // ── Sharing ─────────────────────────────────────────────────────────────────
 
-export async function shareDashboard(organizationId: string, id: string, isPublic: boolean) {
+export async function shareDashboard(organizationId: string, id: string, isPublic: boolean, confirmPii = false) {
   const d = await findOwned(organizationId, id);
+  if (isPublic && !confirmPii) {
+    const pii = await prisma.rexDataset.count({ where: { organizationId, id: { in: d.datasetIds }, containsPii: true } });
+    if (pii > 0) {
+      throw new ConflictError("This dashboard reads personal data from HubSpot (such as names or emails). Anyone with the link could see what its tiles show. Confirm to make it public.");
+    }
+  }
   const shareToken = isPublic ? (d.shareToken ?? randomBytes(16).toString("hex")) : null;
   await prisma.rexDashboard.update({ where: { id }, data: { isPublic, shareToken } });
   return { id, isPublic, shareToken };
@@ -556,6 +590,7 @@ function allowPublicCompute(token: string): boolean {
 export async function getPublicDashboard(token: string, state: FilterState = {}) {
   const d = await prisma.rexDashboard.findUnique({ where: { shareToken: token }, include: { widgets: true } });
   if (!d || !d.isPublic) return null;
+  hubspotSync.ensureFresh(d.organizationId, d.datasetIds, PUBLIC_FRESH_MS);
   const filters = d.filters as unknown as FilterDef[];
   const valid = validateState(filters, state);
   const key = filterKey(valid);

@@ -6,6 +6,7 @@
 
 -- AlterTable
 ALTER TABLE "rex_dataset" ADD COLUMN     "connectionId" TEXT,
+ADD COLUMN     "containsPii" BOOLEAN NOT NULL DEFAULT false,
 ADD COLUMN     "lastFullSyncAt" TIMESTAMP(3),
 ADD COLUMN     "rowCount" INTEGER,
 ADD COLUMN     "sourceObject" TEXT,

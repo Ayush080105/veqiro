@@ -653,7 +653,7 @@ export function parseRows(rows: Record<string, unknown>[]): {
   };
 }
 
-async function fetchR2Buffer(r2Key: string): Promise<Buffer> {
+export async function fetchR2Buffer(r2Key: string): Promise<Buffer> {
   const client = new S3Client({
     region: "auto",
     endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,

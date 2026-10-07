@@ -34,6 +34,7 @@ import {
   generateDatasetReport,
 } from "./rex.controller.js";
 import * as dashboards from "./rex.dashboards.controller.js";
+import hubspotRouter, { publicRouter as hubspotPublicRouter } from "./hubspot/hubspot.routes.js";
 
 const router = Router();
 // Public webhook routes — no auth (validated by API key body field)
@@ -41,6 +42,7 @@ export const publicRouter = Router();
 publicRouter.post("/agents/rex/ingest", ingest);
 publicRouter.get("/agents/rex/pins/public/:token", getSharedPin);
 publicRouter.get("/agents/rex/dashboards/public/:token", dashboards.getPublic);
+publicRouter.use(hubspotPublicRouter);
 
 router.post("/chat", msgRex);
 router.post("/chat/stream", msgRexStream);
@@ -100,5 +102,8 @@ router.patch("/dashboards/:id/share", dashboards.share);
 router.patch("/dashboards/:id/widgets/:wid", dashboards.patchWidget);
 router.delete("/dashboards/:id/widgets/:wid", dashboards.removeWidget);
 router.post("/dashboards/:id/widgets/:wid/duplicate", dashboards.duplicateWidget);
+
+// Live data connections (HubSpot): connect, choose data, sync
+router.use("/connections", hubspotRouter);
 
 export default router;

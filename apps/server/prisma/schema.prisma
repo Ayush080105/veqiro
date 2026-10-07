@@ -1697,6 +1697,8 @@ model RexDataset {
   rowCount       Int?
   /// Plain-language note shown with the dataset, e.g. that it was truncated at the row cap.
   syncNote       String?
+  /// True when the stored table includes personal-data columns the customer opted into.
+  containsPii    Boolean   @default(false)
   /// Creation timestamp.
   createdAt      DateTime @default(now())
   /// Update timestamp.
