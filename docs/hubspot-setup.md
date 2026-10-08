@@ -8,7 +8,7 @@ Two audiences: the people who connect their HubSpot (section 1), and whoever run
 - **Data** tab: the "Live data sources" panel at the top, button *Connect HubSpot*.
 - **Work, Dashboards**: button *Connect HubSpot* next to *New dashboard*.
 
-Both open the same four-step window: connect, check access, choose data, sync. At the end it offers ready-made dashboards (pipeline, revenue and win rate, leads, tickets, top accounts).
+Both open the same four-step window: connect, check access, choose data, sync. Next to each *Connect HubSpot* button there is an ⓘ that opens a guide (how it works, steps for each way to connect, privacy, and what to do if something goes wrong). The connect step also shows the steps for whichever way is selected, right above the box where the key goes. "Connect with HubSpot" is listed only once the server has it set up. At the end it offers ready-made dashboards (pipeline, revenue and win rate, leads, tickets, top accounts).
 
 **Three ways to connect**
 

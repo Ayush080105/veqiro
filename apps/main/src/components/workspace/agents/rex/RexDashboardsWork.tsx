@@ -13,6 +13,7 @@ import { qk } from "@/lib/query-keys"
 import { useCreateDashboard, useDashboards, useDeleteDashboard } from "@/lib/api/rexDashboards"
 import { HUBSPOT_ERROR_COPY, useHubspotReturn } from "@/lib/api/rexConnections"
 import { ConnectHubSpotDialog, type WizardStep } from "@/components/agents/rex/connections/ConnectHubSpotDialog"
+import { GuideButton, HubSpotGuideDialog } from "@/components/agents/rex/connections/HubSpotGuide"
 import { HUBSPOT_TEMPLATES } from "@/components/agents/rex/connections/templates"
 import type { WorkDetailProps, WorkListProps } from "@/lib/workspace/types"
 import { Button } from "@/components/ui/button"
@@ -202,6 +203,7 @@ export function RexDashboardsWork({ organizationId }: WorkListProps) {
   const remove = useDeleteDashboard()
   const [creating, setCreating] = React.useState(false)
   const [wizard, setWizard] = React.useState<{ connectionId?: string; step: WizardStep } | null>(null)
+  const [guide, setGuide] = React.useState(false)
   const returned = useHubspotReturn()
 
   React.useEffect(() => {
@@ -215,7 +217,10 @@ export function RexDashboardsWork({ organizationId }: WorkListProps) {
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm text-muted-foreground">Live dashboards built from your spreadsheets and HubSpot. Share any of them with a link.</p>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setWizard({ step: "connect" })}><Plug className="size-3.5" /> Connect HubSpot</Button>
+          <div className="flex items-center">
+            <Button size="sm" variant="outline" onClick={() => setWizard({ step: "connect" })}><Plug className="size-3.5" /> Connect HubSpot</Button>
+            <GuideButton onClick={() => setGuide(true)} />
+          </div>
           <Button size="sm" onClick={() => setCreating(true)}><Plus className="size-3.5" /> New dashboard</Button>
         </div>
       </div>
@@ -264,6 +269,7 @@ export function RexDashboardsWork({ organizationId }: WorkListProps) {
       )}
 
       <NewDashboardDialog organizationId={organizationId} open={creating} onOpenChange={setCreating} />
+      <HubSpotGuideDialog open={guide} onOpenChange={setGuide} onConnect={() => setWizard({ step: "connect" })} />
       <ConnectHubSpotDialog
         open={wizard !== null}
         onOpenChange={(o) => !o && setWizard(null)}

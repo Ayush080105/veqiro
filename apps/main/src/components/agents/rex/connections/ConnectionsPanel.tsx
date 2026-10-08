@@ -17,6 +17,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { StatusPill } from "@/components/ui/status-pill"
 import { cn } from "@/lib/utils"
 import { ConnectHubSpotDialog, type WizardStep } from "./ConnectHubSpotDialog"
+import { GuideButton, HubSpotGuideDialog } from "./HubSpotGuide"
 
 const ago = (iso: string | null) => (iso ? formatDistanceToNow(new Date(iso), { addSuffix: true }) : "not yet")
 
@@ -40,6 +41,7 @@ export function ConnectionsPanel({ className }: { className?: string }) {
   const returned = useHubspotReturn()
 
   const [wizard, setWizard] = React.useState<{ connectionId?: string; step: WizardStep } | null>(null)
+  const [guide, setGuide] = React.useState(false)
   const [removing, setRemoving] = React.useState<Connection | null>(null)
   const [removeMode, setRemoveMode] = React.useState<"keep" | "delete">("keep")
 
@@ -60,7 +62,7 @@ export function ConnectionsPanel({ className }: { className?: string }) {
   return (
     <section className={cn("flex flex-col gap-2", className)} aria-label="HubSpot connections">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-xs font-medium">Live data sources</p>
+        <p className="flex items-center gap-1 text-xs font-medium">Live data sources <GuideButton onClick={() => setGuide(true)} /></p>
         <Button size="sm" variant="outline" onClick={() => setWizard({ step: "connect" })}>
           <Plug className="size-3.5" /> Connect HubSpot
         </Button>
@@ -68,7 +70,8 @@ export function ConnectionsPanel({ className }: { className?: string }) {
 
       {isLoading ? null : connections.length === 0 ? (
         <p className="rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-          Connect HubSpot to build dashboards from your deals, companies, contacts and tickets. They update on their own while you work.
+          Connect HubSpot to build dashboards from your deals, companies, contacts and tickets. They update on their own while you work.{" "}
+          <button type="button" onClick={() => setGuide(true)} className="text-foreground underline-offset-2 hover:underline">How does this work?</button>
         </p>
       ) : (
         connections.map((c) => (
@@ -133,6 +136,7 @@ export function ConnectionsPanel({ className }: { className?: string }) {
         ))
       )}
 
+      <HubSpotGuideDialog open={guide} onOpenChange={setGuide} onConnect={() => setWizard({ step: "connect" })} />
       <ConnectHubSpotDialog
         open={wizard !== null}
         onOpenChange={(o) => !o && setWizard(null)}

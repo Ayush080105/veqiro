@@ -3,7 +3,7 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import {
-  AlertTriangle, ArrowRight, Check, ChevronDown, Info, KeyRound, Loader2, RefreshCw, Sparkles, SlidersHorizontal,
+  AlertTriangle, Check, Loader2, RefreshCw, Sparkles, SlidersHorizontal,
 } from "lucide-react"
 import { toast } from "sonner"
 
@@ -15,12 +15,11 @@ import {
 import { useCreateDashboard } from "@/lib/api/rexDashboards"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
-import { CopyButton } from "@/components/ui/copy-button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { ConnectMethods } from "./ConnectMethods"
 import { FieldPicker } from "./FieldPicker"
-import { HUBSPOT_CORE_SCOPES, HUBSPOT_OPTIONAL_SCOPES, HUBSPOT_TEMPLATES } from "./templates"
+import { HUBSPOT_TEMPLATES } from "./templates"
 
 export type WizardStep = "connect" | "verify" | "choose" | "sync"
 const ORDER: WizardStep[] = ["connect", "verify", "choose", "sync"]
@@ -69,7 +68,6 @@ export function ConnectHubSpotDialog({
   const [connectionId, setConnectionId] = React.useState<string | undefined>(resumeId)
   const [report, setReport] = React.useState<VerifyReport | null>(null)
   const [token, setToken] = React.useState("")
-  const [showHow, setShowHow] = React.useState(false)
   const [picked, setPicked] = React.useState<Record<string, ObjectSelection | null>>({})
   const [customising, setCustomising] = React.useState<string | null>(null)
   const [building, setBuilding] = React.useState<string | null>(null)
@@ -175,7 +173,6 @@ export function ConnectHubSpotDialog({
   }
 
   const busy = connectToken.isPending || startOAuth.isPending || saveSelection.isPending || createDashboard.isPending
-  const scopeText = [...HUBSPOT_CORE_SCOPES, ...HUBSPOT_OPTIONAL_SCOPES].join("\n")
 
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>
@@ -195,69 +192,19 @@ export function ConnectHubSpotDialog({
 
         {/* ── 1. Connect ── */}
         {step === "connect" && (
-          <div className="flex flex-col gap-4">
-            {unavailable && (
-              <p role="alert" className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
-                <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
-                Connecting accounts isn&apos;t set up on this server yet. An admin needs to set INTEGRATION_SECRET_KEY before HubSpot can be connected.
-              </p>
-            )}
-            {conns?.oauthAvailable && (
-              <>
-                <Button size="lg" onClick={connectWithHubSpot} disabled={busy || unavailable} className="justify-center">
-                  {startOAuth.isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
-                  Connect with HubSpot
-                </Button>
-                <div className="flex items-center gap-3 text-[11px] text-muted-foreground" aria-hidden>
-                  <span className="h-px flex-1 bg-border" /> or use a key <span className="h-px flex-1 bg-border" />
-                </div>
-              </>
-            )}
-
-            <form className="flex flex-col gap-2" onSubmit={(e) => { e.preventDefault(); if (token.trim()) connectWithKey() }}>
-              <label htmlFor="hs-token" className="text-xs font-medium">HubSpot Service Key or private app token</label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
-                  <KeyRound className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    id="hs-token" type="password" autoComplete="off" spellCheck={false} value={token}
-                    onChange={(e) => setToken(e.target.value)} placeholder="Paste the key here" className="pl-8 font-mono text-xs" disabled={unavailable}
-                  />
-                </div>
-                <Button type="submit" disabled={!token.trim() || busy || unavailable}>
-                  {connectToken.isPending ? <><Loader2 className="size-3.5 animate-spin" /> Checking</> : reconnecting ? "Reconnect" : "Connect"}
-                </Button>
-              </div>
-              {connectToken.error instanceof ApiError && <p className="text-xs text-destructive">{connectToken.error.message}</p>}
-            </form>
-
-            <div className="rounded-md border border-border">
-              <button
-                type="button" onClick={() => setShowHow((s) => !s)} aria-expanded={showHow}
-                className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium hover:bg-muted/40"
-              >
-                How to get a key
-                <ChevronDown className={cn("size-3.5 transition-transform", showHow && "rotate-180")} />
-              </button>
-              {showHow && (
-                <ol className="flex list-decimal flex-col gap-2 border-t border-border px-3 py-3 pl-7 text-xs text-muted-foreground">
-                  <li>In HubSpot, open <span className="text-foreground">Settings, Integrations, Service Keys</span> and choose Create service key.</li>
-                  <li>
-                    Add these read-only scopes. The first seven give Rex your deals, companies and contacts; the rest unlock tickets, products and custom objects.
-                    <div className="mt-1.5 flex items-center gap-2">
-                      <CopyButton text={scopeText} label="Copy all scopes" variant="outline" size="xs" />
-                      <span className="text-[11px]">One scope per line</span>
-                    </div>
-                  </li>
-                  <li>Create the key, copy it, and paste it above.</li>
-                </ol>
-              )}
-            </div>
-            <p className="flex gap-2 text-[11px] text-muted-foreground">
-              <Info className="mt-0.5 size-3 shrink-0" />
-              HubSpot stops letting accounts create new private apps on 26 October 2026 and replaces them with Service Keys. Existing private app tokens keep working.
-            </p>
-          </div>
+          <ConnectMethods
+            oauthAvailable={conns?.oauthAvailable === true}
+            unavailable={unavailable}
+            reconnecting={reconnecting}
+            token={token}
+            onTokenChange={setToken}
+            keyPending={connectToken.isPending}
+            oauthPending={startOAuth.isPending}
+            busy={busy}
+            error={connectToken.error instanceof ApiError ? connectToken.error.message : undefined}
+            onSubmitKey={connectWithKey}
+            onOAuth={connectWithHubSpot}
+          />
         )}
 
         {/* ── 2. Verify ── */}
