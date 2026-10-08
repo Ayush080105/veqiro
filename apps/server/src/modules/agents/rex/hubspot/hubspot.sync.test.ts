@@ -77,7 +77,11 @@ function setup() {
   store.clock = () => clock;
   const sync = createSync({
     store, blobs, clientFor: () => hs.client(), now: () => clock,
-    refreshDashboard: async (_org, id) => void refreshed.push(id),
+    refreshDashboard: async (_org, id) => {
+      refreshed.push(id);
+      const dash = store.dashboards.find((x) => x.id === id);
+      if (dash) dash.lastRefreshedAt = clock;
+    },
   });
 
   const connection = async (patch: Partial<ConnectionRecord> = {}) => store.createConnection({
@@ -152,7 +156,7 @@ describe("later syncs", () => {
     c.store.dashboards.push({ id: "dash1", organizationId: "org1", datasetIds: [ds.id] });
     await c.sync.syncDataset(ds.id);
     c.refreshed.length = 0; c.hs.calls.length = 0;
-    c.tick(60_000);
+    c.tick(3 * 60_000);
     return { ...c, conn, ds };
   }
 
@@ -200,6 +204,42 @@ describe("later syncs", () => {
     await c.sync.syncDataset(c.ds.id, { mode: "full" });
     const rows = await csvOf(c.blobs, (await c.store.findDataset(c.ds.id))!);
     assert.deepEqual(rows.map((r) => r.id), ["1"]);
+  });
+});
+
+describe("recompute throttle", () => {
+  async function twoChanges() {
+    const c = setup(); seed(c.hs);
+    const conn = await c.connection(); const ds = await c.dataset(conn.id);
+    c.store.dashboards.push({ id: "dash1", organizationId: "org1", datasetIds: [ds.id] });
+    await c.sync.syncDataset(ds.id);
+    c.refreshed.length = 0;
+    c.tick(30_000);
+    c.hs.deals[0] = { ...c.hs.deals[0]!, amount: "1", modified: c.now().getTime() - 1000 };
+    return { ...c, ds };
+  }
+
+  it("stores the change right away but holds back a recompute that just happened", async () => {
+    const c = await twoChanges();
+    const out = await c.sync.syncDataset(c.ds.id);
+    assert.equal(out.status, "synced");
+    assert.deepEqual(c.refreshed, [], "dashboard was recomputed 30s ago");
+    const d = (await c.store.findDataset(c.ds.id))!;
+    assert.equal((await csvOf(c.blobs, d))[0]!.amount, "1", "the snapshot itself is current");
+    assert.isTrue((d.meta as { pendingRefresh: boolean }).pendingRefresh);
+  });
+
+  it("applies the held-back recompute on a later sync, even one that finds nothing new", async () => {
+    const c = await twoChanges();
+    await c.sync.syncDataset(c.ds.id);
+    c.tick(3 * 60_000);
+    const out = await c.sync.syncDataset(c.ds.id);
+    assert.equal(out.status, "unchanged");
+    assert.deepEqual(c.refreshed, ["dash1"]);
+    assert.isFalse(((await c.store.findDataset(c.ds.id))!.meta as { pendingRefresh: boolean }).pendingRefresh);
+    c.refreshed.length = 0; c.tick(3 * 60_000);
+    await c.sync.syncDataset(c.ds.id);
+    assert.deepEqual(c.refreshed, [], "nothing owed, nothing recomputed");
   });
 });
 
@@ -379,4 +419,46 @@ describe("syncAllHubspot", () => {
     await c.sync.syncAllHubspot();
     assert.equal(c.hs.calls.length, 0);
   });
+});
+
+describe("a recompute that did not happen is not forgotten", () => {
+  async function failing(outcome: "busy" | "throws") {
+    const store = new FakeStore();
+    const blobs = new FakeBlobs();
+    const hs = new FakeHubSpot();
+    seed(hs);
+    let clock = new Date(T0);
+    store.clock = () => clock;
+    let attempts = 0;
+    const sync = createSync({
+      store, blobs, clientFor: () => hs.client(), now: () => clock,
+      refreshDashboard: async () => {
+        attempts++;
+        if (attempts === 1) {
+          if (outcome === "throws") throw new Error("AI service down");
+          return { skipped: "already refreshing" };
+        }
+        return { refreshed: true };
+      },
+    });
+    const conn = await store.createConnection({
+      organizationId: "org1", userId: "u1", provider: "hubspot", authType: "token", credentialEnc: packCredential({ type: "token", token: "pat-na1-xxxxxxxxxxxx" }),
+      accountLabel: "a", scopes: [{ type: "deals", ok: true }], config: { objects: { deals: { extra: [], includePii: [] } } }, status: "active", lastError: null,
+    });
+    const ds = await store.createConnectorDataset({ organizationId: "org1", userId: "u1", connectionId: conn.id, sourceObject: "deals", name: "HubSpot \u00b7 Deals", metricKey: "hubspot_deals" });
+    store.dashboards.push({ id: "dash1", organizationId: "org1", datasetIds: [ds.id] });
+    return { store, sync, ds, attempts: () => attempts, tick: (ms: number) => { clock = new Date(clock.getTime() + ms); } };
+  }
+
+  for (const outcome of ["busy", "throws"] as const) {
+    it(`retries on the next sync when the dashboard was ${outcome === "busy" ? "already recomputing" : "unable to recompute"}`, async () => {
+      const c = await failing(outcome);
+      assert.equal((await c.sync.syncDataset(c.ds.id)).status, "synced");
+      assert.isTrue(((await c.store.findDataset(c.ds.id))!.meta as { pendingRefresh: boolean }).pendingRefresh);
+      c.tick(60_000);
+      assert.equal((await c.sync.syncDataset(c.ds.id)).status, "unchanged");
+      assert.equal(c.attempts(), 2);
+      assert.isFalse(((await c.store.findDataset(c.ds.id))!.meta as { pendingRefresh: boolean }).pendingRefresh);
+    });
+  }
 });

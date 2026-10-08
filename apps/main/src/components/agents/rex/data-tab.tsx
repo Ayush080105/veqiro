@@ -660,7 +660,8 @@ export function RexDataTab({
                 >
                   <MessageSquare className="size-2.5" /> Ask
                 </button>
-                <button
+                {/* Reports read only the stored 500-row preview, which would misstate a large HubSpot table. */}
+                {ds.sourceKind !== "hubspot" && <button
                   type="button"
                   title="Generate DOCX report"
                   onClick={() => void handleGenerateReport(ds.id)}
@@ -671,7 +672,7 @@ export function RexDataTab({
                     ? <Loader2 className="size-2.5 animate-spin" />
                     : <FileDown className="size-2.5" />}
                   Report
-                </button>
+                </button>}
                 <button
                   type="button"
                   aria-label="Delete dataset"

@@ -93,7 +93,7 @@ export function ConnectionsPanel({ className }: { className?: string }) {
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => setWizard({ connectionId: c.id, step: "choose" })}>Change what&apos;s included</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => runSync(c, "full")} disabled={c.status !== "active"}>Full resync</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setWizard({ step: "connect" })}>Reconnect with a new key</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setWizard({ connectionId: c.id, step: "connect" })}>Reconnect with a new key</DropdownMenuItem>
                   <DropdownMenuItem onClick={() => { setRemoveMode("keep"); setRemoving(c) }} className="text-destructive">Disconnect</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -105,7 +105,7 @@ export function ConnectionsPanel({ className }: { className?: string }) {
                 <p className="flex-1">
                   {c.lastError ?? "HubSpot rejected this connection."} Your dashboards keep showing the last data until you reconnect.
                 </p>
-                <Button size="xs" onClick={() => setWizard({ step: "connect" })}>Reconnect</Button>
+                <Button size="xs" onClick={() => setWizard({ connectionId: c.id, step: "connect" })}>Reconnect</Button>
               </div>
             )}
 

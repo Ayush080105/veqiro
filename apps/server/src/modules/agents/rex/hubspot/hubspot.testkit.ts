@@ -9,7 +9,7 @@ export class FakeStore implements Store {
   clock: () => Date = () => new Date();
   connections = new Map<string, ConnectionRecord>();
   datasets = new Map<string, DatasetRecord>();
-  dashboards: Array<{ id: string; organizationId: string; datasetIds: string[] }> = [];
+  dashboards: Array<{ id: string; organizationId: string; datasetIds: string[]; lastRefreshedAt?: Date | null }> = [];
 
   async findConnection(organizationId: string, id: string) {
     const c = this.connections.get(id);
@@ -83,7 +83,7 @@ export class FakeStore implements Store {
     return new Set(ids.filter((id) => this.dashboards.some((d) => d.datasetIds.includes(id))));
   }
   async dashboardsUsing(datasetId: string) {
-    return this.dashboards.filter((d) => d.datasetIds.includes(datasetId)).map(({ id, organizationId }) => ({ id, organizationId }));
+    return this.dashboards.filter((d) => d.datasetIds.includes(datasetId)).map(({ id, organizationId, lastRefreshedAt }) => ({ id, organizationId, lastRefreshedAt: lastRefreshedAt ?? null }));
   }
 }
 

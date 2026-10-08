@@ -236,3 +236,66 @@ describe("credentials", () => {
     assert.throws(() => unpackCredential("garbage"));
   });
 });
+
+describe("reconnecting", () => {
+  it("replaces the key on the same connection, keeps the datasets and clears their old errors", async () => {
+    const { service, store } = setup();
+    const first = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN });
+    const { datasets } = await service.saveSelection({ organizationId: "org1", userId: "u1", connectionId: first.connectionId, objects: [{ type: "deals", extra: [], includePii: [] }] });
+    await store.updateConnection(first.connectionId, { status: "auth_error", lastError: "revoked" });
+    await store.updateDataset(datasets[0]!.id, { syncError: "HubSpot rejected the connection." });
+
+    const again = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: `${TOKEN}-new`, replaceConnectionId: first.connectionId });
+    assert.equal(again.connectionId, first.connectionId);
+    assert.equal(store.connections.size, 1);
+    const row = (await store.findConnectionById(first.connectionId))!;
+    assert.equal(row.status, "active");
+    assert.deepEqual(row.config.objects.deals, { extra: [], includePii: [] });
+    assert.isNull((await store.findDataset(datasets[0]!.id))!.syncError);
+  });
+
+  it("refuses a key from a different HubSpot account", async () => {
+    const { service, store } = setup();
+    const first = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN });
+    const other = createConnectionsService({
+      store, blobs: new FakeBlobs(),
+      clientFor: () => fakeClient(allowEverything),
+      clientForCredential: () => fakeClient((m, p, o) => (p === "/account-info/v3/details" ? { portalId: 9999 } : allowEverything(m, p, o))),
+    });
+    let err: unknown;
+    try { await other.connectWithToken({ organizationId: "org1", userId: "u1", token: `${TOKEN}-x`, replaceConnectionId: first.connectionId }); } catch (e) { err = e; }
+    assert.instanceOf(err, BadRequestError);
+    assert.match((err as Error).message, /different|same HubSpot account/i);
+    assert.equal(unpackCredential((await store.findConnectionById(first.connectionId))!.credentialEnc).type, "token");
+    assert.equal((unpackCredential((await store.findConnectionById(first.connectionId))!.credentialEnc) as { token: string }).token, TOKEN);
+  });
+
+  it("cannot be pointed at another organization's connection", async () => {
+    const { service } = setup();
+    const first = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN });
+    let err: unknown;
+    try { await service.connectWithToken({ organizationId: "org2", userId: "u2", token: TOKEN, replaceConnectionId: first.connectionId }); } catch (e) { err = e; }
+    assert.instanceOf(err, NotFoundError);
+  });
+});
+
+describe("naming the account", () => {
+  it("falls back to other endpoints when the first is not allowed for this key", async () => {
+    const { service } = setup((m, p, o) => {
+      if (p === "/account-info/v3/details") throw new HubSpotScopeError("no");
+      if (p === "/integrations/v1/me") return { portalId: 777 };
+      return allowEverything(m, p, o);
+    });
+    const out = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN });
+    assert.equal(out.verify.account, "HubSpot account 777");
+  });
+
+  it("still connects, unnamed, when no endpoint will say", async () => {
+    const { service } = setup((m, p, o) => {
+      if (p === "/account-info/v3/details" || p === "/integrations/v1/me") throw new HubSpotScopeError("no");
+      return allowEverything(m, p, o);
+    });
+    const out = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN });
+    assert.isNull(out.verify.account);
+  });
+});

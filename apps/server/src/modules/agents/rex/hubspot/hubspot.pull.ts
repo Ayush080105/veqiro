@@ -7,7 +7,7 @@
  * it are not skipped) and ids are de-duplicated. If a single timestamp holds more records than a
  * window can, the pull stops and reports itself truncated rather than loop.
  */
-import { HubSpotScopeError, type HubSpotClient } from "./hubspot.client.js";
+import { HubSpotRequestError, HubSpotScopeError, type HubSpotClient } from "./hubspot.client.js";
 import type { HsProperty } from "./hubspot.fields.js";
 import type { ObjectSpec } from "./hubspot.objects.js";
 
@@ -104,6 +104,7 @@ export async function incrementalPull(
   const records = new Map<string, RawRecord>();
   let watermark = (toMs(sinceIso) ?? 0) - (opts.overlapMs ?? DEFAULT_OVERLAP_MS);
   let truncated = false;
+  let filterProp = spec.modifiedProp;
 
   for (;;) {
     let after: string | undefined;
@@ -111,16 +112,28 @@ export async function incrementalPull(
     let lastModified = watermark;
     let windowFull = false;
     for (;;) {
-      const page = await c.request<ApiPage>("POST", `/crm/v3/objects/${spec.type}/search`, {
+      const search = () => c.request<ApiPage>("POST", `/crm/v3/objects/${spec.type}/search`, {
         search: true,
         body: {
-          filterGroups: [{ filters: [{ propertyName: spec.modifiedProp, operator: "GTE", value: String(Math.max(0, watermark)) }] }],
-          sorts: [{ propertyName: spec.modifiedProp, direction: "ASCENDING" }],
+          filterGroups: [{ filters: [{ propertyName: filterProp, operator: "GTE", value: String(Math.max(0, watermark)) }] }],
+          sorts: [{ propertyName: filterProp, direction: "ASCENDING" }],
           properties: props,
           limit: 200,
           ...(after ? { after } : {}),
         },
       });
+      let page: ApiPage;
+      try {
+        page = await search();
+      } catch (err) {
+        // Some accounts reject a standard "modified" property name; try the documented alternative once.
+        if (err instanceof HubSpotRequestError && err.status === 400 && spec.alternateModifiedProp && filterProp === spec.modifiedProp) {
+          filterProp = spec.alternateModifiedProp;
+          page = await search();
+        } else {
+          throw err;
+        }
+      }
       for (const r of page.results ?? []) {
         const raw = toRaw(r, spec.modifiedProp);
         records.set(raw.id, raw);

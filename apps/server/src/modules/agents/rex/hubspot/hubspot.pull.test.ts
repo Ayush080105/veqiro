@@ -212,3 +212,27 @@ describe("schemas and properties", () => {
     assert.equal((await fetchProperties(c, "deals"))[0]!.name, "amount");
   });
 });
+
+describe("incrementalPull modified-date fallback", () => {
+  it("retries contacts once with the alternative property when HubSpot rejects the first", async () => {
+    const contacts = OBJECT_SPECS.contacts!;
+    const rejected: string[] = [];
+    const c = client((_m, _p, opts) => {
+      const prop = (opts.body as { filterGroups: Array<{ filters: Array<{ propertyName: string }> }> }).filterGroups[0]!.filters[0]!.propertyName;
+      if (prop === "lastmodifieddate") { rejected.push(prop); throw new HubSpotRequestError("Property lastmodifieddate does not exist", 400); }
+      return { results: [{ id: "1", updatedAt: "2026-01-01T00:00:00.000Z", properties: {} }] };
+    });
+    const out = await incrementalPull(c, contacts, ["lifecyclestage"], "2025-12-31T00:00:00.000Z");
+    assert.equal(out.records.length, 1);
+    assert.deepEqual(rejected, ["lastmodifieddate"]);
+    assert.equal(c.log.length, 2, "one rejected call, one retry");
+  });
+
+  it("does not hide other 400 errors on objects with no alternative", async () => {
+    const c = client(() => { throw new HubSpotRequestError("bad", 400); });
+    let err: unknown;
+    try { await incrementalPull(c, DEALS, ["dealname"], "2026-01-01T00:00:00.000Z"); } catch (e) { err = e; }
+    assert.instanceOf(err, HubSpotRequestError);
+    assert.equal(c.log.length, 1);
+  });
+});

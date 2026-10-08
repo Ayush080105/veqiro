@@ -122,13 +122,13 @@ function useConnectionsMutation<V, R>(fn: (v: V) => Promise<R>) {
 }
 
 export const useConnectToken = () =>
-  useConnectionsMutation((token: string) =>
-    apiFetch<{ connectionId: string; verify: VerifyReport }>("/agents/rex/connections/hubspot/token", { method: "POST", body: { token } }))
+  useConnectionsMutation((v: { token: string; connectionId?: string }) =>
+    apiFetch<{ connectionId: string; verify: VerifyReport }>("/agents/rex/connections/hubspot/token", { method: "POST", body: v }))
 
 export const useStartOAuth = () =>
   useMutation({
-    mutationFn: (returnTo: string) =>
-      apiFetch<{ url: string }>("/agents/rex/connections/hubspot/oauth/start", { method: "POST", body: { returnTo } }),
+    mutationFn: (v: { returnTo: string; connectionId?: string }) =>
+      apiFetch<{ url: string }>("/agents/rex/connections/hubspot/oauth/start", { method: "POST", body: v }),
   })
 
 export const useVerify = () =>

@@ -77,7 +77,7 @@ export function createConnectionsService(deps: ConnectionsDeps) {
   }
 
   /** Every object a key might be able to read, with a live record count where it can. */
-  async function probe(client: HubSpotClient): Promise<VerifyReport> {
+  async function probe(client: HubSpotClient, token?: string): Promise<VerifyReport> {
     const schemas = await listSchemas(client);
     const specs: ObjectSpec[] = [
       ...Object.values(OBJECT_SPECS),
@@ -96,22 +96,47 @@ export function createConnectionsService(deps: ConnectionsDeps) {
         }
       }
     }
-    let account: string | null = null;
-    try {
-      const details = await client.request<{ portalId?: number }>("GET", "/account-info/v3/details");
-      if (details.portalId) account = `HubSpot account ${details.portalId}`;
-    } catch {
-      // The account name is a nicety; never block connecting on it.
+    return { account: await accountLabel(client, token), objects };
+  }
+
+  /** "HubSpot account 1234", from whichever endpoint this kind of key is allowed to read. */
+  async function accountLabel(client: HubSpotClient, token?: string): Promise<string | null> {
+    const tries: Array<() => Promise<number | undefined>> = [
+      async () => (await client.request<{ portalId?: number }>("GET", "/account-info/v3/details")).portalId,
+      async () => (await client.request<{ portalId?: number }>("GET", "/integrations/v1/me")).portalId,
+    ];
+    if (token) {
+      tries.push(async () => (await client.request<{ hub_id?: number }>("GET", `/oauth/v1/access-tokens/${encodeURIComponent(token)}`)).hub_id);
     }
-    return { account, objects };
+    for (const attempt of tries) {
+      try {
+        const id = await attempt();
+        if (id) return `HubSpot account ${id}`;
+      } catch {
+        // The name is a nicety; never block connecting on it.
+      }
+    }
+    return null;
   }
 
   const access = (report: VerifyReport): ObjectAccess[] =>
     report.objects.map((o) => ({ type: o.type, ok: o.ok, ...(o.missingScope ? { missingScope: o.missingScope } : {}) }));
 
-  async function persist(a: { organizationId: string; userId: string; cred: Credential; report: VerifyReport }) {
+  async function persist(a: { organizationId: string; userId: string; cred: Credential; report: VerifyReport; replaceConnectionId?: string }) {
     const credentialEnc = packCredential(a.cred);
     const authType = a.cred.type;
+    if (a.replaceConnectionId) {
+      const target = await owned(a.organizationId, a.replaceConnectionId);
+      if (target.accountLabel && a.report.account && target.accountLabel !== a.report.account) {
+        throw new BadRequestError(`That key belongs to ${a.report.account}, but this connection is for ${target.accountLabel}. Use a key from the same HubSpot account.`);
+      }
+      await store.updateConnection(target.id, { credentialEnc, authType, status: "active", lastError: null, scopes: access(a.report) });
+      // The old errors described the old key; the next sync will report the truth.
+      for (const d of await store.listDatasets([target.id])) {
+        if (d.syncError) await store.updateDataset(d.id, { syncError: null });
+      }
+      return target.id;
+    }
     const existing = a.report.account ? await store.findConnectionByAccount(a.organizationId, "hubspot", a.report.account) : null;
     if (existing) {
       await store.updateConnection(existing.id, {
@@ -132,16 +157,19 @@ export function createConnectionsService(deps: ConnectionsDeps) {
     }
   }
 
-  async function connect(a: { organizationId: string; userId: string; cred: Credential; rejected: string }) {
+  async function connect(a: { organizationId: string; userId: string; cred: Credential; rejected: string; replaceConnectionId?: string }) {
     requireEncryption();
+    if (a.replaceConnectionId) await owned(a.organizationId, a.replaceConnectionId);
     let report: VerifyReport;
     try {
-      report = await probe(deps.clientForCredential(a.cred));
+      report = await probe(deps.clientForCredential(a.cred), a.cred.type === "oauth" ? a.cred.accessToken : undefined);
     } catch (err) {
       if (err instanceof HubSpotAuthError) throw new BadRequestError(a.rejected);
       throw err;
     }
-    const connectionId = await persist({ organizationId: a.organizationId, userId: a.userId, cred: a.cred, report });
+    const connectionId = await persist({
+      organizationId: a.organizationId, userId: a.userId, cred: a.cred, report, replaceConnectionId: a.replaceConnectionId,
+    });
     return { connectionId, verify: report };
   }
 
@@ -157,20 +185,20 @@ export function createConnectionsService(deps: ConnectionsDeps) {
   });
 
   return {
-    async connectWithToken(a: { organizationId: string; userId: string; token: string }) {
+    async connectWithToken(a: { organizationId: string; userId: string; token: string; replaceConnectionId?: string }) {
       const token = sanitizeToken(a.token ?? "");
       if (token.length < 12 || /\s/.test(token)) {
         throw new BadRequestError("That doesn't look like a HubSpot token. Paste the whole Service Key or private app token.");
       }
       return connect({
-        organizationId: a.organizationId, userId: a.userId, cred: { type: "token", token },
+        organizationId: a.organizationId, userId: a.userId, cred: { type: "token", token }, replaceConnectionId: a.replaceConnectionId,
         rejected: "HubSpot rejected that key. Check that you copied the whole token and that it has not been revoked.",
       });
     },
 
-    connectWithOAuthTokens(a: { organizationId: string; userId: string; tokens: { accessToken: string; refreshToken: string; expiresAt: number } }) {
+    connectWithOAuthTokens(a: { organizationId: string; userId: string; tokens: { accessToken: string; refreshToken: string; expiresAt: number }; replaceConnectionId?: string }) {
       return connect({
-        organizationId: a.organizationId, userId: a.userId, cred: { type: "oauth", ...a.tokens },
+        organizationId: a.organizationId, userId: a.userId, cred: { type: "oauth", ...a.tokens }, replaceConnectionId: a.replaceConnectionId,
         rejected: "HubSpot did not accept the authorization. Try connecting again.",
       });
     },

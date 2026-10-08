@@ -19,8 +19,8 @@ const param = (req: Request, name: string): string => {
   return v;
 };
 
-const tokenSchema = z.object({ token: z.string().min(1).max(4000) });
-const oauthStartSchema = z.object({ returnTo: z.string().max(500).optional() });
+const tokenSchema = z.object({ token: z.string().min(1).max(4000), connectionId: z.string().max(60).optional() });
+const oauthStartSchema = z.object({ returnTo: z.string().max(500).optional(), connectionId: z.string().max(60).optional() });
 const selectionSchema = z.object({
   objects: z.array(z.object({
     type: z.string().trim().min(1).max(60),
@@ -45,6 +45,10 @@ function allowConnectAttempt(organizationId: string): boolean {
   return true;
 }
 
+/** After a reconnect, catch the datasets up right away instead of waiting for the next tick. */
+const resyncInBackground = (organizationId: string, connectionId: string) =>
+  void Promise.resolve().then(() => hubspotSync.syncConnection(organizationId, connectionId)).catch((err) => console.error("[rex-hubspot] resync after reconnect", err));
+
 export const list = async (req: Request, res: Response) => {
   const { organizationId } = auth(req);
   res.status(StatusCodes.OK).json({
@@ -56,16 +60,18 @@ export const list = async (req: Request, res: Response) => {
 
 export const connectToken = async (req: Request, res: Response) => {
   const { userId, organizationId } = auth(req);
-  const { token } = tokenSchema.parse(req.body);
+  const { token, connectionId } = tokenSchema.parse(req.body);
   if (!allowConnectAttempt(organizationId)) throw new BadRequestError("Too many connection attempts. Try again in a few minutes.");
-  res.status(StatusCodes.CREATED).json(await hubspotConnections.connectWithToken({ organizationId, userId, token }));
+  const out = await hubspotConnections.connectWithToken({ organizationId, userId, token, replaceConnectionId: connectionId });
+  if (connectionId) resyncInBackground(organizationId, out.connectionId);
+  res.status(connectionId ? StatusCodes.OK : StatusCodes.CREATED).json(out);
 };
 
 export const oauthStart = async (req: Request, res: Response) => {
   const { userId, organizationId } = auth(req);
   if (!oauthConfigured() || !secretsConfigured()) throw new BadRequestError("Connecting with HubSpot isn't enabled on this server.");
-  const { returnTo } = oauthStartSchema.parse(req.body ?? {});
-  res.status(StatusCodes.OK).json({ url: buildAuthorizeUrl({ organizationId, userId, returnTo: safeReturnTo(returnTo) }) });
+  const { returnTo, connectionId } = oauthStartSchema.parse(req.body ?? {});
+  res.status(StatusCodes.OK).json({ url: buildAuthorizeUrl({ organizationId, userId, returnTo: safeReturnTo(returnTo), connectionId }) });
 };
 
 /** Public: HubSpot sends the browser here. Trust comes from the signed `state`, not a session. */
@@ -86,7 +92,10 @@ export const oauthCallback = async (req: Request, res: Response) => {
   if (req.query["error"] || !code) return back(ctx.returnTo, { hubspot: "error", reason: "denied" });
   try {
     const tokens = await exchangeCode(code);
-    const out = await hubspotConnections.connectWithOAuthTokens({ organizationId: ctx.organizationId, userId: ctx.userId, tokens });
+    const out = await hubspotConnections.connectWithOAuthTokens({
+      organizationId: ctx.organizationId, userId: ctx.userId, tokens, replaceConnectionId: ctx.connectionId,
+    });
+    if (ctx.connectionId) resyncInBackground(ctx.organizationId, out.connectionId);
     return back(ctx.returnTo, { hubspot: "connected", connection: out.connectionId });
   } catch (err) {
     console.error("[rex-hubspot] oauth callback failed", err instanceof Error ? err.message : err);

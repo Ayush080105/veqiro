@@ -19,6 +19,8 @@ export interface ObjectSpec {
   pii: string[];
   /** The property to filter on for "what changed since". */
   modifiedProp: string;
+  /** Tried once if HubSpot rejects modifiedProp for this account. */
+  alternateModifiedProp?: string;
   /** Properties holding an owner id; shown as the owner's name. */
   ownerProps: string[];
   stageProp?: string;
@@ -57,7 +59,7 @@ export const OBJECT_SPECS: Record<string, ObjectSpec> = {
     pii: ["phone", "address", "address2", "zip"], ownerProps: [OWNER], derivedColumns: [],
   },
   contacts: {
-    type: "contacts", label: "Contacts", tier: 1, rowCap: ROW_CAP, modifiedProp: "lastmodifieddate",
+    type: "contacts", label: "Contacts", tier: 1, rowCap: ROW_CAP, modifiedProp: "lastmodifieddate", alternateModifiedProp: "hs_lastmodifieddate",
     defaults: {
       lifecyclestage: "lifecycle_stage", hs_lead_status: "lead_status", createdate: "created_at",
       lastmodifieddate: "updated_at", hs_analytics_source: "lead_source", [OWNER]: "owner_name",

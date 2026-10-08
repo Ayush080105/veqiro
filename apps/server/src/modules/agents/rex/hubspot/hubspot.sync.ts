@@ -31,6 +31,8 @@ export const DAILY_BUDGET = 100_000;
 export const LOCK_STALE_MS = 10 * 60_000;
 const FULL_RECONCILE_AFTER_MS = 24 * 60 * 60_000;
 const ERROR_BACKOFF_MS = 2 * 60_000;
+/** A dashboard is recomputed at most this often; changes that arrive sooner are applied on the next sync. */
+export const MIN_RECOMPUTE_MS = 2 * 60_000;
 const CRON_MIN_AGE_MS = 4 * 60_000;
 const MAX_PARALLEL_CONNECTIONS = 3;
 const EMPTY_SELECTION: ObjectSelection = { extra: [], includePii: [] };
@@ -190,7 +192,7 @@ export function createSync(deps: SyncDeps) {
     }
     await store.updateDataset(d.id, {
       ...baseUpdate,
-      meta: { ...((current.meta as object | null) ?? {}), source: "hubspot", rawTable: toRawTable(built, key) },
+      meta: { ...((current.meta as object | null) ?? {}), source: "hubspot", rawTable: toRawTable(built, key), pendingRefresh: false },
       contentHash: hash,
       rowCount: built.rows.length,
       containsPii: columns.some((c) => c.pii),
@@ -198,10 +200,35 @@ export function createSync(deps: SyncDeps) {
     });
     if (prevKey && prevKey !== key) await blobs.del(prevKey).catch(() => undefined);
 
-    for (const dash of await store.dashboardsUsing(d.id)) {
-      await deps.refreshDashboard(dash.organizationId, dash.id).catch((err) => console.error("[rex-hubspot] dashboard refresh", err));
-    }
+    const newMeta = { ...((current.meta as object | null) ?? {}), source: "hubspot", rawTable: toRawTable(built, key), pendingRefresh: false };
+    if (await refreshDependents(d.id, now)) await store.updateDataset(d.id, { meta: { ...newMeta, pendingRefresh: true } });
     return { status: "synced", rows: built.rows.length };
+  }
+
+  /** Recompute the dashboards that read this dataset, skipping any recomputed moments ago.
+   *  Returns true when some were skipped, so the change is applied on a later sync. */
+  async function refreshDependents(datasetId: string, now: Date): Promise<boolean> {
+    let skipped = false;
+    for (const dash of await store.dashboardsUsing(datasetId)) {
+      if (dash.lastRefreshedAt && now.getTime() - dash.lastRefreshedAt.getTime() < MIN_RECOMPUTE_MS) { skipped = true; continue; }
+      try {
+        const res = (await deps.refreshDashboard(dash.organizationId, dash.id)) as { skipped?: string } | undefined;
+        // Someone else is mid-recompute: that run may have started before this change, so try again later.
+        if (res?.skipped === "already refreshing") skipped = true;
+      } catch (err) {
+        console.error("[rex-hubspot] dashboard refresh", err);
+        skipped = true;
+      }
+    }
+    return skipped;
+  }
+
+  /** A sync that found nothing new still owes any recompute that was held back earlier. */
+  async function settlePending(datasetId: string, now: Date) {
+    const cur = await store.findDataset(datasetId);
+    const meta = cur?.meta as { pendingRefresh?: boolean } | null;
+    if (!cur || !meta?.pendingRefresh) return;
+    if (!(await refreshDependents(datasetId, now))) await store.updateDataset(datasetId, { meta: { ...meta, pendingRefresh: false } });
   }
 
   async function fail(d: DatasetRecord, message: string): Promise<SyncOutcome> {
@@ -254,7 +281,9 @@ export function createSync(deps: SyncDeps) {
 
     const work = (async () => {
       try {
-        return await guarded(d, conn, opts.mode ?? "auto", opts.allowFullReconcile ?? true);
+        const out = await guarded(d, conn, opts.mode ?? "auto", opts.allowFullReconcile ?? true);
+        if (out.status === "unchanged") await settlePending(d.id, clock()).catch((err) => console.error("[rex-hubspot] settle", err));
+        return out;
       } finally {
         await store.unlockDataset(d.id).catch(() => undefined);
       }

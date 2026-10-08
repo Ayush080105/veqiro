@@ -25,6 +25,8 @@ app.use(
     credentials: true,
   })
 );
+// The OAuth callback carries a one-time code and a signed state in its query string; keep them out of logs.
+morgan.token("url", (req) => (((req as { originalUrl?: string }).originalUrl ?? req.url) ?? "").replace(/([?&](?:code|state)=)[^&]*/g, "$1[redacted]"));
 app.use(morgan("dev"));
 
 // Better Auth must be mounted BEFORE express.json() so it can stream request bodies

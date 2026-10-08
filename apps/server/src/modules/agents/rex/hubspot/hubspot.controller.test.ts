@@ -143,3 +143,15 @@ describe("oauthStart", () => {
     assert.instanceOf(err, Error);
   });
 });
+
+describe("reconnect through the callback", () => {
+  it("replaces that connection instead of creating a new one", async () => {
+    exchangeCode.mockResolvedValue({ accessToken: "a", refreshToken: "r", expiresAt: 1 });
+    connectWithOAuthTokens.mockResolvedValue({ connectionId: "conn7", verify: {} });
+    const state = signState({ organizationId: "org1", userId: "u1", returnTo: "/data", connectionId: "conn7" }, 60_000);
+    const { r, out } = res();
+    await c.oauthCallback(req({ query: { code: "x", state } }), r);
+    assert.equal(connectWithOAuthTokens.mock.calls[0]![0].replaceConnectionId, "conn7");
+    assert.equal(new URL(out.redirected!).searchParams.get("connection"), "conn7");
+  });
+});

@@ -70,7 +70,7 @@ describe("token exchange", () => {
       return json(200, { access_token: "at", refresh_token: "rt", expires_in: 1800 });
     }) as unknown as typeof fetch;
     const t = await exchangeCode("the-code", { fetch: fetchFn, now: () => 1_000_000 });
-    assert.equal(seen!.url, "https://api.hubapi.com/oauth/v1/token");
+    assert.equal(seen!.url, "https://api.hubapi.com/oauth/v3/token");
     assert.equal(seen!.type, "application/x-www-form-urlencoded");
     const form = new URLSearchParams(seen!.body);
     assert.equal(form.get("grant_type"), "authorization_code");
@@ -139,5 +139,16 @@ describe("oauthTokenProvider", () => {
     let err: unknown;
     try { await bad.onUnauthorized!(); } catch (e) { err = e; }
     assert.instanceOf(err, HubSpotAuthError);
+  });
+});
+
+describe("reconnecting through OAuth", () => {
+  it("carries the connection to replace inside the signed state, and only a string", () => {
+    const url = new URL(buildAuthorizeUrl({ organizationId: "o", userId: "u", returnTo: "/x", connectionId: "conn1" }));
+    assert.equal(readCallbackState(url.searchParams.get("state")!).connectionId, "conn1");
+    const plain = new URL(buildAuthorizeUrl({ organizationId: "o", userId: "u", returnTo: "/x" }));
+    assert.notProperty(readCallbackState(plain.searchParams.get("state")!), "connectionId");
+    const forged = signState({ organizationId: "o", userId: "u", returnTo: "/x", connectionId: { $ne: 1 } }, 60_000);
+    assert.notProperty(readCallbackState(forged), "connectionId");
   });
 });

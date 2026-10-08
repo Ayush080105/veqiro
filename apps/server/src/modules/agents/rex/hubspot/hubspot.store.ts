@@ -122,7 +122,7 @@ export function createPrismaStore(): Store {
       return new Set(rows.flatMap((r) => r.datasetIds).filter((id) => wanted.has(id)));
     },
     async dashboardsUsing(datasetId) {
-      return prisma.rexDashboard.findMany({ where: { datasetIds: { has: datasetId } }, select: { id: true, organizationId: true } });
+      return prisma.rexDashboard.findMany({ where: { datasetIds: { has: datasetId } }, select: { id: true, organizationId: true, lastRefreshedAt: true } });
     },
   };
 }

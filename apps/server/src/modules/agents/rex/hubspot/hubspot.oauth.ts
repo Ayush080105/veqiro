@@ -11,7 +11,8 @@ import { SecretBoxError, signState, verifyState } from "../../../../common/utils
 import { HubSpotAuthError, HubSpotTransientError, type TokenProvider } from "./hubspot.client.js";
 
 const AUTHORIZE_URL = "https://app.hubspot.com/oauth/authorize";
-const TOKEN_URL = "https://api.hubapi.com/oauth/v1/token";
+// Apps built on the current developer platform (the only kind that can still be created) use v3.
+const TOKEN_URL = "https://api.hubapi.com/oauth/v3/token";
 const STATE_TTL_MS = 10 * 60_000;
 const REFRESH_EARLY_MS = 60_000;
 
@@ -50,10 +51,13 @@ export function safeReturnTo(path: string | undefined): string {
   return path;
 }
 
-interface StatePayload { organizationId: string; userId: string; returnTo: string }
+interface StatePayload { organizationId: string; userId: string; returnTo: string; connectionId?: string }
 
 export function buildAuthorizeUrl(input: StatePayload): string {
-  const state = signState({ organizationId: input.organizationId, userId: input.userId, returnTo: safeReturnTo(input.returnTo) }, STATE_TTL_MS);
+  const state = signState({
+    organizationId: input.organizationId, userId: input.userId, returnTo: safeReturnTo(input.returnTo),
+    ...(input.connectionId ? { connectionId: input.connectionId } : {}),
+  }, STATE_TTL_MS);
   const q = (k: string, v: string) => `${k}=${encodeURIComponent(v)}`;
   return `${AUTHORIZE_URL}?${[
     q("client_id", process.env.HUBSPOT_CLIENT_ID!),
@@ -69,7 +73,10 @@ export function readCallbackState(state: string): StatePayload {
   if (typeof p.organizationId !== "string" || typeof p.userId !== "string" || !p.organizationId || !p.userId) {
     throw new SecretBoxError("invalid state");
   }
-  return { organizationId: p.organizationId, userId: p.userId, returnTo: safeReturnTo(p.returnTo) };
+  return {
+    organizationId: p.organizationId, userId: p.userId, returnTo: safeReturnTo(p.returnTo),
+    ...(typeof p.connectionId === "string" && p.connectionId ? { connectionId: p.connectionId } : {}),
+  };
 }
 
 async function tokenRequest(form: Record<string, string>, deps: Deps, previousRefresh?: string): Promise<OAuthTokens> {

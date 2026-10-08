@@ -15,7 +15,10 @@ export function PublicDashboardView({ token }: { token: string }) {
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
-  const live = data?.live === true
+  // A ref, so learning that the page is live does not re-run the load below and flash the spinner.
+  const liveRef = React.useRef(false)
+  const isLive = data?.live === true
+  React.useEffect(() => { liveRef.current = isLive }, [isLive])
 
   React.useEffect(() => {
     let cancelled = false
@@ -29,9 +32,9 @@ export function PublicDashboardView({ token }: { token: string }) {
     void load(false)
     // A page on a live source re-reads itself once a minute while it is on screen; that read is
     // also what asks the server to bring the data up to date.
-    const timer = live ? setInterval(() => { if (document.visibilityState === "visible") void load(true) }, 60_000) : undefined
-    return () => { cancelled = true; if (timer) clearInterval(timer) }
-  }, [token, state, live])
+    const timer = setInterval(() => { if (liveRef.current && document.visibilityState === "visible") void load(true) }, 60_000)
+    return () => { cancelled = true; clearInterval(timer) }
+  }, [token, state])
 
   if (data === undefined && loading) {
     return (

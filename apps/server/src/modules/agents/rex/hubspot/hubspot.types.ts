@@ -90,7 +90,7 @@ export interface Store {
   listSyncableDatasets(): Promise<DatasetRecord[]>;
   /** Of these dataset ids, the ones at least one dashboard reads. */
   usedByDashboards(datasetIds: string[]): Promise<Set<string>>;
-  dashboardsUsing(datasetId: string): Promise<Array<{ id: string; organizationId: string }>>;
+  dashboardsUsing(datasetId: string): Promise<Array<{ id: string; organizationId: string; lastRefreshedAt: Date | null }>>;
 }
 
 export interface Blobs {

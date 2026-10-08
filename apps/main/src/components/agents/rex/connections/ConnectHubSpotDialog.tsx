@@ -57,7 +57,6 @@ export function ConnectHubSpotDialog({
   initialStep?: WizardStep
 }) {
   const router = useRouter()
-  const { data: conns } = useConnections({ poll: open })
   const connectToken = useConnectToken()
   const startOAuth = useStartOAuth()
   const verify = useVerify()
@@ -65,6 +64,8 @@ export function ConnectHubSpotDialog({
   const createDashboard = useCreateDashboard()
 
   const [step, setStep] = React.useState<WizardStep>(resumeId ? initialStep : "connect")
+  // Only watch the server this closely while something is actually being pulled in.
+  const { data: conns } = useConnections({ poll: open && step === "sync" })
   const [connectionId, setConnectionId] = React.useState<string | undefined>(resumeId)
   const [report, setReport] = React.useState<VerifyReport | null>(null)
   const [token, setToken] = React.useState("")
@@ -74,6 +75,9 @@ export function ConnectHubSpotDialog({
   const [building, setBuilding] = React.useState<string | null>(null)
 
   const connection = conns?.connections.find((c) => c.id === connectionId)
+  // Opened on the connect step for a connection that already exists: swap its key, keep everything else.
+  const reconnecting = Boolean(connectionId) && step === "connect"
+  const unavailable = conns !== undefined && !conns.encryptionConfigured
 
   // Reset when the dialog is reopened for a different purpose.
   React.useEffect(() => {
@@ -112,7 +116,7 @@ export function ConnectHubSpotDialog({
   }, [report, connection])
 
   const connectWithKey = () =>
-    connectToken.mutate(token, {
+    connectToken.mutate({ token, connectionId: reconnecting ? connectionId : undefined }, {
       onSuccess: (out) => {
         setConnectionId(out.connectionId)
         setReport(out.verify)
@@ -123,7 +127,7 @@ export function ConnectHubSpotDialog({
     })
 
   const connectWithHubSpot = () =>
-    startOAuth.mutate(`${window.location.pathname}${window.location.search}`, {
+    startOAuth.mutate({ returnTo: `${window.location.pathname}${window.location.search}`, connectionId: reconnecting ? connectionId : undefined }, {
       onSuccess: ({ url }) => window.location.assign(url),
       onError: (err) => toast.error(err instanceof Error ? err.message : "Couldn't start the HubSpot connection"),
     })
@@ -178,9 +182,11 @@ export function ConnectHubSpotDialog({
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
           <Steps step={step} />
-          <DialogTitle className="pt-2 text-base">{TITLES[step]}</DialogTitle>
+          <DialogTitle className="pt-2 text-base">{reconnecting ? "Reconnect HubSpot" : TITLES[step]}</DialogTitle>
           <DialogDescription>
-            {step === "connect" && "Rex reads your HubSpot records, read only, and keeps your dashboards up to date. It never changes anything in HubSpot."}
+            {step === "connect" && (reconnecting
+              ? "Use a new key from the same HubSpot account. Your dashboards and what you chose to bring in stay exactly as they are."
+              : "Rex reads your HubSpot records, read only, and keeps your dashboards up to date. It never changes anything in HubSpot.")}
             {step === "verify" && (report?.account ? `Connected to ${report.account}. Here is what this connection can read.` : "Here is what this connection can read.")}
             {step === "choose" && "Pick what to bring in. You can add more later, and each object becomes a table your dashboards can use."}
             {step === "sync" && "This runs in the background. You can close this window and come back."}
@@ -190,9 +196,15 @@ export function ConnectHubSpotDialog({
         {/* ── 1. Connect ── */}
         {step === "connect" && (
           <div className="flex flex-col gap-4">
+            {unavailable && (
+              <p role="alert" className="flex gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+                <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-amber-500" />
+                Connecting accounts isn&apos;t set up on this server yet. An admin needs to set INTEGRATION_SECRET_KEY before HubSpot can be connected.
+              </p>
+            )}
             {conns?.oauthAvailable && (
               <>
-                <Button size="lg" onClick={connectWithHubSpot} disabled={busy} className="justify-center">
+                <Button size="lg" onClick={connectWithHubSpot} disabled={busy || unavailable} className="justify-center">
                   {startOAuth.isPending ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
                   Connect with HubSpot
                 </Button>
@@ -209,11 +221,11 @@ export function ConnectHubSpotDialog({
                   <KeyRound className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="hs-token" type="password" autoComplete="off" spellCheck={false} value={token}
-                    onChange={(e) => setToken(e.target.value)} placeholder="Paste the key here" className="pl-8 font-mono text-xs"
+                    onChange={(e) => setToken(e.target.value)} placeholder="Paste the key here" className="pl-8 font-mono text-xs" disabled={unavailable}
                   />
                 </div>
-                <Button type="submit" disabled={!token.trim() || busy}>
-                  {connectToken.isPending ? <><Loader2 className="size-3.5 animate-spin" /> Checking</> : "Connect"}
+                <Button type="submit" disabled={!token.trim() || busy || unavailable}>
+                  {connectToken.isPending ? <><Loader2 className="size-3.5 animate-spin" /> Checking</> : reconnecting ? "Reconnect" : "Connect"}
                 </Button>
               </div>
               {connectToken.error instanceof ApiError && <p className="text-xs text-destructive">{connectToken.error.message}</p>}
@@ -289,18 +301,19 @@ export function ConnectHubSpotDialog({
               <ul className="flex flex-col gap-2">
                 {report.objects.filter((o) => o.ok).map((o) => {
                   const sel = picked[o.type] ?? null
+                  const included = connection?.datasets.some((d) => d.object === o.type) ?? false
                   const open = customising === o.type
                   return (
                     <li key={o.type} className="rounded-md border border-border">
                       <div className="flex items-center gap-3 px-3 py-2.5">
                         <Checkbox
-                          checked={sel !== null} aria-label={`Bring in ${o.label}`}
+                          checked={sel !== null} disabled={included} aria-label={`Bring in ${o.label}`}
                           onCheckedChange={(v) => setPicked((p) => ({ ...p, [o.type]: v ? (p[o.type] ?? { extra: [], includePii: [] }) : null }))}
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block text-sm font-medium">{o.label}</span>
                           <span className="block text-[11px] text-muted-foreground">
-                            {o.count !== null ? `${num.format(o.count)} records` : "Record count unavailable"}
+                            {included ? "Already included. " : ""}{o.count !== null ? `${num.format(o.count)} records` : "Record count unavailable"}
                             {o.count !== null && o.count > ROW_CAP && ` · Rex keeps the first ${num.format(ROW_CAP)}`}
                           </span>
                         </span>
