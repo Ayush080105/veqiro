@@ -17,7 +17,7 @@ export class ApiError extends Error {
 }
 
 type RequestOpts = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE"
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"
   body?: unknown
   agentSlugForNotFound?: string
   signal?: AbortSignal

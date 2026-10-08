@@ -1683,6 +1683,22 @@ model RexDataset {
   syncError      String?
   /// Whether a linked sheet is re-fetched on the schedule.
   syncEnabled    Boolean   @default(true)
+  /// The connection a connector dataset (sourceKind "hubspot") is pulled through.
+  connectionId   String?
+  /// The remote object this dataset mirrors, e.g. "deals".
+  sourceObject   String?
+  /// Incremental-sync watermark: { modifiedSince: ISO timestamp }.
+  syncCursor     Json?
+  /// Last complete (non-incremental) pull; deletions are only noticed by these.
+  lastFullSyncAt DateTime?
+  /// When the running sync started; a stale value is ignored, so a crash cannot wedge a dataset.
+  syncStartedAt  DateTime?
+  /// Rows in the stored snapshot.
+  rowCount       Int?
+  /// Plain-language note shown with the dataset, e.g. that it was truncated at the row cap.
+  syncNote       String?
+  /// True when the stored table includes personal-data columns the customer opted into.
+  containsPii    Boolean   @default(false)
   /// Creation timestamp.
   createdAt      DateTime @default(now())
   /// Update timestamp.
@@ -1691,7 +1707,42 @@ model RexDataset {
   @@index([organizationId, updatedAt])
   @@index([organizationId, metricKey, purpose, updatedAt])
   @@index([sourceKind, syncEnabled])
+  @@index([connectionId])
   @@map("rex_dataset")
+}
+
+/// A credential for pulling live data from an external service into Rex datasets. The credential
+/// is encrypted (secretBox) and is never returned by any API.
+model RexDataConnection {
+  /// Connection id.
+  id             String   @id @default(cuid())
+  /// Owning organization id.
+  organizationId String
+  /// User who connected it.
+  userId         String
+  /// Service, currently "hubspot".
+  provider       String
+  /// "token" (Service Key or private app token) or "oauth".
+  authType       String
+  /// secretBox ciphertext of the token, or of the OAuth token bundle JSON.
+  credentialEnc  String
+  /// Account name/portal id shown to the customer.
+  accountLabel   String?
+  /// Per-object access found when connecting: [{ type, ok, missingScope? }].
+  scopes         Json     @default("[]")
+  /// Per-object selection: { objects: { deals: { extra: [], includePii: [] } }, usage: { day, calls } }.
+  config         Json     @default("{}")
+  /// active | auth_error | paused.
+  status         String   @default("active")
+  /// Why the connection needs attention, in words a customer can act on.
+  lastError      String?
+  /// Creation timestamp.
+  createdAt      DateTime @default(now())
+  /// Update timestamp.
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+  @@map("rex_data_connection")
 }
 
 /// A Rex dashboard: widgets computed by SQL over one or more datasets, editable on a grid

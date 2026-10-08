@@ -47,7 +47,8 @@ const widgetPatchSchema = z.object({
   sql: z.string().min(1).max(8000).optional(),
   filterIds: z.array(z.string()).max(10).optional(),
 });
-const shareSchema = z.object({ isPublic: z.boolean() });
+const shareSchema = z.object({ isPublic: z.boolean(), confirmPii: z.boolean().optional() });
+const refreshSchema = z.object({ full: z.boolean().optional() });
 const linkSchema = z.object({ url: z.string().trim().min(8).max(2000) });
 const syncSchema = z.object({ sourceUrl: z.string().min(8).max(2000) });
 
@@ -109,14 +110,15 @@ export const duplicateWidget = async (req: Request, res: Response) => {
 export const refresh = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
   const id = param(req, "id");
-  const result = await dashboards.refreshDashboard(organizationId, id, { force: true });
+  const { full } = refreshSchema.parse(req.body ?? {});
+  const result = await dashboards.refreshWithSources(organizationId, id, { full });
   res.status(StatusCodes.OK).json({ ...result, dashboard: await dashboards.getDashboard(organizationId, id) });
 };
 
 export const share = async (req: Request, res: Response) => {
   const { organizationId } = requireAuthContext(req);
-  const { isPublic } = shareSchema.parse(req.body);
-  res.status(StatusCodes.OK).json(await dashboards.shareDashboard(organizationId, param(req, "id"), isPublic));
+  const { isPublic, confirmPii } = shareSchema.parse(req.body);
+  res.status(StatusCodes.OK).json(await dashboards.shareDashboard(organizationId, param(req, "id"), isPublic, confirmPii));
 };
 
 export const parseLink = async (req: Request, res: Response) => {

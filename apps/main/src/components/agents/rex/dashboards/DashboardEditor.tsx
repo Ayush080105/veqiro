@@ -6,6 +6,7 @@ import { formatDistanceToNow } from "date-fns"
 import {
   AlertTriangle,
   Check,
+  ChevronDown,
   Globe,
   LayoutGrid,
   Link2,
@@ -19,6 +20,7 @@ import {
 import { toast } from "sonner"
 
 import {
+  isLiveSource,
   useDashboard,
   useDeleteWidget,
   useDuplicateWidget,
@@ -32,6 +34,8 @@ import {
   type GridPos,
 } from "@/lib/api/rexDashboards"
 import { Button } from "@/components/ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { StatusPill } from "@/components/ui/status-pill"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -49,6 +53,49 @@ const PROMPT_IDEAS = [
   "Add a filter for region",
   "Make the top chart a pie",
 ]
+
+function useNow(intervalMs = 1000) {
+  const [now, setNow] = React.useState(() => Date.now())
+  React.useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(t)
+  }, [intervalMs])
+  return now
+}
+
+function since(ms: number, now: number) {
+  const s = Math.max(0, Math.round((now - ms) / 1000))
+  if (s < 5) return "just now"
+  if (s < 60) return `${s}s ago`
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`
+  return formatDistanceToNow(new Date(ms), { addSuffix: true })
+}
+
+/** Freshness, stated plainly: how long ago the numbers were last brought up to date. */
+function LivePill({ dashboard, working }: { dashboard: Dashboard; working: boolean }) {
+  const now = useNow()
+  const live = dashboard.sources.filter(isLiveSource)
+  if (live.length === 0) {
+    return dashboard.refreshStatus === "running" ? (
+      <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> Updating…</span>
+    ) : (
+      <>Computed {ago(dashboard.lastRefreshedAt)}</>
+    )
+  }
+  const failing = live.find((s) => s.syncError)
+  if (failing) {
+    return <StatusPill level="danger" title={failing.syncError ?? undefined} className="max-w-[28rem] truncate">{failing.syncError}</StatusPill>
+  }
+  if (working || dashboard.refreshStatus === "running") {
+    return <StatusPill level="info" icon={<Loader2 className="animate-spin" />}>Updating from HubSpot</StatusPill>
+  }
+  const last = Math.max(0, ...live.map((s) => (s.lastSyncedAt ? new Date(s.lastSyncedAt).getTime() : 0)))
+  return (
+    <StatusPill level="ok" icon={<span className="size-1.5 animate-pulse rounded-full bg-[#1DBC87]" />}>
+      Live, updated {last ? since(last, now) : "never"}
+    </StatusPill>
+  )
+}
 
 function SourceStatus({ dashboard }: { dashboard: Dashboard }) {
   const linked = dashboard.sources.filter((s) => s.sourceKind === "link")
@@ -80,7 +127,14 @@ function SourceStatus({ dashboard }: { dashboard: Dashboard }) {
 
 export function DashboardEditor({ dashboardId, backLink }: { dashboardId: string; backLink?: React.ReactNode }) {
   const [filterState, setFilterState] = React.useState<FilterState>({})
-  const { data, isLoading, error, isFetching } = useDashboard(dashboardId, filterState)
+  // After a Refresh that HubSpot was too slow for, check back quickly for a minute.
+  const [fast, setFast] = React.useState(false)
+  React.useEffect(() => {
+    if (!fast) return
+    const t = setTimeout(() => setFast(false), 60_000)
+    return () => clearTimeout(t)
+  }, [fast])
+  const { data, isLoading, error, isFetching } = useDashboard(dashboardId, filterState, { fast })
   const qc = useQueryClient()
 
   const [editing, setEditing] = React.useState(false)
@@ -117,6 +171,22 @@ export function DashboardEditor({ dashboardId, backLink }: { dashboardId: string
   }
 
   const widget = data.widgets.find((w) => w.id === selected) ?? null
+  const hasLive = data.sources.some(isLiveSource)
+
+  const runRefresh = (full: boolean) =>
+    refresh.mutate({ full }, {
+      onSuccess: (out) => {
+        if (out.sync?.some((r) => r.status === "timeout")) {
+          toast.info("HubSpot is still syncing. This page updates when it finishes.")
+          setFast(true)
+          return
+        }
+        const failed = out.sync?.find((r) => r.status === "error")
+        if (failed) toast.warning(failed.message ?? "HubSpot couldn't be reached. Showing the last data.")
+        else toast.success(full ? "Fully resynced" : "Up to date")
+      },
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Refresh failed"),
+    })
 
   const runPrompt = (text: string, widgetId?: string) => {
     if (!text.trim() || promptEdit.isPending) return
@@ -165,13 +235,7 @@ export function DashboardEditor({ dashboardId, backLink }: { dashboardId: string
             aria-label="Dashboard title"
           />
           <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>
-              {data.refreshStatus === "running" ? (
-                <span className="inline-flex items-center gap-1"><Loader2 className="size-3 animate-spin" /> Updating…</span>
-              ) : (
-                <>Computed {ago(data.lastRefreshedAt)}</>
-              )}
-            </span>
+            <span><LivePill dashboard={data} working={refresh.isPending || fast} /></span>
             {data.isPublic && (
               <span className="inline-flex items-center gap-1 text-[#1DBC87]"><Globe className="size-3" /> Public</span>
             )}
@@ -182,17 +246,28 @@ export function DashboardEditor({ dashboardId, backLink }: { dashboardId: string
           <Button variant={editing ? "default" : "outline"} size="sm" onClick={() => { setEditing((e) => !e); setSelected(null) }}>
             {editing ? <><Check className="size-3.5" /> Done</> : <><LayoutGrid className="size-3.5" /> Edit layout</>}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            disabled={refresh.isPending || data.refreshStatus === "running"}
-            onClick={() => refresh.mutate(undefined, {
-              onSuccess: () => toast.success("Up to date"),
-              onError: (err) => toast.error(err instanceof Error ? err.message : "Refresh failed"),
-            })}
-          >
-            <RefreshCw className={cn("size-3.5", refresh.isPending && "animate-spin")} /> Refresh
-          </Button>
+          <div className="inline-flex">
+            <Button
+              variant="outline"
+              size="sm"
+              className={hasLive ? "rounded-r-none" : undefined}
+              disabled={refresh.isPending || data.refreshStatus === "running"}
+              onClick={() => runRefresh(false)}
+            >
+              <RefreshCw className={cn("size-3.5", refresh.isPending && "animate-spin")} />
+              {refresh.isPending ? (hasLive ? "Syncing HubSpot" : "Refreshing") : "Refresh"}
+            </Button>
+            {hasLive && (
+              <DropdownMenu>
+                <DropdownMenuTrigger render={<Button variant="outline" size="icon-sm" className="h-7 rounded-l-none border-l-0" aria-label="More refresh options" disabled={refresh.isPending} />}>
+                  <ChevronDown className="size-3.5" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => runRefresh(true)}>Full resync from HubSpot</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
           <Button size="sm" onClick={() => setShareOpen(true)}>
             <Share2 className="size-3.5" /> Share
           </Button>

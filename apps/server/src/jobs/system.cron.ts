@@ -5,6 +5,7 @@ import { startMayaScheduledPostsCron } from "../modules/agents/maya/maya.cron.js
 import { sweepExpiredEntitlements } from "./entitlementSweeper.job.js";
 import { runWeeklyLegalBrief } from "../modules/agents/lex/lex.cron.js";
 import { syncAllLinkedSources } from "../modules/agents/rex/rex.dashboards.service.js";
+import { syncAllHubspot } from "../modules/agents/rex/hubspot/hubspot.runtime.js";
 
 export function startSystemCrons() {
   // Vega follow-up overdue check — 09:00 UTC daily
@@ -45,6 +46,14 @@ export function startSystemCrons() {
   cron.schedule("*/15 * * * *", () => {
     void syncAllLinkedSources().catch((err) => {
       console.error("[system-cron] Rex linked sheet sync failed", err);
+    });
+  });
+
+  // Rex HubSpot datasets — every 5 min. Only datasets a dashboard reads; a cycle with no changes
+  // in HubSpot costs one search call per object.
+  cron.schedule("*/5 * * * *", () => {
+    void syncAllHubspot().catch((err) => {
+      console.error("[system-cron] Rex HubSpot sync failed", err);
     });
   });
 

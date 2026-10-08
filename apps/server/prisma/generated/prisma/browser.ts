@@ -306,6 +306,12 @@ export type LexSettings = Prisma.LexSettingsModel
  */
 export type RexDataset = Prisma.RexDatasetModel
 /**
+ * Model RexDataConnection
+ * A credential for pulling live data from an external service into Rex datasets. The credential
+ * is encrypted (secretBox) and is never returned by any API.
+ */
+export type RexDataConnection = Prisma.RexDataConnectionModel
+/**
  * Model RexDashboard
  * A Rex dashboard: widgets computed by SQL over one or more datasets, editable on a grid
  * canvas and publishable at a public link.

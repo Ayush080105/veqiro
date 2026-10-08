@@ -68,6 +68,10 @@ export interface DashboardSource {
   lastSyncedAt: string | null
   syncError: string | null
   updatedAt: string
+  rowCount?: number | null
+  syncNote?: string | null
+  connectionId?: string | null
+  containsPii?: boolean
 }
 
 export interface Dashboard {
@@ -85,6 +89,8 @@ export interface Dashboard {
   refreshError: string | null
   lastRefreshedAt: string | null
   sources: DashboardSource[]
+  /** True when a dataset it reads includes personal data from HubSpot. */
+  containsPii?: boolean
   updatedAt: string
   /** Widgets the model proposed but whose query never ran — only on create/edit responses. */
   dropped?: Array<{ title: string; error: string }>
@@ -110,6 +116,8 @@ export interface PublicDashboard {
   widgets: DashboardWidget[]
   results: Record<string, WidgetResult>
   lastRefreshedAt: string | null
+  /** True when the data comes from a live source, so the page keeps itself fresh. */
+  live?: boolean
 }
 
 export const DATE_PRESETS: Array<{ value: string; label: string }> = [
@@ -139,14 +147,24 @@ export function useDashboards() {
   })
 }
 
-export function useDashboard(id: string | undefined, state: FilterState = {}) {
+export const isLiveSource = (s: DashboardSource) => s.sourceKind === "hubspot"
+
+/** How often a dashboard backed by a live source re-reads itself while its tab is visible. */
+const LIVE_POLL_MS = 30_000
+
+export function useDashboard(id: string | undefined, state: FilterState = {}, opts: { fast?: boolean } = {}) {
   return useQuery({
     queryKey: keys.one(id ?? "", state),
     queryFn: () => apiFetch<Dashboard>(`/agents/rex/dashboards/${id}${stateParam(state)}`),
     enabled: Boolean(id),
     placeholderData: (prev) => prev,
-    // While a refresh runs in the background, check back until it lands.
-    refetchInterval: (q) => (q.state.data?.refreshStatus === "running" ? 3000 : false),
+    // While a refresh runs in the background, check back until it lands. A dashboard on a live
+    // source also re-reads itself, which is what starts and then shows the next sync.
+    refetchInterval: (q) => {
+      const d = q.state.data
+      if (d?.refreshStatus === "running" || opts.fast) return 3000
+      return d?.sources.some(isLiveSource) ? LIVE_POLL_MS : false
+    },
   })
 }
 
@@ -195,9 +213,24 @@ export const useDuplicateWidget = (id: string) =>
   useDashboardMutation(id, (widgetId: string) =>
     apiFetch<Dashboard>(`/agents/rex/dashboards/${id}/widgets/${widgetId}/duplicate`, { method: "POST" }))
 
-export const useRefreshDashboard = (id: string) =>
-  useDashboardMutation(id, async () =>
-    (await apiFetch<{ dashboard: Dashboard }>(`/agents/rex/dashboards/${id}/refresh`, { method: "POST" })).dashboard)
+export interface RefreshOutcome {
+  dashboard: Dashboard
+  sync?: Array<{ datasetId: string; status: string; message?: string }>
+}
+
+/** Brings live sources up to date first, then recomputes. `full` re-reads everything from the source. */
+export function useRefreshDashboard(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (opts: { full?: boolean } = {}) =>
+      apiFetch<RefreshOutcome>(`/agents/rex/dashboards/${id}/refresh`, { method: "POST", body: { full: opts.full ?? false } }),
+    onSuccess: (out) => {
+      qc.setQueryData(keys.one(id, {}), out.dashboard)
+      void qc.invalidateQueries({ queryKey: keys.oneAll(id), predicate: (q) => JSON.stringify(q.queryKey[3]) !== "{}" })
+      void qc.invalidateQueries({ queryKey: keys.list() })
+    },
+  })
+}
 
 export function useSaveLayout(id: string) {
   return useMutation({
@@ -209,10 +242,10 @@ export function useSaveLayout(id: string) {
 export function useShareDashboard(id: string) {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (isPublic: boolean) =>
+    mutationFn: (v: { isPublic: boolean; confirmPii?: boolean }) =>
       apiFetch<{ isPublic: boolean; shareToken: string | null }>(`/agents/rex/dashboards/${id}/share`, {
         method: "PATCH",
-        body: { isPublic },
+        body: v,
       }),
     onSuccess: (share) => {
       qc.setQueriesData<Dashboard>({ queryKey: keys.oneAll(id) }, (d) => (d ? { ...d, ...share } : d))

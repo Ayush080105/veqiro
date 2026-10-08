@@ -92,6 +92,7 @@ export const ModelName = {
   LexActivity: 'LexActivity',
   LexSettings: 'LexSettings',
   RexDataset: 'RexDataset',
+  RexDataConnection: 'RexDataConnection',
   RexDashboard: 'RexDashboard',
   RexDashboardWidget: 'RexDashboardWidget',
   RexDashboardResult: 'RexDashboardResult',
@@ -851,11 +852,38 @@ export const RexDatasetScalarFieldEnum = {
   lastSyncedAt: 'lastSyncedAt',
   syncError: 'syncError',
   syncEnabled: 'syncEnabled',
+  connectionId: 'connectionId',
+  sourceObject: 'sourceObject',
+  syncCursor: 'syncCursor',
+  lastFullSyncAt: 'lastFullSyncAt',
+  syncStartedAt: 'syncStartedAt',
+  rowCount: 'rowCount',
+  syncNote: 'syncNote',
+  containsPii: 'containsPii',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 } as const
 
 export type RexDatasetScalarFieldEnum = (typeof RexDatasetScalarFieldEnum)[keyof typeof RexDatasetScalarFieldEnum]
+
+
+export const RexDataConnectionScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  userId: 'userId',
+  provider: 'provider',
+  authType: 'authType',
+  credentialEnc: 'credentialEnc',
+  accountLabel: 'accountLabel',
+  scopes: 'scopes',
+  config: 'config',
+  status: 'status',
+  lastError: 'lastError',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+} as const
+
+export type RexDataConnectionScalarFieldEnum = (typeof RexDataConnectionScalarFieldEnum)[keyof typeof RexDataConnectionScalarFieldEnum]
 
 
 export const RexDashboardScalarFieldEnum = {
