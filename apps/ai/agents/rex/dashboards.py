@@ -16,7 +16,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from agents.rex import dataset_sql
-from agents.rex.routes import CHART_COLORS, _agent, _llm
+from agents.rex.routes import _agent, _llm
 from core.config import settings
 
 logger = logging.getLogger("agents")
@@ -26,7 +26,11 @@ router = APIRouter(prefix="/ai/rex/dashboards", tags=["Rex dashboards"])
 MAX_WIDGETS = 20
 MAX_FILTERS = 3
 GRID_COLS = 12
-CHART_TYPES = {"bar", "line", "area", "pie", "scatter"}
+CHART_TYPES = {"bar", "line", "area", "pie", "scatter",
+               "combo", "waterfall", "funnel", "heatmap", "treemap", "progress", "ranked"}
+# Series colours are palette slots ("s1".."s8") that the client resolves to a light/dark-validated
+# palette. The model never picks colours: a series' slot follows its position.
+SERIES_SLOTS = [f"s{i}" for i in range(1, 9)]
 KINDS = {"kpi", "chart", "table", "text"}
 SIZES = {"s": (3, 2), "m": (6, 4), "l": (8, 4), "xl": (12, 5)}
 
@@ -126,14 +130,17 @@ SPEC_SHAPE = """\
   "filters": [ {{"id": "f1", "label": "Region", "table": "<table>", "column": "<column>",
                  "type": "category" | "date_range"}} ],
   "widgets": [
-    {{"id": "w1", "kind": "kpi", "title": "Total revenue", "size": "s",
-      "sql": "SELECT sum(\\"Amount\\") AS revenue FROM sales",
-      "kpi": {{"valueKey": "revenue", "format": "number" | "currency" | "percent", "prefix": "₹", "suffix": ""}},
+    {{"id": "w1", "kind": "kpi", "title": "Revenue per month", "size": "s",
+      "sql": "SELECT strftime(date_trunc('month', \\"Order Date\\"), '%Y-%m') AS month, sum(\\"Amount\\") AS revenue FROM sales GROUP BY 1 ORDER BY 1",
+      "kpi": {{"valueKey": "revenue", "periodKey": "month", "goodDirection": "up" | "down",
+               "format": "number" | "currency" | "percent", "prefix": "₹", "suffix": ""}},
       "filterIds": ["f1"]}},
     {{"id": "w2", "kind": "chart", "title": "Revenue by month", "size": "m" | "l" | "xl",
       "sql": "SELECT strftime(date_trunc('month', \\"Order Date\\"), '%Y-%m') AS month, sum(\\"Amount\\") AS revenue FROM sales GROUP BY 1 ORDER BY 1",
-      "chart": {{"type": "bar" | "line" | "area" | "pie" | "scatter", "xKey": "month",
-                 "yKeys": [{{"key": "revenue", "label": "Revenue", "color": "<hex>"}}], "stacked": false}},
+      "chart": {{"type": "<a chart type from the list above>", "xKey": "month",
+                 "yKeys": [{{"key": "revenue", "label": "Revenue", "as": "bar" | "line", "ghost": false}}],
+                 "stacked": false, "normalize": false, "groupKey": null, "targetKey": null,
+                 "baseFirst": false, "reference": null | "average"}},
       "filterIds": ["f1"]}},
     {{"id": "w3", "kind": "table", "title": "Top 10 customers", "size": "l", "sql": "...", "filterIds": []}},
     {{"id": "w4", "kind": "text", "title": "Notes", "size": "m", "text": "markdown, only when asked"}}
@@ -147,9 +154,43 @@ SQL rules (every widget except text has exactly one query):
 - Filter on the exact values listed in the schema (they are case-sensitive).
 - Numbers are already clean numerics; dates are DATE — use date_trunc/strftime/extract.
 - Name every output column with a short snake_case alias; the chart/kpi keys must use those aliases.
-- KPI queries return ONE row. Chart queries return at most 20 rows (group, then ORDER BY and LIMIT).
-  Time series are ordered by time ascending. Tables return at most 50 rows.
+- KPI queries return ONE row, or a per-period series for a trend KPI. Chart queries return at most
+  20 rows (group, then ORDER BY and LIMIT) unless the chart type says otherwise. Time series are
+  ordered by time ascending. Tables return at most 50 rows.
 - Tables from different datasets can be joined only on columns that genuinely match."""
+
+CHART_GUIDE = """\
+Tile types. Pick the form that answers the question, never the fanciest one:
+- KPI, plain: one row, one number ("Total revenue").
+- KPI with trend (prefer it whenever the data has a date): the query returns the metric per period,
+  ascending, at most 24 rows (SELECT <period> AS month, <metric> AS revenue … GROUP BY 1 ORDER BY 1)
+  and kpi.periodKey names the period column. The tile shows the LAST row as the value, the change
+  vs the row before it, and a sparkline of every row, so the title names the period ("Revenue per
+  month"). End the series at the last complete period when the data runs up to today.
+  kpi.goodDirection is "down" for costs, churn, refunds, response times; otherwise "up".
+- line / area: change over time. "reference": "average" when the average is a useful baseline.
+- bar: compare categories or a handful of periods. "stacked": true for parts of a total, plus
+  "normalize": true when only the mix (100%) matters.
+- ranked: horizontal bars sorted by value (top customers, products, reps, sources). Return label +
+  value ORDER BY value DESC LIMIT 15; the tile folds anything past 10 into "Other".
+- combo: bars and lines on ONE axis, so EVERY series shares a unit (actual vs target, this year vs
+  last year). Each yKey's "as" is "bar" or "line"; the comparison series (last year, previous period,
+  plan) gets "ghost": true. Never mix units (revenue with a %): that is a dual-axis chart — use two
+  tiles.
+- waterfall: how a total moves from start to end (MRR bridge, P&L, budget vs actual). One label
+  column + one SIGNED amount column, rows in bridge order, at most 12. "baseFirst": true when the first
+  row is an opening balance. The tile draws the closing total itself; don't return it as a row.
+- funnel: ordered stages, each a subset of the one before (deal stages, signup → paid). Return stage +
+  count ordered by stage order (ORDER BY a CASE on the stage), at most 8 rows.
+- heatmap: one value across TWO dimensions (month × region, weekday × hour). Long format: x, group,
+  value, at most 200 rows. xKey = x, groupKey = group, a single yKey = value.
+- treemap: what a total is made of when there are many parts (revenue by product). Return label +
+  value, at most 30 rows, positive values only.
+- progress: actual against a goal per row (quota by rep, budget by department). Return label + actual
+  + target, at most 8 rows; yKeys = [actual], targetKey = the target column. Only when a real target
+  exists in the data — never invent one.
+- pie: share of a total, 6 or fewer slices. scatter: the relationship between two measures.
+Colours are assigned automatically from a fixed palette; do not set them."""
 
 GENERATE_PROMPT = """\
 You are Rex, a data analyst building a live business dashboard for a customer.
@@ -160,9 +201,12 @@ Their data (each table below is one dataset or one sheet of it):
 What they want: {prompt}
 
 Design a dashboard that answers what they asked, and nothing padded on. Typically 2-4 KPIs across
-the top, then 3-6 charts, and a table only when row-level detail is genuinely useful. At most
-{max_widgets} widgets. Pick the chart type that fits the data: line/area for time, bar for
-comparing categories, pie only for share-of-total with 6 or fewer slices.
+the top (trend KPIs when there is a date), then 3-6 charts, and a table only when row-level detail is
+genuinely useful. At most {max_widgets} widgets. Use the richer forms where the data has their shape
+— a funnel for stages, a waterfall for a bridge, a heatmap for two dimensions, ranked bars for a
+top-N — but never force a form onto data that lacks that shape.
+
+{chart_guide}
 
 Add up to {max_filters} filters a viewer can use — a date_range on the main date column, and a
 category filter on a column with a handful of meaningful values (region, product, channel).
@@ -171,8 +215,8 @@ whose table it applies to.
 
 {sql_rules}
 
-Colors: use these in order: {colors}.
-Sizes: s = small KPI tile, m = half width, l = two-thirds, xl = full width.
+Sizes: s = small KPI tile, m = half width, l = two-thirds, xl = full width. Heatmaps and waterfalls
+read best at l or xl.
 
 Return JSON exactly in this shape:
 {shape}"""
@@ -192,9 +236,9 @@ Apply the instruction and return the WHOLE revised dashboard in the same JSON sh
 widget's "id" unchanged unless you remove it; give new widgets new ids. Change only what the
 instruction asks for. At most {max_widgets} widgets and {max_filters} filters.
 
-{sql_rules}
+{chart_guide}
 
-Colors: use these in order: {colors}.
+{sql_rules}
 
 Return JSON exactly in this shape:
 {shape}"""
@@ -279,30 +323,89 @@ def _is_number(v) -> bool:
     return isinstance(v, (int, float)) and not isinstance(v, bool)
 
 
+def _numeric_columns(result: WidgetResult) -> list[str]:
+    """Columns whose non-null values are all numbers (a NULL in the first row mustn't hide one)."""
+    out = []
+    for c in result.columns:
+        vals = [r.get(c) for r in result.rows if r.get(c) is not None]
+        if vals and all(_is_number(v) for v in vals):
+            out.append(c)
+    return out
+
+
+# Forms that plot exactly one measure per row.
+SINGLE_MEASURE = {"waterfall", "funnel", "treemap", "ranked", "heatmap", "progress", "pie"}
+TARGET_HINTS = ("target", "goal", "quota", "budget", "plan")
+
+
 def fit_spec(widget: Widget, result: WidgetResult) -> None:
     """Make the display keys point at columns the query really returned — the model sometimes
-    names a key it then aliased differently."""
+    names a key it then aliased differently — and fall back to a plain bar when a richer form's
+    shape isn't there (a heatmap with one dimension, a progress tile with no target)."""
     cols = result.columns
-    if not cols:
-        return
-    first = result.rows[0] if result.rows else {}
-    numeric = [c for c in cols if _is_number(first.get(c))]
+    if not cols or not result.rows:
+        return   # nothing to judge the shape by; keep what the model said
+    numeric = _numeric_columns(result)
+    labels = [c for c in cols if c not in numeric]
     if widget.kind == "kpi":
         kpi = widget.spec.setdefault("kpi", {})
         if kpi.get("valueKey") not in cols:
             kpi["valueKey"] = numeric[0] if numeric else cols[0]
-    elif widget.kind == "chart":
-        chart = widget.spec.setdefault("chart", {"type": "bar"})
-        if chart.get("xKey") not in cols:
-            chart["xKey"] = next((c for c in cols if c not in numeric), cols[0])
-        ykeys = [y for y in (chart.get("yKeys") or []) if isinstance(y, dict) and y.get("key") in cols]
-        if not ykeys:
-            ykeys = [{"key": c, "label": c.replace("_", " ").title()}
-                     for c in numeric if c != chart["xKey"]][:4]
+        if len(result.rows) > 1:
+            if kpi.get("periodKey") not in labels:
+                kpi["periodKey"] = labels[0] if labels else None
+        else:
+            kpi.pop("periodKey", None)
+        if kpi.get("goodDirection") not in ("up", "down"):
+            kpi["goodDirection"] = "up"
+        return
+    if widget.kind != "chart":
+        return
+
+    chart = widget.spec.setdefault("chart", {"type": "bar"})
+    kind = chart.get("type") if chart.get("type") in CHART_TYPES else "bar"
+    if chart.get("xKey") not in cols:
+        chart["xKey"] = labels[0] if labels else cols[0]
+    x = chart["xKey"]
+    ykeys = [y for y in (chart.get("yKeys") or [])
+             if isinstance(y, dict) and y.get("key") in numeric and y.get("key") != x]
+    if not ykeys:
+        ykeys = [{"key": c} for c in numeric if c != x][:4]
+
+    if kind == "heatmap":
+        group = chart.get("groupKey")
+        if group not in labels or group == x:
+            group = next((c for c in labels if c != x), None)
+        if group:
+            chart["groupKey"] = group
+        else:
+            kind = "bar"
+    if kind == "progress":
+        actual = ykeys[0]["key"] if ykeys else None
+        target = chart.get("targetKey")
+        if target not in numeric or target == actual:
+            spare = [c for c in numeric if c not in (x, actual)]
+            target = next((c for c in spare if any(h in c.lower() for h in TARGET_HINTS)),
+                          spare[0] if spare else None)
+        if actual and target:
+            chart["targetKey"] = target
+            ykeys = [y for y in ykeys if y["key"] == actual]
+        else:
+            kind = "bar"
+    if kind in SINGLE_MEASURE:
+        ykeys = ykeys[:1]
+    if kind == "combo":
         for i, y in enumerate(ykeys):
-            y.setdefault("label", y["key"].replace("_", " ").title())
-            y.setdefault("color", CHART_COLORS[i % len(CHART_COLORS)])
-        chart["yKeys"] = ykeys
+            if y.get("as") not in ("bar", "line"):
+                y["as"] = "bar" if i == 0 else "line"
+    if chart.get("reference") not in (None, "average"):
+        chart["reference"] = None
+
+    for i, y in enumerate(ykeys):
+        y.setdefault("label", y["key"].replace("_", " ").title())
+        y.setdefault("color", SERIES_SLOTS[i % len(SERIES_SLOTS)])
+    chart["type"] = kind
+    chart["yKeys"] = ykeys
 
 
 def auto_layout(widgets: list[Widget]) -> None:
@@ -448,7 +551,7 @@ async def generate(request: GenerateRequest) -> DashboardResponse:
                                                   use_brand_kit=False)
         raw, tokens = await _spec_from_model(ds, GENERATE_PROMPT.format(
             schema=ds.schema_text, prompt=request.prompt, max_widgets=MAX_WIDGETS,
-            max_filters=MAX_FILTERS, sql_rules=SQL_RULES, colors=CHART_COLORS[:6],
+            max_filters=MAX_FILTERS, sql_rules=SQL_RULES, chart_guide=CHART_GUIDE,
             shape=SPEC_SHAPE.format()), system)
         spec, widgets = _assemble(raw, ds)
         widgets, results, dropped, fix_tokens = await _validate(ds, widgets, system)
@@ -484,7 +587,7 @@ async def edit(request: EditRequest) -> DashboardResponse:
             raw, tokens = await _spec_from_model(ds, EDIT_PROMPT.format(
                 schema=ds.schema_text, current=_prompt_view(current), focus=focus,
                 prompt=request.prompt, max_widgets=MAX_WIDGETS, max_filters=MAX_FILTERS,
-                sql_rules=SQL_RULES, colors=CHART_COLORS[:6], shape=SPEC_SHAPE.format()), system)
+                sql_rules=SQL_RULES, chart_guide=CHART_GUIDE, shape=SPEC_SHAPE.format()), system)
         spec, widgets = _assemble(raw, ds)
         # Existing widgets keep their place and manual settings unless the model changed them.
         for w in widgets:

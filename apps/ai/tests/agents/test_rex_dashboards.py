@@ -84,9 +84,11 @@ class _StubLLM:
     def __init__(self, replies):
         self.replies = list(replies)
         self.calls = 0
+        self.prompts: list[str] = []
 
-    async def complete_json(self, **_):
+    async def complete_json(self, messages=(), **_):
         self.calls += 1
+        self.prompts.append(messages[-1]["content"] if messages else "")
         return self.replies.pop(0)
 
     def count_tokens(self, _):
@@ -202,3 +204,63 @@ def test_run_applies_only_the_filters_each_widget_subscribes_to():
     assert got[("b", "north")] == 3550
     assert got[("t", "north")] is None
     assert out.filter_options["f1"] == ["North", "O'Brien", "South"]
+
+
+# ── Richer tile forms ────────────────────────────────────────────────────────
+
+def _fit(kind, chart_or_kpi, columns, rows):
+    w = dash.Widget(id="w", kind=kind, title="t", sql="SELECT 1",
+                    spec={kind if kind == "kpi" else "chart": chart_or_kpi})
+    dash.fit_spec(w, dash.WidgetResult(widget_id="w", columns=columns, rows=rows))
+    return w.spec["kpi" if kind == "kpi" else "chart"]
+
+
+def test_trend_kpi_keeps_its_period_and_a_single_row_kpi_drops_it():
+    rows = [{"month": "2026-01", "rev": 10}, {"month": "2026-02", "rev": 12}]
+    kpi = _fit("kpi", {"valueKey": "rev", "periodKey": "mnth", "goodDirection": "sideways"}, ["month", "rev"], rows)
+    assert kpi["periodKey"] == "month" and kpi["goodDirection"] == "up"
+    one = _fit("kpi", {"valueKey": "rev", "periodKey": "month"}, ["rev"], [{"rev": 5}])
+    assert "periodKey" not in one
+
+
+def test_series_get_palette_slots_not_hex_and_a_null_first_row_still_counts_as_numeric():
+    chart = _fit("chart", {"type": "line"}, ["d", "a", "b"],
+                 [{"d": "x", "a": None, "b": 1}, {"d": "y", "a": 2, "b": 3}])
+    assert [y["key"] for y in chart["yKeys"]] == ["a", "b"]
+    assert [y["color"] for y in chart["yKeys"]] == ["s1", "s2"]
+
+
+def test_heatmap_needs_two_dimensions_or_falls_back_to_bar():
+    rows = [{"m": "Jan", "r": "N", "v": 1}, {"m": "Jan", "r": "S", "v": 2}]
+    ok = _fit("chart", {"type": "heatmap", "xKey": "m", "groupKey": "zone"}, ["m", "r", "v"], rows)
+    assert ok["type"] == "heatmap" and ok["groupKey"] == "r" and [y["key"] for y in ok["yKeys"]] == ["v"]
+    flat = _fit("chart", {"type": "heatmap", "xKey": "m"}, ["m", "v"], [{"m": "Jan", "v": 1}])
+    assert flat["type"] == "bar"
+
+
+def test_progress_finds_the_target_column_and_never_invents_one():
+    rows = [{"rep": "A", "won": 5, "deals": 9, "quota": 8}]
+    chart = _fit("chart", {"type": "progress", "xKey": "rep", "yKeys": [{"key": "won"}]},
+                 ["rep", "won", "deals", "quota"], rows)
+    assert chart["targetKey"] == "quota" and [y["key"] for y in chart["yKeys"]] == ["won"]
+    alone = _fit("chart", {"type": "progress", "xKey": "rep", "yKeys": [{"key": "won"}]},
+                 ["rep", "won"], [{"rep": "A", "won": 5}])
+    assert alone["type"] == "bar"
+
+
+def test_combo_marks_each_series_and_single_measure_forms_keep_one():
+    rows = [{"m": "Jan", "actual": 5, "plan": 6}]
+    combo = _fit("chart", {"type": "combo", "xKey": "m"}, ["m", "actual", "plan"], rows)
+    assert [y["as"] for y in combo["yKeys"]] == ["bar", "line"]
+    fall = _fit("chart", {"type": "waterfall", "xKey": "m"}, ["m", "actual", "plan"], rows)
+    assert [y["key"] for y in fall["yKeys"]] == ["actual"]
+    assert _fit("chart", {"type": "sparkle"}, ["m", "actual"], rows)["type"] == "bar"
+
+
+def test_generate_prompt_carries_the_chart_guide(stub):
+    llm = stub({"title": "x", "widgets": [
+        {"id": "f", "kind": "chart", "title": "Funnel", "chart": {"type": "funnel", "xKey": "region"},
+         "sql": 'SELECT "Region" AS region, count(*) AS n FROM sales GROUP BY 1 ORDER BY 2 DESC'}]})
+    out = _gen()
+    assert "waterfall" in llm.prompts[0] and "{chart_guide}" not in llm.prompts[0]
+    assert out.dashboard.widgets[0].spec["chart"]["type"] == "funnel"

@@ -3,11 +3,11 @@
 import * as React from "react"
 import ReactGridLayout, { useContainerWidth, type Layout } from "react-grid-layout"
 import "react-grid-layout/css/styles.css"
-import { GripVertical } from "lucide-react"
+import { ChartColumn, GripVertical, Table2 } from "lucide-react"
 
 import type { DashboardWidget, GridPos, WidgetResult } from "@/lib/api/rexDashboards"
 import { cn } from "@/lib/utils"
-import { WidgetBody } from "./WidgetView"
+import { WidgetBody, hasTableTwin, widgetInsight } from "./WidgetView"
 
 const ROW_HEIGHT = 56
 const MARGIN: [number, number] = [12, 12]
@@ -26,8 +26,9 @@ interface Props {
 }
 
 function Tile({
-  widget, result, editable, selected, onSelect, actions,
+  widget, result, editable, selected, onSelect, actions, index = 0,
 }: {
+  index?: number
   widget: DashboardWidget
   result?: WidgetResult
   editable?: boolean
@@ -35,11 +36,18 @@ function Tile({
   onSelect?: () => void
   actions?: React.ReactNode
 }) {
+  // Every chart has a table twin: the accessible equivalent, and the relief for palette slots
+  // that sit under 3:1 on the light surface.
+  const [asTable, setAsTable] = React.useState(false)
+  const insight = React.useMemo(() => widgetInsight(widget, result), [widget, result])
+  const twin = hasTableTwin(widget) && !!result?.rows.length
   return (
     <div
       onClick={editable ? onSelect : undefined}
+      // Mount-only stagger (keys are widget ids, so a data refresh never replays it).
+      style={{ ["--vq-stagger-i" as string]: Math.min(index, 12) }}
       className={cn(
-        "flex h-full flex-col overflow-hidden rounded-[var(--vq-r)] border bg-card p-3 shadow-[var(--vq-shadow-sm)]",
+        "vq-stagger-item flex h-full flex-col overflow-hidden rounded-[var(--vq-r)] border bg-card p-3.5 shadow-[var(--vq-shadow-sm)] transition-shadow duration-(--vq-dur) ease-out-quint hover:shadow-[var(--vq-shadow)]",
         selected ? "border-primary ring-1 ring-primary" : "border-border",
         editable && "cursor-pointer",
       )}
@@ -50,14 +58,34 @@ function Tile({
             <GripVertical className="size-3.5" />
           </span>
         )}
-        <h3 className="min-w-0 flex-1 truncate text-xs font-medium text-muted-foreground" title={widget.title}>
+        <h3 className="min-w-0 flex-1 truncate text-[13px] font-medium tracking-[-0.005em] text-foreground" title={widget.title}>
           {widget.title}
         </h3>
+        {twin && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              setAsTable((t) => !t)
+            }}
+            className="grid size-6 shrink-0 place-items-center rounded-[var(--vq-r-sm)] text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground"
+            aria-label={asTable ? "Show as chart" : "Show as table"}
+            aria-pressed={asTable}
+            title={asTable ? "Show as chart" : "Show as table"}
+          >
+            {asTable ? <ChartColumn className="size-3.5" /> : <Table2 className="size-3.5" />}
+          </button>
+        )}
         {actions}
       </div>
       <div className="min-h-0 flex-1">
-        <WidgetBody widget={widget} result={result} />
+        <WidgetBody widget={widget} result={result} asTable={asTable} />
       </div>
+      {insight && !asTable && (
+        <p className="mt-1.5 truncate text-[11px] leading-tight text-muted-foreground" title={insight}>
+          {insight}
+        </p>
+      )}
     </div>
   )
 }
@@ -93,9 +121,9 @@ export function DashboardCanvas({ widgets, results, editable, selectedId, onSele
     <div ref={containerRef} className="w-full">
       {mounted && stacked && (
         <div className="flex flex-col gap-3">
-          {[...widgets].sort(readingOrder).map((w) => (
-            <div key={w.id} style={{ height: w.kind === "kpi" ? 120 : w.kind === "table" ? 320 : 260 }}>
-              <Tile widget={w} result={results[w.id]} editable={editable} selected={selectedId === w.id}
+          {[...widgets].sort(readingOrder).map((w, i) => (
+            <div key={w.id} style={{ height: w.kind === "kpi" ? 132 : w.kind === "table" ? 320 : 280 }}>
+              <Tile index={i} widget={w} result={results[w.id]} editable={editable} selected={selectedId === w.id}
                 onSelect={() => onSelect?.(w.id)} actions={tileActions?.(w)} />
             </div>
           ))}
@@ -111,9 +139,9 @@ export function DashboardCanvas({ widgets, results, editable, selectedId, onSele
           onDragStop={(next) => commit(next)}
           onResizeStop={(next) => commit(next)}
         >
-          {widgets.map((w) => (
+          {[...widgets].sort(readingOrder).map((w, i) => (
             <div key={w.id}>
-              <Tile widget={w} result={results[w.id]} editable={editable} selected={selectedId === w.id}
+              <Tile index={i} widget={w} result={results[w.id]} editable={editable} selected={selectedId === w.id}
                 onSelect={() => onSelect?.(w.id)} actions={tileActions?.(w)} />
             </div>
           ))}

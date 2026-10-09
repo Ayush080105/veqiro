@@ -19,15 +19,30 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { Textarea } from "@/components/ui/textarea"
-import { CHART_COLORS } from "./WidgetView"
+import { SERIES_SLOTS, seriesColor } from "./WidgetView"
 
 const CHART_TYPES: Array<{ value: ChartType; label: string }> = [
   { value: "bar", label: "Bar" },
   { value: "line", label: "Line" },
   { value: "area", label: "Area" },
-  { value: "pie", label: "Pie" },
+  { value: "combo", label: "Bars + lines (same unit)" },
+  { value: "ranked", label: "Ranked bars (top 10)" },
+  { value: "waterfall", label: "Waterfall (bridge)" },
+  { value: "funnel", label: "Funnel (stages)" },
+  { value: "heatmap", label: "Heatmap (two dimensions)" },
+  { value: "treemap", label: "Treemap (parts of a total)" },
+  { value: "progress", label: "Progress vs target" },
+  { value: "pie", label: "Donut" },
   { value: "scatter", label: "Scatter" },
 ]
+
+/** Forms that plot one measure per row: a value picker instead of series checkboxes. */
+const SINGLE_MEASURE = new Set<ChartType>(["waterfall", "funnel", "treemap", "ranked", "heatmap", "progress", "pie"])
+
+const X_LABEL: Partial<Record<ChartType, string>> = {
+  pie: "Slices", funnel: "Stages", ranked: "Items", treemap: "Parts", heatmap: "Columns",
+  waterfall: "Steps", progress: "Rows",
+}
 
 export interface WidgetPatch {
   title?: string
@@ -48,14 +63,15 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function Swatches({ value, onChange }: { value?: string; onChange: (c: string) => void }) {
   return (
     <div className="flex flex-wrap gap-1">
-      {CHART_COLORS.map((c) => (
+      {SERIES_SLOTS.map((slot, i) => (
         <button
-          key={c}
+          key={slot}
           type="button"
-          aria-label={`Color ${c}`}
-          onClick={() => onChange(c)}
+          aria-label={`Colour ${i + 1}`}
+          aria-pressed={value === slot}
+          onClick={() => onChange(slot)}
           className="size-5 rounded-full border-2"
-          style={{ background: c, borderColor: value === c ? "var(--foreground)" : "transparent" }}
+          style={{ background: seriesColor(slot, i), borderColor: value === slot ? "var(--foreground)" : "transparent" }}
         />
       ))}
     </div>
@@ -152,7 +168,7 @@ export function WidgetSettingsPanel({
               </Field>
               {columns.length > 0 && (
                 <>
-                  <Field label={chart.type === "pie" ? "Slices" : "X axis"}>
+                  <Field label={X_LABEL[chart.type ?? "bar"] ?? "X axis"}>
                     <Select value={chart.xKey ?? columns[0]} onValueChange={(v) => v && setChart({ xKey: v })}>
                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -160,7 +176,20 @@ export function WidgetSettingsPanel({
                       </SelectContent>
                     </Select>
                   </Field>
-                  <Field label={chart.type === "pie" ? "Value" : "Series"}>
+                  {SINGLE_MEASURE.has(chart.type ?? "bar") ? (
+                    <Field label={chart.type === "progress" ? "Actual" : "Value"}>
+                      <Select
+                        value={yKeys[0]?.key ?? ""}
+                        onValueChange={(v) => v && setChart({ yKeys: [{ ...(yKeys[0] ?? {}), key: v, label: v.replace(/_/g, " ") }] })}
+                      >
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Pick a column" /></SelectTrigger>
+                        <SelectContent>
+                          {columns.filter((c) => c !== chart.xKey).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  ) : (
+                  <Field label="Series">
                     <div className="flex flex-col gap-2">
                       {columns.filter((c) => c !== chart.xKey).map((c) => {
                         const i = yKeys.findIndex((y) => y.key === c)
@@ -173,7 +202,7 @@ export function WidgetSettingsPanel({
                                 onCheckedChange={(checked) =>
                                   setChart({
                                     yKeys: checked
-                                      ? [...yKeys, { key: c, label: c.replace(/_/g, " "), color: CHART_COLORS[yKeys.length % CHART_COLORS.length] }]
+                                      ? [...yKeys, { key: c, label: c.replace(/_/g, " "), color: SERIES_SLOTS[yKeys.length % SERIES_SLOTS.length] }]
                                       : yKeys.filter((y) => y.key !== c),
                                   })}
                               />
@@ -191,6 +220,23 @@ export function WidgetSettingsPanel({
                                   value={yKeys[i]!.color}
                                   onChange={(color) => setChart({ yKeys: yKeys.map((y, j) => (j === i ? { ...y, color } : y)) })}
                                 />
+                                {chart.type === "combo" && (
+                                  <div className="flex gap-1">
+                                    {(["bar", "line"] as const).map((as) => (
+                                      <Button key={as} type="button" size="xs" variant={(yKeys[i]!.as ?? (i === 0 ? "bar" : "line")) === as ? "default" : "outline"}
+                                        onClick={() => setChart({ yKeys: yKeys.map((y, j) => (j === i ? { ...y, as } : y)) })}>
+                                        {as === "bar" ? "Bars" : "Line"}
+                                      </Button>
+                                    ))}
+                                  </div>
+                                )}
+                                {(chart.type === "line" || chart.type === "area" || chart.type === "combo" || chart.type === "bar") && (
+                                  <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                                    <Checkbox checked={!!yKeys[i]!.ghost}
+                                      onCheckedChange={(v) => setChart({ yKeys: yKeys.map((y, j) => (j === i ? { ...y, ghost: !!v } : y)) })} />
+                                    Comparison series (drawn faded)
+                                  </label>
+                                )}
                               </div>
                             )}
                           </div>
@@ -198,10 +244,49 @@ export function WidgetSettingsPanel({
                       })}
                     </div>
                   </Field>
+                  )}
+                  {chart.type === "heatmap" && (
+                    <Field label="Rows">
+                      <Select value={chart.groupKey ?? ""} onValueChange={(v) => v && setChart({ groupKey: v })}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Pick a column" /></SelectTrigger>
+                        <SelectContent>
+                          {columns.filter((c) => c !== chart.xKey).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                  {chart.type === "progress" && (
+                    <Field label="Target">
+                      <Select value={chart.targetKey ?? ""} onValueChange={(v) => v && setChart({ targetKey: v })}>
+                        <SelectTrigger className="w-full"><SelectValue placeholder="Pick the goal column" /></SelectTrigger>
+                        <SelectContent>
+                          {columns.filter((c) => c !== chart.xKey && c !== yKeys[0]?.key).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </Field>
+                  )}
+                  {chart.type === "waterfall" && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!chart.baseFirst} onCheckedChange={(v) => setChart({ baseFirst: !!v })} />
+                      First row is an opening balance
+                    </label>
+                  )}
                   {(chart.type === "bar" || chart.type === "area") && yKeys.length > 1 && (
                     <label className="flex items-center gap-2 text-sm">
-                      <Checkbox checked={!!chart.stacked} onCheckedChange={(v) => setChart({ stacked: !!v })} />
+                      <Checkbox checked={!!chart.stacked} onCheckedChange={(v) => setChart({ stacked: !!v, ...(v ? {} : { normalize: false }) })} />
                       Stack series
+                    </label>
+                  )}
+                  {chart.type === "bar" && chart.stacked && yKeys.length > 1 && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={!!chart.normalize} onCheckedChange={(v) => setChart({ normalize: !!v })} />
+                      Show as shares of 100%
+                    </label>
+                  )}
+                  {(chart.type === "line" || chart.type === "area" || chart.type === "combo" || (chart.type === "bar" && !chart.stacked)) && (
+                    <label className="flex items-center gap-2 text-sm">
+                      <Checkbox checked={chart.reference === "average"} onCheckedChange={(v) => setChart({ reference: v ? "average" : null })} />
+                      Show average line
                     </label>
                   )}
                 </>
@@ -221,6 +306,26 @@ export function WidgetSettingsPanel({
                   </Select>
                 </Field>
               )}
+              {columns.length > 1 && (
+                <Field label="Trend by (one row per period)">
+                  <Select value={kpi.periodKey ?? "__none"} onValueChange={(v) => v && setKpi({ periodKey: v === "__none" ? null : v })}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none">No trend</SelectItem>
+                      {columns.filter((c) => c !== kpi.valueKey).map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </Field>
+              )}
+              <Field label="A rise is">
+                <Select value={kpi.goodDirection ?? "up"} onValueChange={(v) => v && setKpi({ goodDirection: v as "up" | "down" })}>
+                  <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="up">Good (revenue, users)</SelectItem>
+                    <SelectItem value="down">Bad (costs, churn)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
               <Field label="Format">
                 <Select value={kpi.format ?? "number"} onValueChange={(v) => v && setKpi({ format: v as "number" })}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>

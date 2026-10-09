@@ -5,23 +5,49 @@ import { API_URL, apiFetch } from "@/lib/api/client"
 // ── Types (mirror apps/server rex.dashboards.service.ts) ───────────────────
 
 export type WidgetKind = "kpi" | "chart" | "table" | "text"
-export type ChartType = "bar" | "line" | "area" | "pie" | "scatter"
+export type ChartType =
+  | "bar" | "line" | "area" | "pie" | "scatter"
+  | "combo" | "waterfall" | "funnel" | "heatmap" | "treemap" | "progress" | "ranked"
 
 export interface ChartYKey {
   key: string
   label?: string
+  /** A palette slot ("s1".."s8"), or a hex saved by older dashboards. */
   color?: string
+  /** combo only: how this series is drawn. */
+  as?: "bar" | "line"
+  /** A comparison series (last year, plan): drawn quietly behind the main one. */
+  ghost?: boolean
+}
+
+export interface ChartSpec {
+  type?: ChartType
+  xKey?: string
+  yKeys?: ChartYKey[]
+  stacked?: boolean
+  /** Stacked bars as shares of 100%. */
+  normalize?: boolean
+  /** heatmap: the second dimension (rows). */
+  groupKey?: string | null
+  /** progress: the goal column. */
+  targetKey?: string | null
+  /** waterfall: the first row is an opening balance, not a change. */
+  baseFirst?: boolean
+  reference?: "average" | null
 }
 
 export interface WidgetSpec {
   size?: "s" | "m" | "l" | "xl" | null
-  chart?: { type?: ChartType; xKey?: string; yKeys?: ChartYKey[]; stacked?: boolean }
+  chart?: ChartSpec
   kpi?: {
     valueKey?: string
     format?: "number" | "currency" | "percent"
     prefix?: string
     suffix?: string
     compareKey?: string | null
+    /** Trend KPI: the query returns one row per period; the last row is the value. */
+    periodKey?: string | null
+    goodDirection?: "up" | "down"
   }
   text?: string
 }

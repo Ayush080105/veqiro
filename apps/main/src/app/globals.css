@@ -107,6 +107,32 @@
   --vq-dur: 360ms;
   --vq-dur-sheet: 480ms;
 
+  /* Rex dashboard data colours (dataviz reference palette, validated against the tile
+     surfaces: white here, #1d1c1a in dark). Slots are assigned in this fixed order, never
+     cycled past 8. Light s3/s4/s5 sit under 3:1 on white, so every chart tile offers a
+     table view. Sequential = one hue light→dark; diverging = blue/red poles; status text
+     always ships with an arrow. */
+  --rex-s1: #2a78d6;
+  --rex-s2: #eb6834;
+  --rex-s3: #1baf7a;
+  --rex-s4: #eda100;
+  --rex-s5: #e87ba4;
+  --rex-s6: #008300;
+  --rex-s7: #4a3aa7;
+  --rex-s8: #e34948;
+  --rex-seq-lo: #e6f0fc;
+  --rex-seq-hi: #104281;
+  --rex-ord-hi: #184f95;
+  --rex-ord-lo: #86b6ef;
+  --rex-track: #cde2fb;
+  --rex-pos: #2a78d6;
+  --rex-neg: #e34948;
+  --rex-total: #52514e;
+  --rex-ghost: #b9b7b0;
+  --rex-good-text: #006300;
+  --rex-bad-text: #d03b3b;
+  --rex-grid: #ebeae5;
+
   /* Materials: translucent chrome that content scrolls under. */
   --vq-material: rgba(246, 245, 244, 0.72);
   --vq-material-thick: rgba(255, 255, 255, 0.84);
@@ -177,6 +203,26 @@
   --vq-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
   --vq-shadow: 0 1px 2px rgba(0, 0, 0, 0.26), 0 12px 28px -14px rgba(0, 0, 0, 0.72);
   --vq-shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.34), 0 28px 64px -22px rgba(0, 0, 0, 0.82);
+  --rex-s1: #3987e5;
+  --rex-s2: #d95926;
+  --rex-s3: #199e70;
+  --rex-s4: #c98500;
+  --rex-s5: #d55181;
+  --rex-s6: #008300;
+  --rex-s7: #9085e9;
+  --rex-s8: #e66767;
+  --rex-seq-lo: #22303f;
+  --rex-seq-hi: #86b6ef;
+  --rex-ord-hi: #86b6ef;
+  --rex-ord-lo: #256abf;
+  --rex-track: #233246;
+  --rex-pos: #3987e5;
+  --rex-neg: #e66767;
+  --rex-total: #c3c2b7;
+  --rex-ghost: #5a5853;
+  --rex-good-text: #0ca30c;
+  --rex-bad-text: #e66767;
+  --rex-grid: #2c2c2a;
   --vq-material: rgba(17, 17, 16, 0.7);
   --vq-material-thick: rgba(36, 34, 31, 0.84);
   --vq-material-edge: rgba(245, 243, 238, 0.08);
