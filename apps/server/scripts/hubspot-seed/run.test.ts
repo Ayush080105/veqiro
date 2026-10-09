@@ -6,7 +6,7 @@ import { cleanup, discover, execute } from "./run.js";
 type Call = { method: string; path: string; body?: unknown };
 
 /** A pretend HubSpot that records every call and hands out ids. */
-function fakeHubSpot(over: { keepCreateDate?: boolean; batchErrors?: boolean; dropUnique?: boolean; noOwners?: boolean; noPortal?: boolean } = {}) {
+function fakeHubSpot(over: { detailsDenied?: boolean; keepCreateDate?: boolean; batchErrors?: boolean; dropUnique?: boolean; noOwners?: boolean; noPortal?: boolean } = {}) {
   const calls: Call[] = [];
   let n = 0;
   const created = new Map<string, Record<string, string>>();
@@ -15,7 +15,8 @@ function fakeHubSpot(over: { keepCreateDate?: boolean; batchErrors?: boolean; dr
     request: async <T,>(method: "GET" | "POST", path: string, opts: RequestOptions = {}) => {
       calls.push({ method, path, body: opts.body });
       let out: unknown;
-      if (path === "/account-info/v3/details") { if (over.noPortal) throw new Error("no"); out = { portalId: 4242 }; }
+      if (path === "/account-info/v3/details") { if (over.noPortal || over.detailsDenied) throw new Error("no"); out = { portalId: 4242 }; }
+      else if (path === "/integrations/v1/me") { if (over.noPortal) throw new Error("no"); out = { portalId: 4242 }; }
       else if (path === "/crm/v3/owners") out = { results: over.noOwners ? [] : [{ id: "11" }, { id: "22" }] };
       else if (path.startsWith("/crm/v3/properties/")) out = { options: [{ value: "A" }, { value: "B", hidden: true }] };
       else if (path === "/crm/v3/pipelines/deals") out = { results: [{ id: "default", label: "Sales", stages: [
@@ -57,6 +58,11 @@ describe("discover", () => {
     assert.deepEqual(found.ticketStages, [{ id: "1", closed: false }, { id: "4", closed: true }]);
     assert.isTrue(calls.every((c) => c.method === "GET" || c.path.includes("/pipelines/")), "discovery only reads");
     assert.isTrue(calls.every((c) => !c.path.includes("/batch/")));
+  });
+
+  it("still identifies the account when only the second endpoint is allowed", async () => {
+    const { found } = await discover(fakeHubSpot({ detailsDenied: true }).client);
+    assert.equal(found.portalId, "4242");
   });
 
   it("refuses to continue when it cannot tell which account the key belongs to", async () => {

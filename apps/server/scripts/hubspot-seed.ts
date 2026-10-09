@@ -12,9 +12,14 @@
  *   # 3. Remove everything it created:
  *   HUBSPOT_TOKEN=... npx tsx scripts/hubspot-seed.ts --portal 12345678 --cleanup
  *
- * The key needs WRITE scopes (the Rex connection key is read only): crm.objects.contacts.write,
- * crm.objects.companies.write, crm.objects.deals.write, tickets, plus the read scopes. Use a test or
- * developer account, not a real business CRM. --portal must match the account the key belongs to.
+ * The key needs these scopes (the Rex connection key is read only, so make a separate one):
+ *   crm.objects.contacts.read   crm.objects.contacts.write
+ *   crm.objects.companies.read  crm.objects.companies.write
+ *   crm.objects.deals.read      crm.objects.deals.write
+ *   crm.objects.owners.read
+ *   crm.schemas.contacts.read   crm.schemas.companies.read   crm.schemas.deals.read
+ *   tickets   (or crm.objects.tickets.read and .write if HubSpot lists those instead)
+ * Use a test or developer account, not a real business CRM. --portal must match the key's account.
  */
 import { existsSync, readFileSync, renameSync, writeFileSync } from "fs";
 import { createHubSpotClient } from "../src/modules/agents/rex/hubspot/hubspot.client.js";

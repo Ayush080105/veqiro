@@ -22,7 +22,10 @@ const chunk = <T,>(xs: T[], n: number) => Array.from({ length: Math.ceil(xs.leng
 /** Read only: who is this account, who can own records, and which values do its dropdowns accept. */
 export async function discover(c: HubSpotClient): Promise<{ found: Discovered; warnings: string[] }> {
   const warnings: string[] = [];
-  const details = await c.request<{ portalId?: number }>("GET", "/account-info/v3/details").catch(() => ({} as { portalId?: number }));
+  // Either endpoint names the account; some keys may only be allowed to read one of them.
+  const details = await c.request<{ portalId?: number }>("GET", "/account-info/v3/details")
+    .catch(() => c.request<{ portalId?: number }>("GET", "/integrations/v1/me"))
+    .catch(() => ({} as { portalId?: number }));
   if (!details.portalId) throw new Error("Could not read the HubSpot account id. Add the 'oauth' or account-info scope, or check the key.");
 
   const owners = await c.request<{ results?: Array<{ id: string }> }>("GET", "/crm/v3/owners", { query: { limit: 500 } }).catch(() => ({ results: [] }));

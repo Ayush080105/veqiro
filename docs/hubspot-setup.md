@@ -81,5 +81,5 @@ HUBSPOT_TOKEN=<write key> npx tsx scripts/hubspot-seed.ts --portal <account id> 
 HUBSPOT_TOKEN=<write key> npx tsx scripts/hubspot-seed.ts --portal <account id> --cleanup --yes   # remove what it made
 ```
 
-Write scopes: `crm.objects.contacts.write`, `crm.objects.companies.write`, `crm.objects.deals.write`, `tickets`, plus the read scopes. It refuses to run if `--portal` does not match the key's account, writes nothing without `--yes`, and records every id it creates in `hubspot-seed-manifest.<account>.json` so `--cleanup` removes exactly those records.
+Scopes to tick on the seeding key: `crm.objects.contacts.read` and `.write`, `crm.objects.companies.read` and `.write`, `crm.objects.deals.read` and `.write`, `crm.objects.owners.read`, `crm.schemas.contacts.read`, `crm.schemas.companies.read`, `crm.schemas.deals.read`, and `tickets` (or `crm.objects.tickets.read` and `.write` if that is what HubSpot lists). It refuses to run if `--portal` does not match the key's account, writes nothing without `--yes`, and records every id it creates in `hubspot-seed-manifest.<account>.json` so `--cleanup` removes exactly those records.
 
