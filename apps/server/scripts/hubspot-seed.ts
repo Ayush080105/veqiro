@@ -16,7 +16,7 @@
  * crm.objects.companies.write, crm.objects.deals.write, tickets, plus the read scopes. Use a test or
  * developer account, not a real business CRM. --portal must match the account the key belongs to.
  */
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync, renameSync, writeFileSync } from "fs";
 import { createHubSpotClient } from "../src/modules/agents/rex/hubspot/hubspot.client.js";
 import { buildPlan, summarize } from "./hubspot-seed/plan.js";
 import { cleanup, discover, execute, type Manifest } from "./hubspot-seed/run.js";
@@ -47,8 +47,17 @@ async function main() {
       return;
     }
     await cleanup(client, manifest, console.log);
+    renameSync(manifestPath, `${manifestPath}.cleaned-${Date.now()}`);
     console.log("Done. HubSpot keeps archived records for 90 days.");
     return;
+  }
+
+  if (flag("yes") && existsSync(manifestPath)) {
+    const earlier = JSON.parse(readFileSync(manifestPath, "utf8")) as Manifest;
+    const n = Object.values(earlier.ids).reduce((sum, x) => sum + x.length, 0);
+    if (n > 0) {
+      throw new Error(`An earlier run (${n} records, ${earlier.createdAt}) is still recorded in ${manifestPath}. Run with --cleanup --yes first, so the two runs do not collide on the same emails and domains.`);
+    }
   }
 
   const plan = buildPlan({
