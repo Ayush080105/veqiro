@@ -7,7 +7,8 @@ export default defineConfig({
     // positionals as path FILTERS, not globs — no path contains that literal
     // string, so the entire unit suite silently never ran. Only
     // scout.test.ts matched (it was passed as a literal path).
-    include: ["src/**/*.test.ts"],
+    // scripts/ holds developer tools (e.g. the HubSpot demo-data seeder) with their own tests.
+    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
     exclude: [
       "**/node_modules/**",
       // dist/ holds compiled .test.js copies from `tsc`. Without an explicit

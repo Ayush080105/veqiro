@@ -69,3 +69,17 @@ Because of this, **Service Keys are the dependable route for all customers today
 - **Where errors show.** Per dataset and per connection in the Data tab panel (plain language). Server logs are prefixed `[rex-hubspot]`.
 - **Capacity.** Fine for tens to low hundreds of connected accounts on the current in-process scheduler. Beyond that, move syncing to a real queue.
 - **Known limits.** 100,000 records and 40 MB per object (50,000 for activity objects); 60 columns per object; deletions appear after the nightly check; Reports download is hidden for HubSpot datasets (it reads only a 500-row preview).
+
+### 2e. Filling a test account with demo data
+
+`apps/server/scripts/hubspot-seed.ts` creates varied demo records (about 60 companies, 260 contacts, 420 deals spread over a year in every stage, 130 tickets) so dashboards have something to show. Run it yourself, so the key stays with you. It needs a **separate key with write scopes** (the connection key is read only) from a **test or developer account**, never a real CRM.
+
+```
+HUBSPOT_TOKEN=<write key> npx tsx scripts/hubspot-seed.ts --portal <account id>              # dry run, writes nothing
+HUBSPOT_TOKEN=<write key> npx tsx scripts/hubspot-seed.ts --portal <account id> --scale 0.05 --yes   # small pilot
+HUBSPOT_TOKEN=<write key> npx tsx scripts/hubspot-seed.ts --portal <account id> --yes          # full set
+HUBSPOT_TOKEN=<write key> npx tsx scripts/hubspot-seed.ts --portal <account id> --cleanup --yes   # remove what it made
+```
+
+Write scopes: `crm.objects.contacts.write`, `crm.objects.companies.write`, `crm.objects.deals.write`, `tickets`, plus the read scopes. It refuses to run if `--portal` does not match the key's account, writes nothing without `--yes`, and records every id it creates in `hubspot-seed-manifest.<account>.json` so `--cleanup` removes exactly those records.
+
