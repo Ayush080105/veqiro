@@ -54,7 +54,10 @@ export function MethodGuide({ method }: { method: ConnectMethod }) {
       <div className="flex flex-col gap-2 text-xs text-muted-foreground">
         <p>A Service Key is a password that only allows what you tick. It is HubSpot&apos;s current way to connect tools, and there is nothing to build.</p>
         <ol className="flex list-decimal flex-col gap-1.5 pl-5">
-          <li>In HubSpot, select the gear icon (Settings), then <span className="text-foreground">Integrations</span>, then <span className="text-foreground">Service Keys</span>.</li>
+          <li>
+            In HubSpot, open <span className="text-foreground">Development</span>, then <span className="text-foreground">Keys</span>, then <span className="text-foreground">Service keys</span>.
+            Some accounts show it under the gear icon (Settings), then Integrations, then Service Keys. You need to be a Super Admin or have Developer tools access.
+          </li>
           <li>Select <span className="text-foreground">Create service key</span> and name it, for example &ldquo;Veqiro&rdquo;.</li>
           <li>
             Add the read scopes Rex needs.
@@ -63,7 +66,7 @@ export function MethodGuide({ method }: { method: ConnectMethod }) {
           <li>Create the key and copy it. Treat it like a password.</li>
           <li>Paste it into the box on this page and select <span className="text-foreground">Connect</span>.</li>
         </ol>
-        <p className="flex gap-2"><Info className="mt-0.5 size-3 shrink-0" />Menu names can differ slightly between HubSpot accounts. If you can&apos;t find Service Keys, ask a HubSpot Super Admin to create one, or use a private app token.</p>
+        <p className="flex gap-2"><Info className="mt-0.5 size-3 shrink-0" />Menu names can differ slightly between HubSpot accounts. If you can&apos;t find Service keys, ask a HubSpot Super Admin to create one, or use a private app token.</p>
       </div>
     )
   }

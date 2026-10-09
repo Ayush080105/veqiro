@@ -14,7 +14,7 @@ Both open the same four-step window: connect, check access, choose data, sync. N
 
 | Way | What the user does | Needs from Veqiro |
 |---|---|---|
-| **Service Key** (recommended, works today) | In HubSpot: *Settings, Integrations, Service Keys*, create a key, add the read scopes the window lists (it has a *Copy all scopes* button), paste the key. | Only the encryption key (section 2a). |
+| **Service Key** (recommended, works today) | In HubSpot: *Development, Keys, Service keys* (some accounts show it under *Settings, Integrations, Service Keys*; you need Super Admin or Developer tools access), create a key, add the read scopes the window lists (it has a *Copy all scopes* button), paste the key. | Only the encryption key (section 2a). |
 | **Existing private app token** | Paste the token of a private app that already exists. HubSpot stops letting accounts *create* new private apps from 26 Oct 2026; existing ones keep working. | Same. |
 | **Connect with HubSpot** (OAuth, one click) | Click the button, approve in HubSpot, land back in Rex. The person approving must be a HubSpot Super Admin. | A registered HubSpot app (section 2b). The button only appears once it is configured. |
 
