@@ -98,7 +98,7 @@ function NavItem({
         aria-current={active ? "page" : undefined}
         onClick={onNavigate}
         className={cn(
-          "flex items-center gap-2.5 rounded-[var(--vq-r-sm)] px-2 py-1.5 text-sm no-underline transition-colors",
+          "flex items-center gap-2.5 rounded-[var(--vq-r-sm)] px-2 py-1.5 text-sm no-underline transition-colors duration-(--vq-dur-fast) active:bg-muted active:duration-0",
           active
             ? "bg-muted font-medium text-foreground"
             : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",

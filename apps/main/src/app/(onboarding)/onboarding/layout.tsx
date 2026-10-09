@@ -70,7 +70,7 @@ function OnboardingHeader({
   const profileLabel = user?.name ?? user?.email ?? "Profile"
 
   return (
-    <nav className="sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--vq-line-2)] bg-background px-5 py-4 sm:px-8 sm:py-5">
+    <nav className="vq-material sticky top-0 z-50 flex flex-wrap items-center justify-between gap-3 border-b border-[var(--vq-line)] px-5 py-4 sm:px-8 sm:py-5">
       <Link href="/" className="flex items-center gap-2.5 text-foreground">
         <Logo className="w-10 h-10" />
         <span className="font-head text-xl tracking-tight">veqiro</span>
@@ -80,13 +80,13 @@ function OnboardingHeader({
         <button
           type="button"
           title={user?.email ?? profileLabel}
-          className="flex max-w-[180px] items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-white px-3 py-2 text-left text-[13px] font-body text-foreground shadow-[var(--vq-shadow-sm)] sm:max-w-[240px]"
+          className="flex max-w-[180px] items-center gap-2 rounded-full border border-[var(--vq-line-2)] bg-card px-3 py-2 text-left text-[13px] font-body text-foreground shadow-[var(--vq-shadow-sm)] sm:max-w-[240px]"
         >
           {user?.image ? (
             <img
               src={user.image}
               alt=""
-              className="size-5 shrink-0 rounded-full border border-foreground object-cover"
+              className="size-5 shrink-0 rounded-full border border-[var(--vq-line-2)] object-cover"
             />
           ) : (
             <User className="size-4 shrink-0" />
@@ -103,7 +103,7 @@ function OnboardingHeader({
           Logout
         </button>
 
-        <div className="rounded-full border border-[var(--vq-line-2)] bg-secondary px-3.5 py-2 font-mono text-xs uppercase tracking-[0.18em] text-foreground">
+        <div className="rounded-full border border-[var(--vq-line-2)] bg-secondary px-3.5 py-2 font-body font-medium text-xs uppercase tracking-[0.06em] text-foreground">
           Step {stepIndex} / {TOTAL_STEPS}
         </div>
       </div>

@@ -30,7 +30,7 @@ export function RecentActivity({ items }: { items: ActivityItem[] }) {
   return (
     <div className="bg-card border border-[var(--vq-line-2)] rounded-2xl shadow-[var(--vq-shadow)] p-5 flex flex-col gap-3">
       <div>
-        <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <div className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
           [ activity feed ]
         </div>
         <div className="font-display text-[28px] tracking-tight text-foreground mt-0.5">
@@ -84,7 +84,7 @@ export function RecentActivity({ items }: { items: ActivityItem[] }) {
                     {item.title}
                   </div>
                 </div>
-                <div className="font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground shrink-0">
+                <div className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground shrink-0">
                   {relativeTime(item.at)}
                 </div>
               </div>

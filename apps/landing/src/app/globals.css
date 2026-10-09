@@ -52,6 +52,15 @@
   --vq-r-lg: 16px;
   --vq-r-xl: 22px;
 
+  /* Motion — same spring tokens as apps/main (see .claude/skills/apple-design).
+     A critically damped spring (damping 1.0, response 0.35s) sampled into
+     linear(), so CSS transitions move like springs and retarget mid-flight. */
+  --vq-spring: linear(0, 0.039, 0.127, 0.236, 0.349, 0.455, 0.551, 0.634, 0.705, 0.764, 0.812, 0.851, 0.883, 0.908, 0.929, 0.944, 0.957, 0.967, 0.974, 0.98, 0.985, 0.988, 0.991, 0.993, 0.995, 0.996, 0.997, 0.998, 1);
+  --vq-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --vq-dur-press: 100ms;
+  --vq-dur: 360ms;
+  --vq-dur-sheet: 480ms;
+
   /* Rhythm */
   --vq-maxw: 1200px;
   --vq-gutter: clamp(20px, 4vw, 40px);
@@ -59,12 +68,19 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-tap-highlight-color: transparent;
+}
+
+a, button, [role="button"], summary, label {
+  touch-action: manipulation;
 }
 
 html, body {
   background: var(--vq-bg);
   color: var(--vq-ink);
   font-family: var(--font-body), system-ui, sans-serif;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
   /* `clip` instead of `hidden` so position: sticky on descendants still works */
   overflow-x: clip;
 }
@@ -81,9 +97,31 @@ h1, h2, h3, h4 {
   letter-spacing: -0.028em;
   text-wrap: balance;
 }
+/* Tracking is size-specific: the -0.028em display tracking is right for big
+   headlines but crowds small ones, so smaller headings ease back toward 0. */
+h3 { letter-spacing: -0.018em; }
+h4 { letter-spacing: -0.01em; }
+p { text-wrap: pretty; }
+
+/* Pressable controls answer on pointer-down (100ms), then a spring carries
+   them back on release. */
+.vq-press {
+  transition:
+    opacity 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow var(--vq-dur) var(--vq-ease-out),
+    scale var(--vq-dur) var(--vq-spring);
+}
+.vq-press:not(:disabled):active {
+  scale: 0.97;
+  transition-duration: 140ms, 140ms, 140ms, var(--vq-dur-press), var(--vq-dur-press);
+  transition-timing-function: ease, ease, ease, ease-out, ease-out;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
+  .vq-press:active, .vq-card-hover:active, .vq-hamburger:active, .vq-drawer-close:active { scale: none; }
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
@@ -226,8 +264,10 @@ h1, h2, h3, h4 {
   border: 1px solid var(--vq-line);
   border-radius: var(--vq-r-lg);
   box-shadow: var(--vq-shadow-sm);
-  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+  transition: border-color 180ms ease, box-shadow var(--vq-dur) var(--vq-ease-out), transform var(--vq-dur) var(--vq-spring), scale var(--vq-dur) var(--vq-spring);
 }
+
+.vq-card-hover:active { scale: 0.985; transition-duration: 180ms, var(--vq-dur-press), var(--vq-dur-press), var(--vq-dur-press); }
 
 .vq-card-hover:hover {
   border-color: var(--vq-line-2);
@@ -248,7 +288,7 @@ h1, h2, h3, h4 {
   border-radius: var(--vq-r-lg);
   overflow: hidden;
   box-shadow: var(--vq-shadow-sm);
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  transition: transform var(--vq-dur) var(--vq-spring), box-shadow var(--vq-dur) var(--vq-ease-out), border-color 180ms ease;
 }
 .crew-card:hover {
   transform: translateY(-3px);
@@ -607,6 +647,8 @@ h1, h2, h3, h4 {
 }
 
 .vq-hamburger:hover { background: var(--vq-surface-2); }
+.vq-hamburger, .vq-drawer-close { transition: background 150ms ease, scale var(--vq-dur) var(--vq-spring); }
+.vq-hamburger:active, .vq-drawer-close:active { scale: 0.92; transition-duration: 150ms, var(--vq-dur-press); }
 
 [data-tone='dark'] .vq-hamburger {
   color: var(--vq-ink-inv);
@@ -626,13 +668,23 @@ h1, h2, h3, h4 {
 /* ==========================================================================
    Mobile drawer
    ========================================================================== */
+/* The drawer stays mounted and transitions both ways along the same path
+   (in from the right, out to the right). Transitions retarget from the live
+   position, so tapping close mid-open reverses smoothly instead of jumping. */
 .vq-drawer-backdrop {
   position: fixed;
   inset: 0;
   background: rgba(20, 18, 14, 0.45);
   backdrop-filter: blur(2px);
   z-index: 9998;
-  animation: vq-backdrop-in 180ms ease-out;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--vq-dur) var(--vq-ease-out), visibility 0s linear var(--vq-dur);
+}
+.vq-drawer-backdrop[data-open='true'] {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity var(--vq-dur-sheet) var(--vq-ease-out), visibility 0s;
 }
 
 .vq-drawer {
@@ -647,8 +699,15 @@ h1, h2, h3, h4 {
   z-index: 9999;
   display: flex;
   flex-direction: column;
-  animation: vq-drawer-in 240ms cubic-bezier(0.32, 0.72, 0, 1);
   overflow-y: auto;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform var(--vq-dur) var(--vq-ease-out), visibility 0s linear var(--vq-dur);
+}
+.vq-drawer[data-open='true'] {
+  transform: none;
+  visibility: visible;
+  transition: transform var(--vq-dur-sheet) var(--vq-spring), visibility 0s;
 }
 
 .vq-drawer-header {
@@ -694,6 +753,7 @@ h1, h2, h3, h4 {
   transition: background 120ms;
 }
 
+.vq-drawer-link:active, .vq-drawer-crew:active { background: var(--vq-surface-2); }
 .vq-drawer-link:hover,
 .vq-drawer-link:focus {
   background: var(--vq-surface-2);

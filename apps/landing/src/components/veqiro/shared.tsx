@@ -57,7 +57,6 @@ export function Button({
     justifyContent: 'center',
     gap: 7,
     whiteSpace: 'nowrap',
-    transition: 'opacity 140ms ease, background 140ms ease, border-color 140ms ease',
     ...SIZES[size],
     ...VARIANTS[variant],
     ...style,
@@ -72,6 +71,7 @@ export function Button({
       return (
         <a
           href={href}
+          className="vq-press"
           style={base}
           onMouseEnter={e => hoverIn(e.currentTarget)}
           onMouseLeave={e => hoverOut(e.currentTarget)}
@@ -83,6 +83,7 @@ export function Button({
     return (
       <Link
         href={href}
+        className="vq-press"
         style={base}
         onMouseEnter={e => hoverIn(e.currentTarget)}
         onMouseLeave={e => hoverOut(e.currentTarget)}
@@ -97,6 +98,7 @@ export function Button({
       type={type || 'button'}
       onClick={onClick}
       disabled={disabled}
+      className="vq-press"
       style={base}
       onMouseEnter={e => hoverIn(e.currentTarget)}
       onMouseLeave={e => hoverOut(e.currentTarget)}

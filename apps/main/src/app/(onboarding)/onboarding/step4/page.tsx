@@ -32,7 +32,7 @@ export default function Step4Voice() {
                     "cursor-pointer rounded-xl border px-4 py-4 text-left transition-shadow",
                     active
                       ? "border-[var(--vq-line-2)] bg-[color-mix(in_srgb,var(--vq-pink)_18%,white)] shadow-[var(--vq-shadow)]"
-                      : "border-[var(--vq-line-2)] bg-white shadow-none",
+                      : "border-[var(--vq-line-2)] bg-card shadow-none",
                   )}
                 >
                   <div className="font-head text-lg">{v}</div>

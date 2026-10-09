@@ -58,8 +58,8 @@ export function RegisterForm() {
   return (
     <>
       <AuthCard.Header
-        kicker="six AI employees, one login"
-        title="join the crew"
+        title="Create your account"
+        subtitle="Six AI employees, one login."
       />
 
       <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col gap-4">
@@ -161,22 +161,22 @@ export function RegisterForm() {
           Create account
         </SubmitButton>
 
-        <div className="flex items-center gap-3 py-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          <div className="h-0 flex-1 border-t-2 border-dashed border-foreground/40" />
+        <div className="flex items-center gap-3 py-1 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-[var(--vq-line-2)]" />
           <span>or</span>
-          <div className="h-0 flex-1 border-t-2 border-dashed border-foreground/40" />
+          <div className="h-px flex-1 bg-[var(--vq-line-2)]" />
         </div>
 
         <OAuthButtons />
       </form>
 
       <AuthCard.Footer>
-        Already on the team?{" "}
+        Already have an account?{" "}
         <Link
           href="/login"
-          className="font-head uppercase tracking-wider underline underline-offset-4"
+          className="font-medium text-foreground underline-offset-4 hover:underline"
         >
-          Login
+          Sign in
         </Link>
       </AuthCard.Footer>
     </>

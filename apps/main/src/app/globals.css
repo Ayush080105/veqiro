@@ -46,6 +46,10 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  /* `ease-spring`, `ease-spring-bouncy`, `ease-out-quint` utilities */
+  --ease-spring: var(--vq-spring);
+  --ease-spring-bouncy: var(--vq-spring-bouncy);
+  --ease-out-quint: var(--vq-ease-out);
 }
 
 :root {
@@ -87,6 +91,27 @@
   --vq-r: 12px;
   --vq-r-lg: 16px;
   --vq-r-xl: 20px;
+
+  /* Motion. Springs are sampled into linear() so plain CSS transitions get
+     spring physics, and transitions (unlike keyframes) retarget from the live
+     value when interrupted. --vq-spring: damping 1.0 / response 0.35s, no
+     overshoot, the default for everything. --vq-spring-bouncy: damping 0.8 /
+     response 0.32s (~1.5% overshoot), only for motion the user physically
+     started (toggles, drags). See .claude/skills/apple-design. */
+  --vq-spring: linear(0, 0.039, 0.127, 0.236, 0.349, 0.455, 0.551, 0.634, 0.705, 0.764, 0.812, 0.851, 0.883, 0.908, 0.929, 0.944, 0.957, 0.967, 0.974, 0.98, 0.985, 0.988, 0.991, 0.993, 0.995, 0.996, 0.997, 0.998, 1);
+  --vq-spring-bouncy: linear(0, 0.035, 0.121, 0.233, 0.354, 0.473, 0.583, 0.68, 0.762, 0.829, 0.883, 0.925, 0.956, 0.979, 0.994, 1.005, 1.011, 1.014, 1.015, 1.015, 1.014, 1.012, 1.01, 1.008, 1.007, 1.005, 1.004, 1.003, 1);
+  --vq-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --vq-dur-press: 100ms;
+  --vq-dur-fast: 200ms;
+  --vq-dur-pop: 280ms;
+  --vq-dur: 360ms;
+  --vq-dur-sheet: 480ms;
+
+  /* Materials: translucent chrome that content scrolls under. */
+  --vq-material: rgba(246, 245, 244, 0.72);
+  --vq-material-thick: rgba(255, 255, 255, 0.84);
+  --vq-material-edge: rgba(255, 255, 255, 0.6);
+  --vq-scrim: rgba(20, 20, 18, 0.22);
 
   /* shadcn tokens tuned to Veqiro */
   --background: var(--vq-bg);
@@ -152,6 +177,10 @@
   --vq-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24);
   --vq-shadow: 0 1px 2px rgba(0, 0, 0, 0.26), 0 12px 28px -14px rgba(0, 0, 0, 0.72);
   --vq-shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.34), 0 28px 64px -22px rgba(0, 0, 0, 0.82);
+  --vq-material: rgba(17, 17, 16, 0.7);
+  --vq-material-thick: rgba(36, 34, 31, 0.84);
+  --vq-material-edge: rgba(245, 243, 238, 0.08);
+  --vq-scrim: rgba(0, 0, 0, 0.5);
   --background: var(--vq-bg);
   --foreground: var(--vq-ink);
   --card: var(--vq-surface);
@@ -193,10 +222,49 @@
   body {
     @apply bg-background text-foreground font-body;
     color-scheme: light;
+    font-optical-sizing: auto;
+    text-rendering: optimizeLegibility;
   }
   html {
     @apply font-body;
     scrollbar-color: var(--vq-ink-3) transparent;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* No double-tap-zoom wait on anything tappable: feedback lands on press. */
+  a, button, [role="button"], [role="tab"], [role="menuitem"], [role="option"], label, summary {
+    touch-action: manipulation;
+  }
+
+  /* Plain <button>s that don't go through the Button primitive (rows, chips,
+     icon buttons) still answer on pointer-down: an instant dim, like an iOS
+     plain button. Dim rather than scale because it reads right at any size,
+     including full-width rows. Base layer, so any opacity utility on the
+     button still wins. */
+  button:not([data-slot]):not(:disabled):active {
+    opacity: 0.7;
+  }
+
+  /* Tracking and leading are size-specific: large text tightens, body stays at 0. */
+  h1 {
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+  h2 {
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+    text-wrap: balance;
+  }
+  h3 {
+    letter-spacing: -0.012em;
+    line-height: 1.3;
+    text-wrap: balance;
+  }
+  h4, h5, h6 {
+    letter-spacing: -0.005em;
+  }
+  p {
+    text-wrap: pretty;
   }
   .dark body {
     color-scheme: dark;
@@ -252,7 +320,7 @@ html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
 }
 
 .vq-stagger-item {
-  animation: vq-fade-slide-up 320ms ease-out both;
+  animation: vq-fade-slide-up var(--vq-dur-sheet) var(--vq-spring) both;
   animation-delay: calc(var(--vq-stagger-i, 0) * 40ms);
 }
 
@@ -428,4 +496,66 @@ html[data-auth-transition-exit="signup-to-login"] [data-auth-pane="form"] {
   .stats-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ── Materials ──────────────────────────────────────────────────────────── */
+/* Chrome (headers, toolbars, floating bars) is a translucent layer content
+   scrolls under; the bright top edge is light catching the material. Thick
+   is for larger floating surfaces (menus, popovers): more opaque, more blur,
+   deeper shadow. Never put one light material on top of another. */
+@layer components {
+  .vq-material {
+    background-color: var(--vq-material);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+  .vq-material-thick {
+    background-color: var(--vq-material-thick);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    backdrop-filter: blur(28px) saturate(180%);
+    box-shadow: inset 0 1px 0 var(--vq-material-edge), var(--vq-shadow-lg);
+  }
+
+  /* Pressable surfaces: feedback on pointer-down, 100ms, then the spring
+     carries it back on release. */
+  .vq-pressable {
+    transition-property: scale, translate, box-shadow, background-color, border-color, color;
+    transition-duration: var(--vq-dur);
+    transition-timing-function: var(--vq-spring);
+  }
+  .vq-pressable:active {
+    scale: 0.98;
+    transition-duration: var(--vq-dur-press);
+    transition-timing-function: ease-out;
+  }
+}
+
+/* ── Accessibility: motion, transparency, contrast ─────────────────────── */
+/* Reduced motion keeps the feedback but drops the travel: transforms
+   (slides, scales, springs) become instant, opacity and colour still fade,
+   so overlays cross-fade instead of moving. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-property: opacity, color, background-color, border-color, box-shadow, outline-color !important;
+    transition-timing-function: ease !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .vq-material,
+  .vq-material-thick,
+  [class*="backdrop-blur"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+  .vq-material { background-color: var(--background); }
+  .vq-material-thick { background-color: var(--popover); }
+}
+
+@media (prefers-contrast: more) {
+  :root { --vq-line: rgba(31, 31, 29, 0.32); --vq-line-2: rgba(31, 31, 29, 0.5); }
+  .dark { --vq-line: rgba(245, 243, 238, 0.36); --vq-line-2: rgba(245, 243, 238, 0.55); }
+  .vq-material { background-color: var(--background); border-color: var(--vq-line-2); }
+  .vq-material-thick { background-color: var(--popover); border-color: var(--vq-line-2); }
 }

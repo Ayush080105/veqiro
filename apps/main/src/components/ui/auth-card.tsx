@@ -57,11 +57,11 @@ function AuthCardHeader({
 }: AuthCardHeaderProps) {
   return (
     <div className={cn("mb-6 flex flex-col items-center gap-2 text-center", className)}>
-      <h1 className="m-0 font-display text-[clamp(2rem,5vw,2.75rem)] leading-none tracking-tight text-foreground">
+      <h1 className="m-0 font-display text-[clamp(1.75rem,4vw,2.25rem)] font-semibold leading-tight tracking-[-0.025em] text-foreground">
         {title}
       </h1>
       {kicker && (
-        <Kicker prefix="//" tone="default" className="mt-1">
+        <Kicker tone="default" className="mt-1">
           {kicker}
         </Kicker>
       )}

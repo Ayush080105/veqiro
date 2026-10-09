@@ -56,7 +56,7 @@ export default function SharedRexPinPage({
   if (pin === undefined) {
     return (
       <div className="min-h-screen bg-card flex items-center justify-center">
-        <p className="font-mono text-[12px] uppercase tracking-[0.2em] text-muted-foreground">
+        <p className="font-body font-medium text-[12px] uppercase tracking-[0.06em] text-muted-foreground">
           Loading…
         </p>
       </div>
@@ -67,7 +67,7 @@ export default function SharedRexPinPage({
     return (
       <div className="min-h-screen bg-card flex items-center justify-center px-6">
         <div className="max-w-md text-center">
-          <h1 className="font-mono text-[12px] uppercase tracking-[0.2em] text-muted-foreground mb-3">
+          <h1 className="font-body font-medium text-[12px] uppercase tracking-[0.06em] text-muted-foreground mb-3">
             Card unavailable
           </h1>
           <p className="text-[14px] text-foreground">
@@ -85,7 +85,7 @@ export default function SharedRexPinPage({
       <header className="border-b border-(--vq-line-2) px-6 py-4 bg-card">
         <div className="mx-auto max-w-3xl flex items-center justify-between">
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            <p className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
               Shared by REX
             </p>
             <h1 className="text-[22px] font-bold leading-tight">{pin.kind.replace(/-/g, " ")}</h1>
@@ -104,7 +104,7 @@ export default function SharedRexPinPage({
           </pre>
         )}
       </main>
-      <footer className="px-6 py-6 text-center font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+      <footer className="px-6 py-6 text-center font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
         Powered by REX · Veqiro
       </footer>
     </div>

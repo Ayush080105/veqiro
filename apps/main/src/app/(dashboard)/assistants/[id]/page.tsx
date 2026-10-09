@@ -113,7 +113,7 @@ function ScoutSearchSourceToggle() {
       <SelectTrigger
         aria-label="Scout research source"
         title="Which research source Scout should use"
-        className="h-7 w-19 shrink-0 rounded-md border-black/15 bg-transparent px-2 text-[11px] text-muted-foreground sm:w-31 sm:text-xs"
+        className="h-7 w-19 shrink-0 rounded-md border-input bg-transparent px-2 text-[11px] text-muted-foreground sm:w-31 sm:text-xs"
       >
         <SelectValue>
           {(value) => {
@@ -268,7 +268,7 @@ function EmptyState({
           )}
         </div>
 
-        <h2 className="mx-0 mt-6 mb-2 font-head text-3xl leading-tight tracking-normal text-foreground">
+        <h2 className="mx-0 mt-6 mb-2 font-head font-semibold text-3xl leading-tight tracking-[-0.025em] text-foreground">
           Start with {agent.name}
         </h2>
         <p className="mx-auto mb-2 max-w-110 font-body text-[15px] leading-relaxed text-foreground/80">
@@ -1245,7 +1245,7 @@ export default function AssistantChatPage() {
                   onClick={() => void loadPreviousPage()}
                   disabled={isLoadingPrev}
                   className={cn(
-                    "rounded-full border border-(--vq-line-2) bg-card/85 px-3.5 py-1.5 font-mono text-[11px] tracking-wide text-muted-foreground uppercase shadow-(--vq-shadow-sm)",
+                    "rounded-full border border-(--vq-line-2) bg-card/85 px-3.5 py-1.5 font-body font-medium text-[11px] tracking-wide text-muted-foreground uppercase shadow-(--vq-shadow-sm)",
                     isLoadingPrev ? "cursor-default opacity-60" : "cursor-pointer opacity-100"
                   )}
                 >

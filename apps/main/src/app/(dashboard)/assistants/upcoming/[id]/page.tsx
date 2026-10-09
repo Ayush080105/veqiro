@@ -49,7 +49,7 @@ export default function UpcomingAgentPage() {
         </div>
 
         <div className="flex max-w-110 flex-col gap-2">
-          <h2 className="m-0 font-head text-[clamp(1.75rem,3.5vw,2.25rem)] leading-tight tracking-normal text-foreground">
+          <h2 className="m-0 font-head font-semibold text-[clamp(1.75rem,3.5vw,2.25rem)] leading-tight tracking-[-0.03em] text-foreground">
             {agent.name}
           </h2>
           <p className="m-0 font-body text-sm leading-relaxed text-muted-foreground">

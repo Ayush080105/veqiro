@@ -157,7 +157,7 @@ function AgentDetailDialog({
                 size="lg"
                 onClick={() => onVote(agent.id)}
                 disabled={isVoting}
-                className="w-full gap-2 font-mono text-[11px] uppercase tracking-[0.12em]"
+                className="w-full gap-2 font-body font-medium text-[11px] uppercase tracking-[0.06em]"
               >
                 <ChevronUp className="size-4" />
                 <span className="font-medium">{agent.voteCount}</span>
@@ -181,7 +181,7 @@ function UpcomingAgentsSection() {
   if (isPending) {
     return (
       <section className="flex flex-col gap-3">
-        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
           [ vote for the next agent ]
         </span>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:[grid-template-columns:repeat(auto-fill,minmax(220px,1fr))]">
@@ -198,7 +198,7 @@ function UpcomingAgentsSection() {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
           [ vote for the next agent ]
         </span>
         <Sticker rotate={3} tone="violet" className="text-[9px] px-2 py-1">
@@ -211,7 +211,7 @@ function UpcomingAgentsSection() {
             variant="brand"
             key={agent.id}
             onClick={() => setSelectedAgent(agent)}
-            className="relative cursor-pointer gap-3 overflow-hidden p-4 transition-shadow hover:shadow-[var(--vq-shadow-lg)]"
+            className="relative cursor-pointer gap-3 overflow-hidden p-4 vq-pressable hover:shadow-[var(--vq-shadow-lg)]"
           >
             {agent.color && (
               <div
@@ -249,7 +249,7 @@ function UpcomingAgentsSection() {
                 toggleVote(agent.id)
               }}
               disabled={isVoting}
-              className="w-full gap-1.5 font-mono text-[11px] uppercase tracking-[0.12em]"
+              className="w-full gap-1.5 font-body font-medium text-[11px] uppercase tracking-[0.06em]"
             >
               <ChevronUp className="size-3.5" />
               <span>{agent.voteCount}</span>
@@ -277,7 +277,7 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
   return (
     <Card
       variant="brand"
-      className="group flex-row gap-0 overflow-hidden p-0 py-0 transition-shadow hover:shadow-[var(--vq-shadow-lg)]"
+      className="group flex-row gap-0 overflow-hidden p-0 py-0 transition-shadow duration-(--vq-dur) ease-out-quint hover:shadow-[var(--vq-shadow-lg)]"
     >
       {/* Keep voting and navigation as sibling controls. Nesting a button in
           the card link produces invalid interactive markup and unreliable
@@ -304,14 +304,14 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
           <div className="flex flex-wrap items-start gap-1.5">
             <Badge
               variant="secondary"
-              className="rounded-full font-mono text-[10px] uppercase tracking-wide"
+              className="rounded-full font-body font-medium text-[10px] uppercase tracking-wide"
             >
               {categoryLabel}
             </Badge>
             {post.agentSlug && (
               <Badge
                 variant="outline"
-                className="rounded-full font-mono text-[10px] uppercase tracking-wide text-muted-foreground"
+                className="rounded-full font-body font-medium text-[10px] uppercase tracking-wide text-muted-foreground"
               >
                 {post.agentSlug}
               </Badge>
@@ -332,7 +332,7 @@ function FeedbackCard({ post, onVote }: { post: FeedbackPost; onVote: (id: strin
           </h3>
 
           {post.isMerged && (
-            <span className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+            <span className="font-body font-medium text-[10px] uppercase tracking-wide text-muted-foreground">
               merged into another post
             </span>
           )}
@@ -395,7 +395,7 @@ export default function FeedbackPage() {
       {/* Divider */}
       <div className="flex items-center gap-3">
         <div className="h-[3px] flex-1 bg-foreground/10" />
-        <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+        <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
           [ community feedback ]
         </span>
         <div className="h-[3px] flex-1 bg-foreground/10" />
@@ -465,7 +465,7 @@ export default function FeedbackPage() {
                   variant={sort === opt.value ? "default" : "ghost"}
                   size="sm"
                   onClick={() => setSort(opt.value)}
-                  className="gap-1 rounded-md px-2 font-mono text-[10px] uppercase tracking-wide sm:px-2.5"
+                  className="gap-1 rounded-md px-2 font-body font-medium text-[10px] uppercase tracking-wide sm:px-2.5"
                 >
                   <Icon className="size-3" />
                   {opt.label}

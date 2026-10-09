@@ -170,7 +170,7 @@ export default function Step2Identity() {
             User can edit before continuing; this is what AI agents will read. */}
         {(crawledSummary || scrape.isPending) && (
           <div className="rounded-(--vq-r) border border-(--vq-line-2) bg-card p-4 shadow-(--vq-shadow-sm)">
-            <div className="mb-2 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-foreground">
+            <div className="mb-2 flex items-center gap-2 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-foreground">
               <Sparkles className="size-3.5" />
               Site context
               <span className="ml-auto font-mono text-[10px] normal-case tracking-normal text-muted-foreground">

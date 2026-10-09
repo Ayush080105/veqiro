@@ -37,7 +37,7 @@ export default function GlobalErrorBoundary({
         </Button>
       </div>
 
-      <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
         error{error.digest ? ` · ${error.digest}` : ""}
       </span>
     </main>

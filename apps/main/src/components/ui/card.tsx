@@ -34,7 +34,7 @@ function Card({ className, size = "default", variant, interactive = false, ...pr
       className={cn(
         cardVariants({ variant }),
         interactive &&
-          "cursor-pointer transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-(--vq-shadow-lg) active:translate-y-0 active:shadow-(--vq-shadow)",
+          "cursor-pointer transition-[translate,scale,box-shadow] duration-(--vq-dur) ease-spring hover:-translate-y-0.5 hover:shadow-(--vq-shadow-lg) active:translate-y-0 active:scale-[0.985] active:shadow-(--vq-shadow) active:duration-(--vq-dur-press) active:ease-out",
         className
       )}
       {...props}

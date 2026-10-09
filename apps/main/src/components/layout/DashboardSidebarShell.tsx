@@ -46,7 +46,7 @@ export default function DashboardSidebarShell({
       <AppSidebar />
       <AppTour />
       <SidebarInset>
-        <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background/92 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/78 sm:px-6">
+        <header className="vq-material sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-[var(--vq-line)] px-4 sm:px-6">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="h-4" />
           <div className="min-w-0 flex-1">

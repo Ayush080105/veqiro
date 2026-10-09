@@ -4,7 +4,7 @@ export default function OnboardingLoading() {
   return (
     <div className="min-h-screen" style={{ background: "var(--background)" }}>
       {/* Header band */}
-      <div className="flex items-center justify-between border-b-[3px] border-foreground bg-background px-8 py-5">
+      <div className="flex items-center justify-between border-b border-[var(--vq-line)] bg-background px-8 py-5">
         <div className="flex items-center gap-2.5">
           <Skeleton className="size-10 rounded-md" />
           <Skeleton className="h-5 w-20 rounded-md" />

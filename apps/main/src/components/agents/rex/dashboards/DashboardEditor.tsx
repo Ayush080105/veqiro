@@ -339,7 +339,7 @@ export function DashboardEditor({ dashboardId, backLink }: { dashboardId: string
       {/* The prompt bar: the fastest way to change anything. */}
       <div className="sticky bottom-3 z-10 mt-2">
         <form
-          className="mx-auto flex max-w-3xl items-center gap-2 rounded-full border border-border bg-card/95 p-1.5 pl-4 shadow-[var(--vq-shadow-sm)] backdrop-blur"
+          className="mx-auto flex max-w-3xl items-center gap-2 rounded-full border border-border vq-material-thick p-1.5 pl-4"
           onSubmit={(e) => { e.preventDefault(); runPrompt(prompt) }}
         >
           <Sparkles className="size-4 shrink-0 text-muted-foreground" />

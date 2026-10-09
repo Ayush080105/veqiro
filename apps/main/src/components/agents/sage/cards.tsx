@@ -79,7 +79,7 @@ function ScoreGauge({ score, label }: { score: number; label: string }) {
   return (
     <div className="flex flex-col items-center gap-0.5">
       <span className={cn("font-display text-lg leading-none", color)}>{score}</span>
-      <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+      <span className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
         {label}
       </span>
     </div>
@@ -172,8 +172,8 @@ export function KeywordClusterCard({
             >
               <div className="flex flex-col gap-1">
                 <div className="flex items-center justify-between px-2 pb-0.5">
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">keyword</span>
-                  <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground">keyword</span>
+                  <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
                     vol/mo · difficulty · relevance
                   </span>
                 </div>
@@ -256,8 +256,8 @@ export function KeywordClusterCard({
           {clusters.length === 0 && flatList.length > 0 && (
             <div className="flex flex-col gap-1">
               <div className="flex items-center justify-between px-2 pb-0.5">
-                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">keyword</span>
-                <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground">keyword</span>
+                <span className="text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
                   vol/mo · difficulty · relevance
                 </span>
               </div>
@@ -461,7 +461,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
           {/* SEO improvement tips */}
           {seo_suggestions.length > 0 && (
             <div className="flex flex-col gap-1">
-              <Kicker prefix="//">SEO tips to strengthen this post</Kicker>
+              <Kicker>SEO tips to strengthen this post</Kicker>
               <div className="flex flex-col gap-0.5">
                 {seo_suggestions.map((s, i) => (
                   <p key={i} className="flex items-start gap-1 text-[10px] text-muted-foreground">
@@ -518,7 +518,7 @@ export function BlogPreviewCard({ result }: { result: SageGenerateBlogResult }) 
                   className="flex w-full items-center justify-between px-4 py-2.5 text-left"
                   onClick={() => setMetaOpen((o) => !o)}
                 >
-                  <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Meta / SEO fields</span>
+                  <span className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">Meta / SEO fields</span>
                   {metaOpen
                     ? <ChevronUp className="size-3 text-muted-foreground" />
                     : <ChevronDown className="size-3 text-muted-foreground" />
@@ -629,7 +629,7 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
         {/* Issues list with visual indicators */}
         {result.issues.length > 0 && (
           <div className="flex flex-col gap-1">
-            <Kicker prefix="//">issues to fix</Kicker>
+            <Kicker>issues to fix</Kicker>
             <div className="flex flex-col gap-0.5">
               {result.issues.map((issue, i) => (
                 <p key={i} className="flex items-start gap-1.5 text-[11px]">
@@ -644,7 +644,7 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
         {/* Improvements */}
         {result.improvements.length > 0 && (
           <div className="flex flex-col gap-1">
-            <Kicker prefix="//">improvements</Kicker>
+            <Kicker>improvements</Kicker>
             <div className="flex flex-col gap-0.5">
               {result.improvements.map((item, i) => (
                 <p key={i} className="flex items-start gap-1.5 text-[11px]">
@@ -658,7 +658,7 @@ export function ContentAuditCard({ result }: { result: SageContentAnalysisResult
 
         {result.missing_keywords.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Kicker prefix="//">missing keywords</Kicker>
+            <Kicker>missing keywords</Kicker>
             <div className="flex flex-wrap gap-1">
               {result.missing_keywords.map((k) => (
                 <Badge key={k} variant="outline" className="text-[10px]">
@@ -706,11 +706,11 @@ export function ContentBriefCard({
         {/* Top stats */}
         <div className="grid grid-cols-2 gap-2 text-[11px]">
           <div>
-            <Kicker prefix="//">search intent</Kicker>
+            <Kicker>search intent</Kicker>
             <p className="mt-0.5 capitalize">{b.search_intent}</p>
           </div>
           <div>
-            <Kicker prefix="//">target length</Kicker>
+            <Kicker>target length</Kicker>
             <p className="mt-0.5">{b.recommended_word_count} words</p>
           </div>
         </div>
@@ -725,7 +725,7 @@ export function ContentBriefCard({
         {/* SERP features */}
         {b.serp_features && b.serp_features.length > 0 && (
           <div className="flex flex-col gap-1">
-            <Kicker prefix="//">SERP features</Kicker>
+            <Kicker>SERP features</Kicker>
             <div className="flex flex-wrap gap-1">
               {b.serp_features.map((f) => (
                 <Badge key={f} variant="outline" className="text-[10px]">
@@ -739,7 +739,7 @@ export function ContentBriefCard({
         {/* Title options — copyable */}
         {b.title_options && b.title_options.length > 0 && (
           <div className="flex flex-col gap-1">
-            <Kicker prefix="//">title options</Kicker>
+            <Kicker>title options</Kicker>
             <div className="flex flex-col gap-1">
               {b.title_options.map((t, i) => (
                 <div
@@ -775,7 +775,7 @@ export function ContentBriefCard({
         {/* Competitor gaps — amber callout */}
         {b.competitor_gaps && b.competitor_gaps.length > 0 && (
           <div className="flex flex-col gap-1 rounded border border-chart-3/30 bg-chart-3/5 p-2">
-            <Kicker prefix="//">competitor gaps to own</Kicker>
+            <Kicker>competitor gaps to own</Kicker>
             <div className="flex flex-col gap-0.5">
               {b.competitor_gaps.map((gap, i) => (
                 <p key={i} className="flex items-start gap-1.5 text-[11px]">
@@ -1024,7 +1024,7 @@ function MiniBar({ value, max = 100, label, note }: { value: number; max?: numbe
         <span className="font-mono text-[10px] text-muted-foreground">{value}{max !== 100 ? `/${max}` : "%"}</span>
       </div>
       <div className="h-1 w-full rounded-full bg-muted">
-        <div className={cn("h-1 rounded-full transition-all", color)} style={{ width: `${pct}%` }} />
+        <div className={cn("h-1 rounded-full transition-[width] duration-(--vq-dur) ease-spring", color)} style={{ width: `${pct}%` }} />
       </div>
       {note && <span className="text-[9px] text-muted-foreground">{note}</span>}
     </div>
@@ -1050,7 +1050,7 @@ function ScoreRing({ score }: { score: number }) {
       </svg>
       <div className="absolute flex flex-col items-center">
         <span className="font-display text-base leading-none" style={{ color }}>{score}</span>
-        <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-foreground">score</span>
+        <span className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-foreground">score</span>
       </div>
     </div>
   )
@@ -1323,7 +1323,7 @@ export function PageSeoAuditCard({
           <div className="grid grid-cols-2 gap-3">
             {result.critical_issues?.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <Kicker prefix="//">must fix</Kicker>
+                <Kicker>must fix</Kicker>
                 {result.critical_issues.slice(0, 4).map((issue, i) => (
                   <IssueRow key={i} issue={issue} />
                 ))}
@@ -1331,7 +1331,7 @@ export function PageSeoAuditCard({
             )}
             {result.quick_wins?.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <Kicker prefix="//">quick wins</Kicker>
+                <Kicker>quick wins</Kicker>
                 {result.quick_wins.slice(0, 4).map((win, i) => (
                   <WinRow key={i} win={win} />
                 ))}
@@ -1402,7 +1402,7 @@ export function PageSeoAuditCard({
             />
             {t.schema_issues.length > 0 && (
               <div className="mt-1 flex flex-col gap-0.5 rounded bg-chart-3/5 px-2 py-1.5">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-chart-3">Schema issues to fix</p>
+                <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-chart-3">Schema issues to fix</p>
                 {t.schema_issues.slice(0, 3).map((issue, i) => (
                   <p key={i} className="flex items-start gap-1 text-[10px] text-foreground/70">
                     <AlertTriangle className="mt-0.5 size-2.5 shrink-0 text-chart-3" /> {issue}
@@ -1543,7 +1543,7 @@ export function PageSeoAuditCard({
 
             {/* Keyword placement */}
             <div>
-              <Kicker prefix="//">keyword placement</Kicker>
+              <Kicker>keyword placement</Kicker>
               <div className="mt-1 flex flex-col gap-1">
                 <RichCheckRow
                   ok={op.keyword_in_title}
@@ -1588,7 +1588,7 @@ export function PageSeoAuditCard({
             {/* LSI keywords */}
             {(op.lsi_keywords_found.length > 0 || op.lsi_keywords_missing.length > 0) && (
               <div>
-                <Kicker prefix="//">semantic keyword coverage</Kicker>
+                <Kicker>semantic keyword coverage</Kicker>
                 <p className="mt-1 text-[10px] text-muted-foreground">LSI (Latent Semantic Indexing) keywords are related terms Google expects to see on a page that genuinely covers this topic.</p>
                 {op.lsi_keywords_found.length > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-0.5">
@@ -1613,7 +1613,7 @@ export function PageSeoAuditCard({
             {/* PAA questions */}
             {(op.paa_answered.length > 0 || op.paa_unanswered.length > 0) && (
               <div>
-                <Kicker prefix="//">people also ask coverage</Kicker>
+                <Kicker>people also ask coverage</Kicker>
                 {op.paa_answered.length > 0 && (
                   <div className="mt-1 flex flex-col gap-0.5">
                     {op.paa_answered.map((q, i) => (
@@ -1698,7 +1698,7 @@ export function PageSeoAuditCard({
             />
             {eeat.missing_signals.length > 0 && (
               <div className="mt-1 rounded bg-muted/20 px-2 py-1.5">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Signals to add</p>
+                <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">Signals to add</p>
                 {eeat.missing_signals.slice(0, 4).map((s, i) => (
                   <p key={i} className="mt-0.5 text-[10px] text-foreground/70">• {s}</p>
                 ))}
@@ -1717,7 +1717,7 @@ export function PageSeoAuditCard({
             {/* Word count bar chart */}
             {wcData.length > 1 && (
               <div>
-                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Word count vs. competitors</p>
+                <p className="mb-1 font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">Word count vs. competitors</p>
                 {comp.word_count_verdict && (
                   <p className="mb-2 text-[10px] leading-relaxed text-foreground/80">{comp.word_count_verdict}</p>
                 )}
@@ -1747,7 +1747,7 @@ export function PageSeoAuditCard({
             {/* SERP features */}
             {(comp.serp_features_present.length > 0 || comp.serp_features_missing.length > 0) && (
               <div>
-                <Kicker prefix="//">serp features for this keyword</Kicker>
+                <Kicker>serp features for this keyword</Kicker>
                 <div className="mt-1.5 flex flex-wrap gap-1">
                   {comp.serp_features_present.map((f) => (
                     <Badge key={f} variant="secondary" className="text-[9px]">✓ {f.replace(/_/g, " ")}</Badge>
@@ -1779,7 +1779,7 @@ export function PageSeoAuditCard({
             {/* Content gaps */}
             {comp.content_gaps?.length > 0 && (
               <div>
-                <Kicker prefix="//">content gaps (what competitors cover that you don&apos;t)</Kicker>
+                <Kicker>content gaps (what competitors cover that you don&apos;t)</Kicker>
                 <div className="mt-1 flex flex-col gap-1">
                   {comp.content_gaps.map((gap, i) => (
                     <p key={i} className="flex items-start gap-1.5 text-[11px]">
@@ -1794,7 +1794,7 @@ export function PageSeoAuditCard({
             {/* Unique angle */}
             {comp.unique_angle_opportunity && (
               <div className="rounded border border-chart-2/30 bg-chart-2/5 px-2.5 py-2">
-                <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-chart-2">Untapped opportunity</p>
+                <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-chart-2">Untapped opportunity</p>
                 <p className="mt-0.5 text-[10px] text-foreground/80">{comp.unique_angle_opportunity}</p>
               </div>
             )}
@@ -1802,7 +1802,7 @@ export function PageSeoAuditCard({
             {/* Top competitors */}
             {competitors.length > 0 && (
               <div>
-                <Kicker prefix="//">competitors analyzed</Kicker>
+                <Kicker>competitors analyzed</Kicker>
                 <div className="mt-1 flex flex-col gap-1.5">
                   {competitors.map((c, i) => (
                     <div key={i} className="rounded border border-border/50 px-2.5 py-2">
@@ -1961,7 +1961,7 @@ export function SiteAuditCard({
       {/* Individual page audit cards */}
       {pages.map((page, i) => (
         <div key={page.url ?? i} className="flex flex-col gap-0.5">
-          <p className="px-1 text-[9px] uppercase tracking-widest text-muted-foreground">
+          <p className="px-1 text-[9px] uppercase tracking-[0.06em] text-muted-foreground">
             Page {i + 1} of {pages.length}
           </p>
           <PageSeoAuditCard result={page} onFollowUpAction={onFollowUpAction} />

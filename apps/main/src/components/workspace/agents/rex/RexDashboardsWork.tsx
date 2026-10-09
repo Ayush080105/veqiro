@@ -241,7 +241,7 @@ export function RexDashboardsWork({ organizationId }: WorkListProps) {
             <Link
               key={d.id}
               href={`${hrefFor("work", "dashboards")}/${d.id}`}
-              className="group flex flex-col gap-2 rounded-[var(--vq-r)] border border-border bg-card p-4 no-underline transition-colors hover:border-foreground/30"
+              className="group flex flex-col gap-2 rounded-[var(--vq-r)] border border-border bg-card p-4 no-underline vq-pressable hover:border-foreground/30"
             >
               <div className="flex items-start gap-2">
                 <LayoutDashboard className="mt-0.5 size-4 shrink-0 text-muted-foreground" />

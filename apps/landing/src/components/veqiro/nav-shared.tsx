@@ -239,7 +239,7 @@ export function NavShared({ variant = 'page' }: Props) {
             Log in
           </a>
           <a
-            className="vq-nav-cta"
+            className="vq-nav-cta vq-press"
             href={isPreLaunch ? waitlistUrl : `${consoleUrl}/signup`}
             style={{
               background: dark ? T.inkInv : T.ink,
@@ -252,7 +252,6 @@ export function NavShared({ variant = 'page' }: Props) {
               letterSpacing: '-0.005em',
               textDecoration: 'none',
               whiteSpace: 'nowrap',
-              transition: 'opacity 140ms ease',
             }}
             onMouseEnter={e => (e.currentTarget.style.opacity = '0.86')}
             onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
@@ -276,11 +275,12 @@ export function NavShared({ variant = 'page' }: Props) {
         </div>
       </nav>
 
-      {open && (
-        <>
-          <div className="vq-drawer-backdrop" onClick={() => setOpen(false)} aria-hidden />
+      <>
+          <div className="vq-drawer-backdrop" data-open={open} onClick={() => setOpen(false)} aria-hidden />
           <aside
             className="vq-drawer"
+            data-open={open}
+            inert={!open}
             role="dialog"
             aria-modal="true"
             aria-label="Main navigation"
@@ -382,8 +382,7 @@ export function NavShared({ variant = 'page' }: Props) {
               </a>
             </div>
           </aside>
-        </>
-      )}
+      </>
     </div>
   );
 }

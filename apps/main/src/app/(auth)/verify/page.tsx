@@ -45,7 +45,7 @@ function StateCard({ children }: { children: ReactNode }) {
     <div className="flex gap-4 min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
       <Link href="/" className="flex items-center gap-3 text-foreground">
             <Logo className="size-10 shrink-0" />
-            <span className="font-display text-3xl leading-none tracking-normal">
+            <span className="font-display font-semibold text-3xl leading-none tracking-[-0.025em]">
               veqiro
             </span>
           </Link>
@@ -150,7 +150,7 @@ function VerifyContent() {
           <p className="m-0 font-body text-sm leading-relaxed text-foreground/80">
             {errorMessage || "This link may have expired or already been used."}
           </p>
-          <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+          <p className="m-0 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
             {"// request a new link from login"}
           </p>
           <Button asChild variant="brand-dark" size="brand">
@@ -174,7 +174,7 @@ function VerifyContent() {
           We&apos;ve sent a verification link to your email. Click the link to
           activate your account.
         </p>
-        <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+        <p className="m-0 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
           {"// check spam if nothing shows"}
         </p>
         <Button asChild variant="brand-dark" size="brand">

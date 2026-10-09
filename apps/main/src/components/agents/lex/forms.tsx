@@ -587,7 +587,7 @@ export function LexStampLetterheadForm({
   return (
     <FieldGroup>
       <div className="flex flex-col gap-1.5">
-        <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+        <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
           Document <span className="text-destructive">*</span>
         </span>
         <p className="text-[11px] text-muted-foreground">

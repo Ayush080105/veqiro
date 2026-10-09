@@ -48,7 +48,7 @@ function ResetPasswordContent() {
       <div className="flex gap-4 min-h-screen flex-col items-center justify-center bg-background px-4">
           <Link href="/" className="flex items-center gap-3 text-foreground">
             <Logo className="size-10 shrink-0" />
-            <span className="font-display text-3xl leading-none tracking-normal">
+            <span className="font-display font-semibold text-3xl leading-none tracking-[-0.025em]">
               veqiro
             </span>
           </Link>
@@ -77,15 +77,15 @@ function ResetPasswordContent() {
     <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-10">
       <Link href="/" className="flex items-center gap-3 text-foreground">
             <Logo className="size-10 shrink-0" />
-            <span className="font-display text-3xl leading-none tracking-normal">
+            <span className="font-display font-semibold text-3xl leading-none tracking-[-0.025em]">
               veqiro
             </span>
           </Link>
 
       <AuthCard sticker={<Sticker rotate={6} tone="green">new password</Sticker>}>
         <AuthCard.Header
-          kicker="pick a fresh one"
-          title="reset password"
+          subtitle="Choose a new password for your account."
+          title="Set a new password"
         />
         <form
           onSubmit={form.handleSubmit(onSubmit)}

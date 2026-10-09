@@ -378,7 +378,7 @@ export function RexDataTab({
           {/* Column type legend */}
           {savedRawTable && (
             <div className="flex flex-wrap items-center gap-1">
-              <span className="font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground mr-1">Detected:</span>
+              <span className="font-body font-medium text-[9px] uppercase tracking-[0.06em] text-muted-foreground mr-1">Detected:</span>
               {Object.entries(savedRawTable.columnTypes).map(([col, type]) => (
                 <span
                   key={col}
@@ -465,7 +465,7 @@ export function RexDataTab({
             if (!hasFinancialMetric) return null
             return (
               <div className="flex flex-wrap gap-2 border-t border-chart-2/20 pt-2.5">
-                <p className="w-full font-mono text-[9px] uppercase tracking-[0.14em] text-muted-foreground">Financial tools</p>
+                <p className="w-full font-body font-medium text-[9px] uppercase tracking-[0.06em] text-muted-foreground">Financial tools</p>
                 {hasForecastable && (
                   <button
                     type="button"
@@ -505,7 +505,7 @@ export function RexDataTab({
       {/* Inferred mapping confirmation */}
       {parseResult && editableDatasets.length > 0 && (
         <div className="flex flex-col gap-3 border border-border p-3">
-          <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+          <p className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
             Review inferred datasets
           </p>
           <p className="text-[11px] text-muted-foreground">
@@ -603,7 +603,7 @@ export function RexDataTab({
 
       {/* Saved datasets list */}
       <div className="flex flex-col gap-2">
-        <p className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
           Saved datasets ({datasets.length})
         </p>
         {isLoading ? (

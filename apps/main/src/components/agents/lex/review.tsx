@@ -525,7 +525,7 @@ export function FullReviewSheet({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-[11.5px]">
                     <thead>
-                      <tr className="border-b border-border font-mono text-[10px] uppercase tracking-[0.1em] text-muted-foreground">
+                      <tr className="border-b border-border font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
                         <th className="py-2 pr-2 font-medium">Event</th>
                         <th className="py-2 pr-2 font-medium">When</th>
                         <th className="py-2 pr-2 font-medium">Owner</th>
@@ -758,7 +758,7 @@ export function ContractReviewCard({
             <dl className="grid grid-cols-2 overflow-hidden rounded-[var(--vq-r-sm)] border border-border sm:grid-cols-3">
               {facts.map((f) => (
                 <div key={f.label} className="flex flex-col gap-0.5 border-b border-r border-border/70 px-2.5 py-2 last:border-r-0">
-                  <dt className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground">{f.label}</dt>
+                  <dt className="font-body font-medium text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground">{f.label}</dt>
                   <dd className="text-[12px] font-medium tabular-nums">{f.value}</dd>
                 </div>
               ))}

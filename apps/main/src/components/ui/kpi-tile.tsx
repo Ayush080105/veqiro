@@ -109,7 +109,7 @@ export function KpiTile({
       <div className="flex items-baseline gap-1.5">
         <span
           className={cn(
-            "font-head tracking-normal",
+            "font-head font-semibold tabular-nums tracking-[-0.02em]",
             shape === "brand" ? "text-3xl" : "text-xl"
           )}
         >

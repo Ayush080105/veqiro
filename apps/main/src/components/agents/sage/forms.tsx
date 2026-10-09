@@ -187,7 +187,7 @@ export function SageGenerateBlogForm({
                   }
                 />
                 <PopoverContent align="end" className="w-72 p-2">
-                  <p className="mb-2 text-[10px] uppercase tracking-widest text-muted-foreground">
+                  <p className="mb-2 text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
                     Saved keywords
                   </p>
                   <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">

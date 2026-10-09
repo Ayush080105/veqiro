@@ -321,7 +321,7 @@ export function ConnectHubSpotDialog({
                     return (
                       <button
                         key={t.id} type="button" disabled={missing.length > 0 || busy} onClick={() => buildFrom(t.id)}
-                        className="flex flex-col gap-0.5 rounded-md border border-border p-3 text-left transition-colors hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex flex-col gap-0.5 rounded-md border border-border p-3 text-left vq-pressable hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <span className="flex items-center gap-1.5 text-sm font-medium">
                           {building === t.id ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5 text-[#1DBC87]" />}

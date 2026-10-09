@@ -163,7 +163,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
             {/* Category selection */}
             <div className="flex flex-col gap-2">
               <Label
-                style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}
+                style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
                 className="text-muted-foreground"
               >
                 Category <span className="text-destructive">*</span>
@@ -183,7 +183,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                         setValue("category", cat.value, { shouldValidate: true })
                       }}
                       className={cn(
-                        "flex items-start gap-2.5 rounded-md border p-3 text-left transition-all",
+                        "flex items-start gap-2.5 rounded-md border p-3 text-left vq-pressable",
                         isSelected
                           ? "border-[var(--vq-line-2)] shadow-[var(--vq-shadow)] ring-1 ring-[var(--vq-line-2)]"
                           : "border-[var(--vq-line-2)] shadow-[var(--vq-shadow-sm)] hover:shadow-[var(--vq-shadow)]"
@@ -219,7 +219,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
             {/* Agent selection */}
             <div className="flex flex-col gap-2">
               <Label
-                style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}
+                style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
                 className="text-muted-foreground"
               >
                 Which agent is this about?{" "}
@@ -233,7 +233,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                     setValue("agentSlug", null)
                   }}
                   className={cn(
-                    "rounded-full border border-[var(--vq-line-2)] px-3 py-1 text-xs font-head uppercase tracking-wide transition-colors",
+                    "rounded-full border border-[var(--vq-line-2)] px-3 py-1 text-xs font-medium transition-colors",
                     selectedAgent === null
                       ? "bg-foreground text-background"
                       : "bg-card hover:bg-muted"
@@ -253,7 +253,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                         setValue("agentSlug", next)
                       }}
                       className={cn(
-                        "rounded-full border border-[var(--vq-line-2)] px-3 py-1 text-xs font-head uppercase tracking-wide transition-colors",
+                        "rounded-full border border-[var(--vq-line-2)] px-3 py-1 text-xs font-medium transition-colors",
                         isSelected
                           ? "ring-1 ring-[var(--vq-line-2)]"
                           : "bg-card hover:bg-muted"
@@ -262,7 +262,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                         background: isSelected ? AGENT_COLORS[slug] : undefined,
                       }}
                     >
-                      {slug}
+                      <span className="capitalize">{slug}</span>
                     </button>
                   )
                 })}
@@ -273,7 +273,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
             <div className="flex flex-col gap-2">
               <Label
                 htmlFor="feedback-title"
-                style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}
+                style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
                 className="text-muted-foreground"
               >
                 Title <span className="text-destructive">*</span>
@@ -293,7 +293,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
               {similarPosts && similarPosts.length > 0 && (
                 <div className="mt-1 rounded-md border border-[var(--vq-line-2)] bg-accent/30 p-3 shadow-[var(--vq-shadow-sm)]">
                   <p
-                    style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}
+                    style={{ fontFamily: FONT.body, fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
                     className="text-muted-foreground mb-2"
                   >
                     Similar requests — want to upvote instead?
@@ -309,7 +309,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
                         <span className="text-xs text-foreground line-clamp-1 flex-1">{post.title}</span>
                         <div className="flex items-center gap-1.5 shrink-0">
                           <span
-                            className="rounded-full px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wide border border-foreground/20"
+                            className="rounded-full px-1.5 py-0.5 text-[9px] font-body font-medium uppercase tracking-wide border border-foreground/20"
                             style={{
                               background: `color-mix(in srgb, ${STATUS_COLORS[post.status]} 15%, transparent)`,
                               color: STATUS_COLORS[post.status],
@@ -333,7 +333,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
             <div className="flex flex-col gap-2">
               <Label
                 htmlFor="feedback-description"
-                style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}
+                style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
                 className="text-muted-foreground"
               >
                 Description <span className="text-destructive">*</span>
@@ -352,7 +352,7 @@ export function SubmitFeedbackDrawer({ open, onOpenChange }: SubmitFeedbackDrawe
             </div>
           </div>
 
-          <SheetFooter className="px-6 pb-6 pt-4 border-t-[3px] border-foreground">
+          <SheetFooter className="px-6 pb-6 pt-4 border-t border-[var(--vq-line)]">
             <Button
               type="button"
               variant="brand-ghost"

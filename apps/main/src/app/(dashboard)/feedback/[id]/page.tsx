@@ -167,7 +167,7 @@ export default function FeedbackDetailPage() {
       <Link
         href="/feedback"
         className="inline-flex items-center gap-1.5 text-sm text-muted-foreground no-underline hover:text-foreground transition-colors w-fit"
-        style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase" }}
+        style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
       >
         <ArrowLeft className="size-3.5" />
         Back to Feedback
@@ -205,7 +205,7 @@ export default function FeedbackDetailPage() {
           </span>
           <span
             className="leading-none opacity-60"
-            style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: "0.12em", textTransform: "uppercase" }}
+            style={{ fontFamily: FONT.body, fontSize: 9, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
           >
             {post.hasVoted ? "voted" : "vote"}
           </span>
@@ -288,7 +288,7 @@ export default function FeedbackDetailPage() {
           <div>
             <span
               className="text-foreground"
-              style={{ fontFamily: FONT.mono, fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase" }}
+              style={{ fontFamily: FONT.body, fontSize: 10, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
             >
               Roadmap ETA
             </span>
@@ -307,7 +307,7 @@ export default function FeedbackDetailPage() {
               <Shield className="size-3 text-background" />
               <span
                 className="text-background"
-                style={{ fontFamily: FONT.mono, fontSize: 9, letterSpacing: "0.18em", textTransform: "uppercase" }}
+                style={{ fontFamily: FONT.body, fontSize: 9, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
               >
                 Team
               </span>
@@ -334,7 +334,7 @@ export default function FeedbackDetailPage() {
           <div className="h-0.5 flex-1 bg-foreground/10" />
           <span
             className="text-muted-foreground"
-            style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.18em", textTransform: "uppercase" }}
+            style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
           >
             [ {post.comments?.length ?? 0} comment{(post.comments?.length ?? 0) !== 1 ? "s" : ""} ]
           </span>
@@ -372,7 +372,7 @@ export default function FeedbackDetailPage() {
                       <Shield className="size-2.5 text-background" />
                       <span
                         className="text-background"
-                        style={{ fontFamily: FONT.mono, fontSize: 8, letterSpacing: "0.18em", textTransform: "uppercase" }}
+                        style={{ fontFamily: FONT.body, fontSize: 8, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
                       >
                         Team
                       </span>
@@ -400,7 +400,7 @@ export default function FeedbackDetailPage() {
         <div className="flex flex-col gap-3 rounded-lg border border-(--vq-line-2) bg-card p-5 shadow-(--vq-shadow)">
           <span
             className="text-muted-foreground"
-            style={{ fontFamily: FONT.mono, fontSize: 11, letterSpacing: "0.16em", textTransform: "uppercase" }}
+            style={{ fontFamily: FONT.body, fontSize: 11, fontWeight: 500, letterSpacing: "0.06em", textTransform: "uppercase" }}
           >
             Add a comment
           </span>

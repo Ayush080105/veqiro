@@ -40,7 +40,7 @@ export function InfoSection({
   return (
     <section className={cn("flex flex-col gap-1.5", className)} {...rest}>
       <Kicker
-        prefix="//"
+       
         tone={kickerTone}
         className={cn(tone === "danger" && "text-destructive")}
       >
@@ -81,7 +81,7 @@ export function InfoSection({
                 )}
               </div>
               {item.meta && (
-                <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                <span className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
                   {item.meta}
                 </span>
               )}

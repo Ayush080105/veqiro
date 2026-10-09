@@ -25,7 +25,7 @@ export default function NotFound() {
         </Button>
       </div>
 
-      <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
         error 404 · page not found
       </span>
     </main>

@@ -62,7 +62,7 @@ export function ScoutSearchSource() {
       <SelectTrigger
         aria-label="Scout research source"
         title="Which research source Scout should use"
-        className="h-7 w-24 shrink-0 rounded-md border-black/15 bg-transparent px-2 text-[11px] text-muted-foreground"
+        className="h-7 w-24 shrink-0 rounded-md border-input bg-transparent px-2 text-[11px] text-muted-foreground"
       >
         <SelectValue>
           {(value) => {

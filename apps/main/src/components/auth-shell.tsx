@@ -27,7 +27,7 @@ function BrandLogo() {
           v
         </span>
       </span>
-      <span className="font-display text-4xl leading-none tracking-normal text-foreground">
+      <span className="font-display text-4xl font-semibold leading-none tracking-[-0.03em] text-foreground">
         veqiro
       </span>
     </Link>
@@ -40,12 +40,12 @@ function MobileAgentChips() {
       {AGENT_PROOFS.slice(0, 3).map((agent) => (
         <div
           key={agent.name}
-          className="border border-[var(--vq-line-2)] bg-card px-3 py-2 shadow-[var(--vq-shadow-sm)]"
+          className="rounded-[var(--vq-r)] border border-[var(--vq-line)] bg-card px-3 py-2 shadow-[var(--vq-shadow-sm)]"
         >
-          <div className="font-head text-sm uppercase tracking-normal">
+          <div className="font-head text-sm font-semibold">
             {agent.name}
           </div>
-          <div className="mt-1 truncate font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <div className="mt-1 truncate font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
             {agent.shortTime}
           </div>
         </div>

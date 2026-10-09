@@ -32,7 +32,7 @@ export function PageHeader({
       <div className="flex min-w-0 flex-1 flex-col gap-2">
         <h1
           className={cn(
-            "m-0 font-head leading-tight tracking-normal text-foreground",
+            "m-0 font-head font-semibold leading-[1.1] tracking-[-0.025em] text-foreground",
             size === "lg" && "text-[clamp(2rem,3vw,2.75rem)]",
             size === "md" && "text-3xl"
           )}

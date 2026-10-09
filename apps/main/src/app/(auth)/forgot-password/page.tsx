@@ -51,7 +51,7 @@ export default function ForgotPassword() {
     <div className="flex min-h-screen flex-col gap-4 items-center justify-center bg-background px-4 py-10">
       <Link href="/" className="flex items-center gap-3 text-foreground">
         <Logo className="size-10 shrink-0" />
-        <span className="font-display text-3xl leading-none tracking-normal">
+        <span className="font-display font-semibold text-3xl leading-none tracking-[-0.025em]">
           veqiro
         </span>
       </Link>
@@ -69,7 +69,7 @@ export default function ForgotPassword() {
               We sent a reset link to <strong>{sentEmail}</strong>. Click the
               link to choose a new password.
             </p>
-            <p className="m-0 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
+            <p className="m-0 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
               {"// check spam if nothing shows"}
             </p>
             <Button
@@ -83,8 +83,8 @@ export default function ForgotPassword() {
         ) : (
           <>
             <AuthCard.Header
-              kicker="we'll mail you a fresh link"
-              title="reset password"
+              subtitle="We'll email you a link to set a new one."
+              title="Reset your password"
             />
             <form
               onSubmit={form.handleSubmit(onSubmit)}

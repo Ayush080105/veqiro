@@ -294,7 +294,7 @@ export function ContractAnalysisCard({
         <div className="flex flex-col gap-1.5 rounded border border-border bg-muted/20 p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col gap-0.5">
-              <Kicker prefix="//">risk level</Kicker>
+              <Kicker>risk level</Kicker>
               <p className="text-xs font-medium capitalize">{a.risk_level}</p>
             </div>
             <div className="flex items-center gap-2">
@@ -308,7 +308,7 @@ export function ContractAnalysisCard({
           </div>
           {a.score_breakdown && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 border-t border-border pt-1.5">
-              <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">breakdown</span>
+              <span className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">breakdown</span>
               {a.score_breakdown.critical > 0 && (
                 <span className="text-[10px]">
                   <span className="font-semibold text-destructive">{a.score_breakdown.critical}</span>
@@ -345,7 +345,7 @@ export function ContractAnalysisCard({
         {/* Risks */}
         {a.risks?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Kicker prefix="//">risks ({a.risks.length})</Kicker>
+            <Kicker>risks ({a.risks.length})</Kicker>
             <div className="flex flex-col gap-1.5">
               {a.risks.map((r, i) => (
                 <div
@@ -367,7 +367,7 @@ export function ContractAnalysisCard({
                     <div className="flex flex-col gap-0.5 border-t border-border pt-1.5">
                       {r.confidence && (
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">confidence</span>
+                          <span className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">confidence</span>
                           <Badge variant="outline" className="text-[10px] capitalize">{r.confidence}</Badge>
                         </div>
                       )}
@@ -451,7 +451,7 @@ export function ContractAnalysisCard({
               {a.obligations_structured?.length
                 ? a.obligations_structured.map((party) => (
                     <div key={party.party} className="flex flex-col gap-1.5">
-                      <Kicker prefix="//">{party.party}</Kicker>
+                      <Kicker>{party.party}</Kicker>
                       <div className="flex flex-col gap-1">
                         {party.items.map((item, i) => (
                           <div key={i} className="flex flex-col gap-0.5 border border-border bg-muted/20 p-2">
@@ -480,7 +480,7 @@ export function ContractAnalysisCard({
                   ))
                 : Object.entries(a.obligations).map(([party, items]) => (
                     <div key={party} className="flex flex-col gap-1">
-                      <Kicker prefix="//">{party}</Kicker>
+                      <Kicker>{party}</Kicker>
                       <ul className="list-disc pl-4 text-[11px] leading-relaxed">
                         {items.map((item, i) => <li key={i}>{item}</li>)}
                       </ul>
@@ -522,7 +522,7 @@ export function ContractAnalysisCard({
         {/* Key terms */}
         {Object.keys(a.key_terms ?? {}).length > 0 && (
           <Collapsible>
-            <CollapsibleTrigger className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground hover:text-foreground">
+            <CollapsibleTrigger className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground hover:text-foreground">
               Show key terms ({Object.keys(a.key_terms).length})
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -663,7 +663,7 @@ export function ExplainerCard({ result }: { result: LexExplainResult }) {
         </p>
         {Object.keys(result.key_terms).length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Kicker prefix="//">key terms</Kicker>
+            <Kicker>key terms</Kicker>
             <div className="border border-border">
               {Object.entries(result.key_terms).map(([term, def]) => (
                 <div
@@ -732,7 +732,7 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
           if (section.type === "narrative") {
             return (
               <div key={i} className="flex flex-col gap-1.5">
-                <Kicker prefix="//">{section.title}</Kicker>
+                <Kicker>{section.title}</Kicker>
                 <p className="text-[11px] leading-relaxed">{section.items[0]}</p>
               </div>
             )
@@ -768,7 +768,7 @@ export function LegalResearchCard({ result }: { result: LexLegalResearchResult }
 
         {sources.length === 0 && legacyRefs.length > 0 && (
           <Collapsible>
-            <CollapsibleTrigger className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground hover:text-foreground">
+            <CollapsibleTrigger className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground hover:text-foreground">
               References & cases
             </CollapsibleTrigger>
             <CollapsibleContent>
@@ -813,7 +813,7 @@ export function ComplianceCheckCard({
       <AgentCard.Body className="flex flex-col gap-3">
         <div className="flex items-center gap-2 rounded border border-border bg-muted/20 p-2">
           <div className="min-w-0 flex-1">
-            <Kicker prefix="//">overall status</Kicker>
+            <Kicker>overall status</Kicker>
             <p className="text-xs font-semibold">{result.overall_status}</p>
           </div>
           <StatusPill level={statusLevel}>{result.overall_status}</StatusPill>
@@ -851,7 +851,7 @@ export function ComplianceCheckCard({
           <div className="border border-destructive/30 bg-destructive/10 p-2">
             <div className="mb-1 flex items-center gap-1">
               <ShieldAlert className="size-3 text-destructive" />
-              <Kicker prefix="//" className={cn("text-destructive")}>
+              <Kicker className={cn("text-destructive")}>
                 critical gaps
               </Kicker>
             </div>
@@ -865,7 +865,7 @@ export function ComplianceCheckCard({
 
         {result.remediation_steps.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <Kicker prefix="//">remediation steps</Kicker>
+            <Kicker>remediation steps</Kicker>
             <div className="flex flex-col gap-1">
               {result.remediation_steps.map((s, i) => (
                 <div

@@ -163,7 +163,7 @@ export function ChatDock({ fullBleed }: { fullBleed?: boolean }) {
                 onClick={() => void loadPreviousPage()}
                 disabled={isLoadingPrev}
                 className={cn(
-                  "rounded-full border border-(--vq-line-2) bg-card/85 px-3.5 py-1.5 font-mono text-[11px] tracking-wide text-muted-foreground uppercase shadow-(--vq-shadow-sm)",
+                  "rounded-full border border-(--vq-line-2) bg-card/85 px-3.5 py-1.5 font-body font-medium text-[11px] tracking-wide text-muted-foreground uppercase shadow-(--vq-shadow-sm)",
                   isLoadingPrev ? "cursor-default opacity-60" : "cursor-pointer opacity-100",
                 )}
               >

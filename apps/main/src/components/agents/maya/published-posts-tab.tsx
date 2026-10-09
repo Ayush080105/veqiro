@@ -101,7 +101,7 @@ function PostCard({ post }: { post: PublishedPost }) {
         {/* platform + time row */}
         <div className="flex items-center justify-between">
           <span
-            className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5"
+            className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5"
             style={{ background: cfg.color, color: cfg.ink }}
           >
             {cfg.label}
@@ -253,7 +253,7 @@ export function MayaPublishedPostsTab() {
             {DAYS.map((d) => (
               <div
                 key={d}
-                className="text-center text-[10px] font-bold uppercase tracking-wide text-muted-foreground py-2 border-r border-(--vq-line-2) last:border-r-0"
+                className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground py-2 border-r border-(--vq-line-2) last:border-r-0"
               >
                 {d}
               </div>
@@ -300,7 +300,7 @@ export function MayaPublishedPostsTab() {
                               key={p.id}
                               src={p.imageUrl}
                               alt=""
-                              className="w-7 h-7 object-cover border border-foreground"
+                              className="w-7 h-7 rounded-[6px] object-cover border border-[var(--vq-line-2)]"
                             />
                           ) : (
                             <span

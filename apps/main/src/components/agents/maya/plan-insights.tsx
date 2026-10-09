@@ -73,7 +73,7 @@ function StatTile({
       <div className="text-xs font-medium text-muted-foreground">{label}</div>
       {value !== undefined && (
         <div className="flex items-baseline gap-1.5">
-          <span className="font-head text-xl tabular-nums tracking-normal">{value}</span>
+          <span className="font-head font-semibold text-xl tabular-nums tracking-[-0.015em]">{value}</span>
           {suffix && <span className="font-mono text-xs text-muted-foreground">{suffix}</span>}
         </div>
       )}
@@ -88,7 +88,7 @@ function MixBar({ posts, reels }: { posts: number; reels: number }) {
   return (
     <>
       <div className="flex items-baseline gap-1.5">
-        <span className="font-head text-xl tabular-nums tracking-normal">{total}</span>
+        <span className="font-head font-semibold text-xl tabular-nums tracking-[-0.015em]">{total}</span>
         <span className="font-mono text-xs text-muted-foreground">planned</span>
       </div>
       {/* 2px gap between segments so the two never bleed into each other. */}
@@ -138,7 +138,7 @@ export function PlanSummary({ plan, items }: { plan: ContentPlan; items: Content
     <div className="flex flex-col gap-3">
       {plan.headline && (
         <div className="flex flex-col gap-1">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <span className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
             This week&apos;s angle
           </span>
           <p className="font-head text-lg leading-snug tracking-normal">{plan.headline}</p>
@@ -267,7 +267,7 @@ function SignalCard({ signal }: { signal: PlanSignal }) {
     <div className="flex min-w-0 flex-col gap-1.5 rounded-[var(--vq-r)] border border-[var(--vq-line)] bg-card p-3">
       <div className="flex items-center gap-1.5 text-muted-foreground">
         <Icon className="size-3.5 shrink-0" />
-        <span className="font-mono text-[10px] uppercase tracking-widest">{label}</span>
+        <span className="font-body font-medium text-[10px] uppercase tracking-[0.06em]">{label}</span>
       </div>
       <p className="text-sm font-medium leading-snug">{signal.label}</p>
       {signal.detail && <p className="text-xs leading-relaxed text-muted-foreground">{signal.detail}</p>}
@@ -337,7 +337,7 @@ export function PlanEvidence({ plan }: { plan: ContentPlan }) {
 
       {cards.length > 0 && (
         <div className="flex flex-col gap-2">
-          <h4 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+          <h4 className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
             What the plan is based on
           </h4>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">

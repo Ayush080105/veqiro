@@ -43,7 +43,7 @@ export function EmptyState({
         </span>
       )}
       <div className="flex flex-col gap-1">
-        <h3 className="m-0 font-head text-xl leading-tight tracking-normal text-foreground">
+        <h3 className="m-0 font-head font-semibold text-xl leading-tight tracking-[-0.015em] text-foreground">
           {title}
         </h3>
         {description && (

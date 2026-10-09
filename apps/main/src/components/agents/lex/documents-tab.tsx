@@ -295,7 +295,7 @@ function DocumentSheet({
               <dl className="grid grid-cols-2 overflow-hidden rounded-[var(--vq-r-sm)] border border-border sm:grid-cols-3">
                 {facts.map(([label, value]) => (
                   <div key={label} className="flex flex-col gap-0.5 border-b border-r border-border/70 px-2.5 py-2">
-                    <dt className="font-mono text-[9.5px] uppercase tracking-[0.1em] text-muted-foreground">{label}</dt>
+                    <dt className="font-body font-medium text-[9.5px] uppercase tracking-[0.06em] text-muted-foreground">{label}</dt>
                     <dd className="text-[12px] font-medium">{value}</dd>
                   </div>
                 ))}

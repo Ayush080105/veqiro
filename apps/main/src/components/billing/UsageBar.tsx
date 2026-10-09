@@ -43,7 +43,7 @@ export function UsageBar({
       </div>
       <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full transition-all duration-300"
+          className="h-full rounded-full transition-[width] duration-(--vq-dur-sheet) ease-spring"
           style={{ width: `${pct}%`, background: barColor }}
         />
       </div>

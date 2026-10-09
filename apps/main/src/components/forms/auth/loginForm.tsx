@@ -54,8 +54,8 @@ export function LoginForm() {
   return (
     <>
       <AuthCard.Header
-        kicker="sign in to your crew"
-        title="welcome back"
+        title="Welcome back"
+        subtitle="Sign in to pick up where your crew left off."
       />
 
       <form
@@ -114,9 +114,9 @@ export function LoginForm() {
                   <Label htmlFor="password" variant="brand">Password</Label>
                   <Link
                     href="/forgot-password"
-                    className="font-mono text-[11px] uppercase tracking-wider text-destructive underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+                    className="font-body text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
                   >
-                    Forgot?
+                    Forgot password?
                   </Link>
                 </div>
                 <div className="relative">
@@ -138,7 +138,7 @@ export function LoginForm() {
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
                     disabled={loading}
-                    className="absolute right-1.5 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-sm text-foreground transition-colors hover:bg-foreground/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="absolute right-1.5 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-[var(--vq-r-sm)] text-muted-foreground transition-colors hover:bg-foreground/5 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     {showPassword ? (
@@ -160,24 +160,24 @@ export function LoginForm() {
           name="remember"
           control={form.control}
           render={({ field }) => (
-            <label className="flex min-h-10 cursor-pointer items-center gap-3 font-mono text-xs uppercase tracking-wider text-foreground">
+            <label className="flex min-h-10 cursor-pointer items-center gap-3 font-body text-sm text-foreground">
               <div className="relative size-5 shrink-0">
                 <input
                   type="checkbox"
                   checked={Boolean(field.value)}
                   onChange={(e) => field.onChange(e.target.checked)}
                   disabled={loading}
-                  className="peer size-5 cursor-pointer appearance-none rounded-sm border border-[var(--vq-line-2)] bg-card transition-colors checked:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="peer size-5 cursor-pointer appearance-none rounded-[5px] border border-[var(--vq-line-2)] bg-card transition-colors checked:bg-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <svg
                   viewBox="0 0 12 12"
                   fill="none"
                   aria-hidden
-                  className="pointer-events-none absolute inset-0 opacity-0 transition-opacity peer-checked:opacity-100"
+                  className="pointer-events-none absolute inset-0 text-background opacity-0 transition-opacity peer-checked:opacity-100"
                 >
                   <path
                     d="M2 6l3 3 5-5"
-                    stroke="white"
+                    stroke="currentColor"
                     strokeWidth="1.8"
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -190,13 +190,13 @@ export function LoginForm() {
         />
 
         <SubmitButton isLoading={loading} loadingText="Signing in...">
-          Login
+          Sign in
         </SubmitButton>
 
-        <div className="flex items-center gap-3 py-1 font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
-          <div className="h-0 flex-1 border-t border-dashed border-[var(--vq-line-2)]" />
+        <div className="flex items-center gap-3 py-1 text-xs text-muted-foreground">
+          <div className="h-px flex-1 bg-[var(--vq-line-2)]" />
           <span>or</span>
-          <div className="h-0 flex-1 border-t border-dashed border-[var(--vq-line-2)]" />
+          <div className="h-px flex-1 bg-[var(--vq-line-2)]" />
         </div>
 
         <OAuthButtons />
@@ -206,9 +206,9 @@ export function LoginForm() {
         Don&apos;t have an account?{" "}
         <Link
           href="/signup"
-          className="font-head uppercase tracking-wider underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+          className="font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
         >
-          Sign up
+          Create one
         </Link>
       </AuthCard.Footer>
     </>

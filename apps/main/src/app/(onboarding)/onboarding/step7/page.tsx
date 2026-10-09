@@ -61,21 +61,21 @@ export default function Step7Review() {
               key={label}
               className="flex min-w-0 items-center gap-3 border-b border-dashed border-border pb-2.5"
             >
-              <div className="w-32 shrink-0 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              <div className="w-32 shrink-0 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
                 {label}
               </div>
               <div className="min-w-0 flex-1 truncate font-body text-[15px]">{value}</div>
               <button
                 type="button"
                 onClick={() => router.push(`/onboarding/${jumpTo}`)}
-                className="shrink-0 cursor-pointer rounded-full border border-[var(--vq-line-2)] bg-secondary px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider transition-colors hover:bg-muted"
+                className="shrink-0 cursor-pointer rounded-full border border-[var(--vq-line-2)] bg-secondary px-2.5 py-1 font-body font-medium text-[10px] uppercase tracking-[0.06em] transition-colors hover:bg-muted"
               >
                 Edit
               </button>
             </div>
           ))}
           <div className="flex items-center">
-            <div className="w-32 font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+            <div className="w-32 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
               Palette
             </div>
             <div className="flex gap-1.5">

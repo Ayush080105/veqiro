@@ -261,7 +261,7 @@ function PlanView({
 
       <div className="overflow-hidden rounded-lg border border-(--vq-line-2)">
         <div className="flex flex-wrap items-center justify-between gap-2 bg-primary px-3 py-2">
-          <h3 className="font-mono text-[11px] uppercase tracking-widest text-primary-foreground">
+          <h3 className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-primary-foreground">
             {fmt(weekStart)} – {fmt(weekEnd)}
           </h3>
           <div className="flex items-center gap-3">
@@ -272,7 +272,7 @@ function PlanView({
                   className="size-1.5 rounded-full"
                   style={{ background: FORMAT[key].color }}
                 />
-                <span className="font-mono text-[9px] uppercase tracking-wider text-primary-foreground/70">
+                <span className="font-body font-medium text-[9px] uppercase tracking-[0.06em] text-primary-foreground/70">
                   {FORMAT[key].short}
                 </span>
               </span>
@@ -368,7 +368,7 @@ export function MayaContentPlanTab({
         </div>
         {alreadyPlanned ? (
           <div className="flex shrink-0 items-center gap-2">
-            <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+            <span className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
               Next week is planned
             </span>
             {/* A new plan for the same week supersedes the old one (the list
@@ -416,7 +416,7 @@ export function MayaContentPlanTab({
 
           {older.length > 0 && (
             <div className="flex flex-col gap-3">
-              <h3 className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">
+              <h3 className="font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
                 Earlier plans
               </h3>
               {older.map((plan) => (

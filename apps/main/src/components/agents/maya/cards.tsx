@@ -604,7 +604,7 @@ export function RevisionDiffCard({ result }: { result: MayaReviseResult }) {
         )}
         {result.changes_made.length > 0 && (
           <div>
-            <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <p className="mb-1 font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
               {"// changes"}
             </p>
             <ul className="list-disc pl-4 text-[11px] leading-relaxed">
@@ -1027,7 +1027,7 @@ export function CampaignResultCard({
         {result.caption && (
           <div className="mt-2 mb-2 rounded-none border-t border-border/50 p-3 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Caption</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Caption</p>
               <CopyButton text={captionBody} label="Copy caption" />
             </div>
             <Textarea

@@ -41,7 +41,6 @@ const LoginBg = () => {
       className="relative hidden h-full w-full overflow-hidden bg-background text-foreground lg:block"
       aria-label="Veqiro AI crew on shift"
     >
-      <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(90deg,rgba(17,17,17,.12)_1px,transparent_1px),linear-gradient(rgba(17,17,17,.1)_1px,transparent_1px)] [background-size:42px_42px]" />
       <div
         className="absolute right-12 top-16 h-60 w-60 rounded-full blur-3xl"
         style={{ backgroundColor: agent.accent, opacity: 0.4 }}
@@ -52,11 +51,11 @@ const LoginBg = () => {
       <div className="relative z-10 grid h-full w-full grid-rows-[auto_minmax(0,1fr)_auto] gap-4 p-6 xl:p-8">
         <div className="flex items-start justify-between gap-5">
           <div>
-            <div className="inline-flex items-center gap-2 border border-[var(--vq-line-2)] bg-accent px-3 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] shadow-[var(--vq-shadow)]">
+            <div className="inline-flex items-center gap-2 rounded-full bg-accent px-3 py-1.5 font-body text-xs font-medium text-accent-foreground">
               <Sparkles className="size-3.5" aria-hidden />
               Crew on shift
             </div>
-            <h2 className="mt-4 max-w-xl font-display text-[44px] leading-none tracking-normal xl:text-[52px]">
+            <h2 className="mt-4 max-w-xl font-display text-[44px] font-semibold leading-[1.02] tracking-[-0.035em] xl:text-[52px]">
               Six AI employees clocked in.
             </h2>
           </div>
@@ -69,13 +68,13 @@ const LoginBg = () => {
             <div className="relative grid min-h-[420px] grid-cols-[minmax(190px,245px)_minmax(0,1fr)] gap-5 rounded-[var(--vq-r-lg)] border border-[var(--vq-line-2)] bg-card p-5 shadow-[var(--vq-shadow-lg)] xl:min-h-[440px] xl:grid-cols-[265px_minmax(0,1fr)]">
               <div className="grid min-h-0 content-between gap-4">
                 <div className="min-w-0">
-                  <div className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+                  <div className="font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
                     Meet the crew
                   </div>
-                  <h3 className="mt-2 font-display text-[42px] leading-none tracking-normal xl:text-[50px]">
+                  <h3 className="mt-2 font-display text-[42px] font-semibold leading-[1.02] tracking-[-0.035em] xl:text-[50px]">
                     Meet {agent.name}
                   </h3>
-                  <p className="mt-2 font-head text-sm uppercase leading-tight tracking-normal text-foreground/75">
+                  <p className="mt-2 font-body text-sm leading-tight text-muted-foreground">
                     {agent.role}
                   </p>
                 </div>
@@ -94,7 +93,7 @@ const LoginBg = () => {
                       />
                     </div>
                     <div
-                      className="absolute bottom-3 left-3 rounded-[var(--vq-r-sm)] border border-[var(--vq-line-2)] px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[var(--vq-shadow-sm)]"
+                      className="absolute bottom-3 left-3 rounded-full px-3 py-1 font-body text-xs font-medium shadow-[var(--vq-shadow-sm)]"
                       style={{ backgroundColor: agent.accent }}
                     >
                       {agent.name}
@@ -106,28 +105,28 @@ const LoginBg = () => {
               <div className="grid min-h-0 content-between gap-4">
                 <div className="flex justify-end">
                   <div
-                    className="border border-[var(--vq-line-2)] px-3 py-1 font-head text-xs uppercase tracking-wider shadow-[var(--vq-shadow-sm)]"
+                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-body text-xs font-medium"
                     style={{ backgroundColor: agent.accent }}
                   >
-                    active now
+                    Active now
                   </div>
                 </div>
 
                 <div className="grid gap-4">
                   <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-background px-4 py-3 shadow-[var(--vq-shadow)]">
-                    <div className="mb-3 inline-flex rounded-full border border-[var(--vq-line-2)] bg-card px-2.5 py-1 font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-foreground/75">
+                    <div className="mb-3 inline-flex rounded-full border border-[var(--vq-line-2)] bg-card px-2.5 py-1 font-body font-medium text-[9px] uppercase leading-none tracking-[0.06em] text-foreground/75">
                       What I handle
                     </div>
-                    <p className="max-w-[30rem] text-balance font-body text-[19px] font-semibold leading-[1.18] tracking-normal text-foreground xl:text-[22px]">
+                    <p className="max-w-[30rem] text-balance font-body text-[19px] font-semibold leading-[1.2] tracking-[-0.015em] text-foreground xl:text-[22px]">
                       {agent.does}
                     </p>
-                    <p className="mt-4 border-t border-dashed border-[var(--vq-line-2)] pt-3 font-body text-[14px] leading-[1.45] text-foreground/70 xl:text-[15px]">
+                    <p className="mt-4 border-t border-[var(--vq-line)] pt-3 font-body text-[14px] leading-[1.45] text-foreground/70 xl:text-[15px]">
                       {agent.saves}
                     </p>
                   </div>
 
                   <div className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] bg-background px-4 py-3 shadow-[var(--vq-shadow)]">
-                    <div className="mb-3 flex items-center gap-2 font-mono text-[9px] uppercase leading-none tracking-[0.22em] text-muted-foreground">
+                    <div className="mb-3 flex items-center gap-2 font-body font-medium text-[9px] uppercase leading-none tracking-[0.06em] text-muted-foreground">
                       <LayoutList className="size-4" aria-hidden />
                       My tasks
                     </div>
@@ -155,11 +154,11 @@ const LoginBg = () => {
                     className="rounded-[var(--vq-r)] border border-[var(--vq-line-2)] p-3 shadow-[var(--vq-shadow)]"
                     style={{ backgroundColor: agent.accent }}
                   >
-                    <div className="flex items-center gap-2 font-mono text-[10px] uppercase tracking-[0.16em] text-foreground/70">
+                    <div className="flex items-center gap-2 font-body font-medium text-[10px] uppercase tracking-[0.06em] text-foreground/70">
                       <Clock3 className="size-4" aria-hidden />
                       Saves you
                     </div>
-                    <strong className="mt-1 block font-head text-xl uppercase leading-none tracking-normal xl:text-2xl">
+                    <strong className="mt-1 block font-display text-xl font-semibold leading-tight tracking-[-0.02em] xl:text-2xl">
                       {agent.timeSaved}
                     </strong>
                   </div>
@@ -184,13 +183,13 @@ const LoginBg = () => {
                 aria-pressed={index === active}
               >
                 <span
-                  className="grid size-6 place-items-center rounded-full border border-[var(--vq-line-2)] font-head text-[10px] uppercase"
+                  className="grid size-6 place-items-center rounded-full font-body text-[10px] font-semibold"
                   style={{ backgroundColor: item.accent }}
                   aria-hidden
                 >
                   {item.name.slice(0, 1)}
                 </span>
-                <span className="truncate font-head text-xs uppercase leading-none tracking-normal">
+                <span className="truncate font-body text-xs font-medium leading-none">
                   {item.name}
                 </span>
               </button>

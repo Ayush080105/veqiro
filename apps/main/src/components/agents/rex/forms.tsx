@@ -595,7 +595,7 @@ export function RexScenarioForm({
   return (
     <FieldGroup>
       <div className="border border-border bg-muted/20 p-2">
-        <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+        <p className="mb-2 font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">
           Base metrics
         </p>
         <div className="grid grid-cols-2 gap-1.5">
@@ -649,7 +649,7 @@ export function RexScenarioForm({
           return (
             <div className="flex flex-col gap-2">
               <div className="flex flex-col gap-1.5">
-                <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+                <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] leading-none text-foreground/70">
                   Scenarios
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -756,7 +756,7 @@ function MetricKVEditor({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1.5">
-        <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+        <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] leading-none text-foreground/70">
           {label}
         </span>
         {hint && (
@@ -872,7 +872,7 @@ export function RexInvestorUpdateForm({
           const commit = (next: string[]) => field.onChange(next)
           return (
             <div className="flex flex-col gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+              <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] leading-none text-foreground/70">
                 Highlights
               </span>
               {items.map((item, i) => (
@@ -902,7 +902,7 @@ export function RexInvestorUpdateForm({
           const commit = (next: string[]) => field.onChange(next)
           return (
             <div className="flex flex-col gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+              <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] leading-none text-foreground/70">
                 Asks (where investors can help)
               </span>
               {items.map((item, i) => (
@@ -1025,7 +1025,7 @@ export function RexBoardDeckForm({
           const commit = (next: string[]) => field.onChange(next)
           return (
             <div className="flex flex-col gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+              <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] leading-none text-foreground/70">
                 Highlights
               </span>
               {items.map((item, i) => (
@@ -1055,7 +1055,7 @@ export function RexBoardDeckForm({
           const commit = (next: string[]) => field.onChange(next)
           return (
             <div className="flex flex-col gap-2">
-              <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+              <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] leading-none text-foreground/70">
                 Risks
               </span>
               {items.map((item, i) => (
@@ -1123,7 +1123,7 @@ function AgentSummaryEditor({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-col gap-1.5">
-        <span className="font-mono text-[11px] uppercase tracking-[0.18em] leading-none text-foreground/70">
+        <span className="font-body font-medium text-[11px] uppercase tracking-[0.06em] leading-none text-foreground/70">
           Agent summaries
         </span>
         <span className="text-[10px] text-muted-foreground">

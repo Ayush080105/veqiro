@@ -94,7 +94,7 @@ export function StatusRow({
                 {agent.name}
               </span>
               <span
-                className="inline-flex items-center gap-1.5 truncate font-mono text-[10px] uppercase tracking-[0.15em] text-muted-foreground"
+                className="inline-flex items-center gap-1.5 truncate font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground"
                 style={{
                   fontFamily: FONT.mono,
                 }}

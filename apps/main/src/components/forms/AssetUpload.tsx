@@ -89,7 +89,7 @@ export function AssetUpload({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="font-mono text-[11px] tracking-[0.16em] text-muted-foreground uppercase">
+      <div className="font-body font-medium text-[11px] tracking-[0.06em] text-muted-foreground uppercase">
         {label}
       </div>
 

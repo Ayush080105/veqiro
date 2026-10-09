@@ -81,7 +81,7 @@ function ConfidenceFooter({
           style={{ background: dot }}
         />
       )}
-      <span className="font-mono text-[9px] uppercase tracking-[0.18em] text-muted-foreground">
+      <span className="font-body font-medium text-[9px] uppercase tracking-[0.06em] text-muted-foreground">
         {[label, dataPoints ? `${dataPoints} data pts` : null, note].filter(Boolean).join(" · ")}
       </span>
     </div>
@@ -221,7 +221,7 @@ export function MetricsAnalysisCard({
           <div className="grid gap-2 sm:grid-cols-2">
             {Object.entries(charts_data).map(([name, data]) => (
               <div key={name} className="border border-border bg-muted/20 p-2">
-                <p className="mb-1 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+                <p className="mb-1 font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
                   {name}
                 </p>
                 <Sparkline data={data} />
@@ -465,7 +465,7 @@ export function BriefingCard({
             return (
               <div key={title} className="border-l-2 border-border pl-2">
                 <div className="mb-0.5 flex items-center gap-1.5">
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+                  <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
                     {title}
                   </p>
                   {sectionObj?.status && (
@@ -548,9 +548,9 @@ export function RunwayCard({
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Scenario</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Runway</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Zero date</th>
+                  <th className="px-2 py-1 text-left font-body font-medium text-[10px] uppercase tracking-wide">Scenario</th>
+                  <th className="px-2 py-1 text-right font-body font-medium text-[10px] uppercase tracking-wide">Runway</th>
+                  <th className="px-2 py-1 text-right font-body font-medium text-[10px] uppercase tracking-wide">Zero date</th>
                 </tr>
               </thead>
               <tbody>
@@ -743,9 +743,9 @@ export function WeeklyDigestCard({
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Metric</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Current</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">WoW</th>
+                  <th className="px-2 py-1 text-left font-body font-medium text-[10px] uppercase tracking-wide">Metric</th>
+                  <th className="px-2 py-1 text-right font-body font-medium text-[10px] uppercase tracking-wide">Current</th>
+                  <th className="px-2 py-1 text-right font-body font-medium text-[10px] uppercase tracking-wide">WoW</th>
                 </tr>
               </thead>
               <tbody>
@@ -768,7 +768,7 @@ export function WeeklyDigestCard({
 
         {result.alerts?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Alerts</p>
+            <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">Alerts</p>
             {result.alerts.map((a, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <XCircle className={cn("mt-0.5 size-3 shrink-0", severityColor(a.severity))} />
@@ -780,7 +780,7 @@ export function WeeklyDigestCard({
 
         {result.green_flags?.length > 0 && (
           <div className="flex flex-col gap-1">
-            <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">Green flags</p>
+            <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">Green flags</p>
             {result.green_flags.map((f, i) => (
               <div key={i} className="flex items-start gap-1.5">
                 <CheckCircle className="mt-0.5 size-3 shrink-0 text-chart-2" />
@@ -868,7 +868,7 @@ export function InvestorUpdateCard({
         }
       />
       <AgentCard.Body className="flex flex-col gap-3">
-        <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+        <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
           {result.subject_line}
         </p>
         <p className="text-[11px] leading-relaxed">{result.executive_summary}</p>
@@ -896,7 +896,7 @@ export function InvestorUpdateCard({
         )}
 
         <details className="text-[10px]">
-          <summary className="cursor-pointer font-mono uppercase tracking-[0.18em] text-muted-foreground hover:text-foreground">
+          <summary className="cursor-pointer font-body font-medium uppercase tracking-[0.06em] text-muted-foreground hover:text-foreground">
             Full email body
           </summary>
           <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap border border-border bg-muted/20 p-2 text-[10px] leading-relaxed">
@@ -949,10 +949,10 @@ export function VarianceCard({
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="border-b border-border bg-muted/30">
-                  <th className="px-2 py-1 text-left font-mono text-[10px] uppercase tracking-wide">Date</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Actual</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Budget</th>
-                  <th className="px-2 py-1 text-right font-mono text-[10px] uppercase tracking-wide">Δ</th>
+                  <th className="px-2 py-1 text-left font-body font-medium text-[10px] uppercase tracking-wide">Date</th>
+                  <th className="px-2 py-1 text-right font-body font-medium text-[10px] uppercase tracking-wide">Actual</th>
+                  <th className="px-2 py-1 text-right font-body font-medium text-[10px] uppercase tracking-wide">Budget</th>
+                  <th className="px-2 py-1 text-right font-body font-medium text-[10px] uppercase tracking-wide">Δ</th>
                 </tr>
               </thead>
               <tbody>
@@ -1040,7 +1040,7 @@ export function BoardDeckCard({
         <div className="flex flex-col gap-2">
           {Object.entries(result.sections).map(([key, body]) => (
             <div key={key} className="border-l-2 border-border pl-2">
-              <p className="mb-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+              <p className="mb-0.5 font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
                 {key.replace(/_/g, " ")}
               </p>
               <p className="whitespace-pre-wrap text-[11px] leading-relaxed">{body || "—"}</p>
@@ -1095,7 +1095,7 @@ function DynamicChart({ spec }: { spec: RexQueryDatasetChartSpec }) {
           <thead>
             <tr className="border-b border-border bg-muted/50">
               {allKeys.map((k) => (
-                <th key={k} className="px-2 py-1.5 text-left font-mono text-[10px] uppercase tracking-[0.12em] text-muted-foreground">{k}</th>
+                <th key={k} className="px-2 py-1.5 text-left font-body font-medium text-[10px] uppercase tracking-[0.06em] text-muted-foreground">{k}</th>
               ))}
             </tr>
           </thead>
@@ -1238,7 +1238,7 @@ export function RexQueryDatasetCard({
         {result.chart && (
           <div className="flex flex-col gap-1.5">
             {result.chart.title && (
-              <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+              <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
                 {result.chart.title}
               </p>
             )}
@@ -1307,7 +1307,7 @@ export function RexAnalyzeDatasetCard({
         {/* Key findings */}
         {result.key_findings?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <p className="flex items-center gap-1.5 font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
               <TrendUp className="size-3" /> Key findings
             </p>
             <ul className="flex flex-col gap-1">
@@ -1327,7 +1327,7 @@ export function RexAnalyzeDatasetCard({
             {allCharts.map((chart, ci) => (
               <div key={ci} className="flex flex-col gap-1.5">
                 {chart.title && (
-                  <p className="font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+                  <p className="font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
                     {chart.title}
                   </p>
                 )}
@@ -1340,7 +1340,7 @@ export function RexAnalyzeDatasetCard({
         {/* Insights */}
         {result.insights?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <p className="flex items-center gap-1.5 font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
               <Lightbulb className="size-3" /> Insights
             </p>
             <ul className="flex flex-col gap-1">
@@ -1357,7 +1357,7 @@ export function RexAnalyzeDatasetCard({
         {/* Recommendations */}
         {result.recommendations?.length > 0 && (
           <div className="flex flex-col gap-1.5">
-            <p className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-foreground">
+            <p className="flex items-center gap-1.5 font-body text-[10px] font-semibold uppercase tracking-[0.06em] text-foreground">
               <CheckCircle2 className="size-3" /> Recommendations
             </p>
             <ul className="flex flex-col gap-1">

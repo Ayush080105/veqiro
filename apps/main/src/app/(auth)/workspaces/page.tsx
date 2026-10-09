@@ -30,7 +30,7 @@ function WorkspaceSkeleton() {
       {Array.from({ length: 3 }).map((_, index) => (
         <div
           key={index}
-          className="h-24 animate-pulse rounded-lg border border-[var(--vq-line-2)] bg-white/55 shadow-[var(--vq-shadow-sm)]"
+          className="h-24 animate-pulse rounded-lg border border-[var(--vq-line-2)] bg-card/55 shadow-[var(--vq-shadow-sm)]"
         />
       ))}
     </div>
@@ -86,14 +86,14 @@ export default function WorkspacesPage() {
         <header className="mb-8 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 text-foreground">
             <Logo className="size-10 shrink-0" />
-            <span className="font-display text-3xl leading-none tracking-normal">
+            <span className="font-display font-semibold text-3xl leading-none tracking-[-0.025em]">
               veqiro
             </span>
           </Link>
           <button
             type="button"
             onClick={signOut}
-            className="inline-flex items-center gap-2 rounded-md border border-[var(--vq-line-2)] bg-white px-3 py-2 font-mono text-[11px] uppercase tracking-[0.16em] text-foreground shadow-[var(--vq-shadow-sm)] transition-colors hover:bg-muted"
+            className="inline-flex items-center gap-2 rounded-md border border-[var(--vq-line-2)] bg-card px-3 py-2 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-foreground shadow-[var(--vq-shadow-sm)] transition-colors hover:bg-muted"
           >
             <LogOut className="size-3.5" />
             Sign out
@@ -101,7 +101,7 @@ export default function WorkspacesPage() {
         </header>
 
         <section className="mb-7">
-          <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          <p className="mb-2 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
             {userEmail || "Workspace selection"}
           </p>
           <h1 className="font-display text-[clamp(2.25rem,8vw,4.5rem)] leading-none tracking-tight text-foreground">
@@ -124,7 +124,7 @@ export default function WorkspacesPage() {
                   type="button"
                   disabled={disabled}
                   onClick={() => void selectWorkspace(membership.id)}
-                  className="group flex w-full flex-col items-start gap-3 rounded-lg border border-[var(--vq-line-2)] bg-white px-4 py-4 text-left shadow-[var(--vq-shadow-sm)] transition-all hover:shadow-[var(--vq-shadow)] disabled:pointer-events-none disabled:opacity-65 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
+                  className="group flex w-full flex-col items-start gap-3 rounded-lg border border-[var(--vq-line-2)] bg-card px-4 py-4 text-left shadow-[var(--vq-shadow-sm)] vq-pressable hover:shadow-[var(--vq-shadow)] disabled:pointer-events-none disabled:opacity-65 sm:flex-row sm:items-center sm:gap-4 sm:px-5"
                 >
                   <span className="flex min-w-0 items-center gap-3 self-stretch sm:flex-1">
                     <span className="grid size-12 shrink-0 place-items-center rounded-md border border-[var(--vq-line-2)] bg-secondary">
@@ -141,7 +141,7 @@ export default function WorkspacesPage() {
                       >
                         {membership.name}
                       </span>
-                      <span className="mt-1 flex flex-wrap items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-muted-foreground">
+                      <span className="mt-1 flex flex-wrap items-center gap-2 font-body font-medium text-[11px] uppercase tracking-[0.06em] text-muted-foreground">
                         <span aria-hidden> / </span>
                         <span>{membership.slug}</span>
                       </span>
@@ -151,8 +151,8 @@ export default function WorkspacesPage() {
                     <span
                       className={
                         membership.onboarded
-                          ? "rounded-full border border-[var(--vq-line-2)] bg-[color:var(--vq-green)]/15 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground"
-                          : "rounded-full border border-[var(--vq-line-2)] bg-accent/20 px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.14em] text-foreground"
+                          ? "rounded-full border border-[var(--vq-line-2)] bg-[color:var(--vq-green)]/15 px-2.5 py-1 font-body font-medium text-[10px] uppercase tracking-[0.06em] text-foreground"
+                          : "rounded-full border border-[var(--vq-line-2)] bg-accent/20 px-2.5 py-1 font-body font-medium text-[10px] uppercase tracking-[0.06em] text-foreground"
                       }
                     >
                       {membership.onboarded ? "Onboarded" : "Setup needed"}
@@ -171,7 +171,7 @@ export default function WorkspacesPage() {
               type="button"
               disabled={!!pendingId}
               onClick={() => void createWorkspace()}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--vq-line-2)] bg-transparent px-4 py-4 font-head text-sm uppercase tracking-wider text-foreground transition-colors hover:bg-foreground/5 disabled:pointer-events-none disabled:opacity-65"
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg border border-dashed border-[var(--vq-line-2)] bg-transparent px-4 py-4 font-body text-sm font-medium text-foreground vq-pressable hover:bg-foreground/5 disabled:pointer-events-none disabled:opacity-65"
             >
               {pendingId === "__new__" ? (
                 <Loader2 className="size-4 animate-spin" />

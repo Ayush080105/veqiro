@@ -7,7 +7,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 items-center justify-center rounded-[var(--vq-r-sm)] border border-transparent bg-clip-padding text-xs font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,transform] outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/button inline-flex shrink-0 items-center justify-center rounded-[var(--vq-r-sm)] border border-transparent bg-clip-padding text-xs font-medium whitespace-nowrap transition-[background-color,border-color,color,box-shadow,scale] duration-(--vq-dur) ease-spring outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 active:not-aria-[haspopup]:scale-[0.97] active:duration-(--vq-dur-press) active:ease-out disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {
@@ -22,13 +22,13 @@ const buttonVariants = cva(
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
         brand:
-          "border-border bg-primary text-primary-foreground shadow-[var(--vq-shadow-sm)] hover:bg-primary/90 active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
+          "border-border bg-primary text-primary-foreground shadow-[var(--vq-shadow-sm)] hover:bg-primary/90 disabled:opacity-45",
         "brand-dark":
-          "border-border bg-primary text-primary-foreground shadow-[var(--vq-shadow-sm)] hover:bg-primary/90 active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
+          "border-border bg-primary text-primary-foreground shadow-[var(--vq-shadow-sm)] hover:bg-primary/90 disabled:opacity-45",
         "brand-yellow":
-          "border-border bg-card text-foreground shadow-[var(--vq-shadow-sm)] hover:bg-muted active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
+          "border-border bg-card text-foreground shadow-[var(--vq-shadow-sm)] hover:bg-muted disabled:opacity-45",
         "brand-ghost":
-          "border-transparent bg-transparent text-foreground hover:bg-muted active:not-aria-[haspopup]:translate-y-px disabled:opacity-45",
+          "border-transparent bg-transparent text-foreground hover:bg-muted disabled:opacity-45",
         "chat-action":
           "h-auto rounded-full bg-primary px-3.5 py-1.5 text-[11px] font-medium text-primary-foreground hover:opacity-80 gap-1.5 [&_svg:not([class*='size-'])]:size-3",
         "chat-utility":

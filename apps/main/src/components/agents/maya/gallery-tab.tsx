@@ -59,7 +59,7 @@ function PlatformTag({ platform }: { platform: string }) {
   const cfg = PLATFORM[platform] ?? { label: platform, color: "var(--muted-foreground)", ink: "var(--background)" }
   return (
     <span
-      className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5"
+      className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5"
       style={{ background: cfg.color, color: cfg.ink }}
     >
       {cfg.label}

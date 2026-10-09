@@ -5,7 +5,7 @@ export default function AssistantChatLoading() {
     <div className="flex h-full min-h-0 flex-1 flex-col">
       {/* Chat header */}
       <div
-        className="flex items-center gap-3 border-b-[3px] border-foreground px-5 py-3"
+        className="flex items-center gap-3 border-b border-[var(--vq-line)] px-5 py-3"
         style={{ background: "var(--card)" }}
       >
         <Skeleton className="size-10 rounded-full" />
@@ -25,7 +25,7 @@ export default function AssistantChatLoading() {
       </div>
 
       {/* Composer */}
-      <div className="border-t-[3px] border-foreground px-5 py-4">
+      <div className="border-t border-[var(--vq-line)] px-5 py-4">
         <Skeleton className="h-12 w-full rounded-lg" />
       </div>
     </div>
