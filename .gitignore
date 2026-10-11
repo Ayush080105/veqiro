@@ -62,3 +62,7 @@ apps/video/public/music.mp3
 
 # eval run output (transcripts can be large)
 apps/ai/evals/runs/
+
+# Written by scripts/hubspot-seed.ts: record ids of demo data, needed locally for --cleanup
+hubspot-seed-manifest.*.json
+hubspot-seed-manifest.*.json.cleaned-*
