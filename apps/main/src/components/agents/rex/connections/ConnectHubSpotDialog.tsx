@@ -221,7 +221,7 @@ export function ConnectHubSpotDialog({
                       <span className="font-medium">{o.label}</span>
                       {!o.ok && (
                         <span className="block text-muted-foreground">
-                          {o.missingScope ? <>Add the <code className="rounded bg-muted px-1">{o.missingScope}</code> scope to your key, then check again.</> : o.message ?? "Not available to this key."}
+                          {o.missingScope ? <>Add the <code className="rounded bg-muted px-1">{o.missingScope}</code> scope to your key, then check again.</> : o.message ?? "HubSpot did not allow this key to read it."}
                         </span>
                       )}
                     </span>

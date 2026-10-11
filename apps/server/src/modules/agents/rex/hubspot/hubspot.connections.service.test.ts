@@ -1,7 +1,7 @@
 import { describe, it, assert, beforeEach } from "vitest";
 import { BadRequestError } from "../../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../../common/errors/notFound.js";
-import { HubSpotAuthError, HubSpotScopeError, type HubSpotClient, type RequestOptions } from "./hubspot.client.js";
+import { HubSpotAuthError, HubSpotRequestError, HubSpotScopeError, type HubSpotClient, type RequestOptions } from "./hubspot.client.js";
 import { createConnectionsService } from "./hubspot.connections.service.js";
 import { packCredential, unpackCredential } from "./hubspot.credentials.js";
 import { FakeBlobs, FakeStore } from "./hubspot.testkit.js";
@@ -297,5 +297,29 @@ describe("naming the account", () => {
     });
     const out = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN });
     assert.isNull(out.verify.account);
+  });
+});
+
+describe("saying why an object could not be read", () => {
+  it("passes on HubSpot's own reason for an error that is not a missing scope", async () => {
+    const { service } = setup((m, p, o) => {
+      if (p === "/crm/v3/objects/deals/search") throw new HubSpotRequestError("HubSpot rejected the request: Property 'x' does not exist", 400);
+      return allowEverything(m, p, o);
+    });
+    const out = await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN });
+    const deals = out.verify.objects.find((o) => o.type === "deals")!;
+    assert.isFalse(deals.ok);
+    assert.match(deals.message ?? "", /HubSpot said: Property 'x' does not exist/);
+    assert.isTrue(out.verify.objects.find((o) => o.type === "companies")!.ok);
+  });
+
+  it("explains a refusal that names no scope", async () => {
+    const { service } = setup((m, p, o) => {
+      if (p === "/crm/v3/objects/tickets/search") throw new HubSpotScopeError("no");
+      return allowEverything(m, p, o);
+    });
+    const tickets = (await service.connectWithToken({ organizationId: "org1", userId: "u1", token: TOKEN })).verify.objects.find((o) => o.type === "tickets")!;
+    assert.isUndefined(tickets.missingScope);
+    assert.match(tickets.message ?? "", /read scope/i);
   });
 });

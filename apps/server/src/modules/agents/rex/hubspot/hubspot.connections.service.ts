@@ -6,7 +6,7 @@
 import { BadRequestError } from "../../../../common/errors/badRequest.js";
 import { NotFoundError } from "../../../../common/errors/notFound.js";
 import { secretsConfigured } from "../../../../common/utils/secretBox.js";
-import { HubSpotAuthError, HubSpotScopeError, sanitizeToken, type HubSpotClient } from "./hubspot.client.js";
+import { HubSpotAuthError, HubSpotRequestError, HubSpotScopeError, sanitizeToken, type HubSpotClient } from "./hubspot.client.js";
 import { packCredential, type Credential } from "./hubspot.credentials.js";
 import { classifyProperties, MAX_COLUMNS, type ColumnPlan } from "./hubspot.fields.js";
 import { OBJECT_SPECS, specFor, type ObjectSpec } from "./hubspot.objects.js";
@@ -90,9 +90,17 @@ export function createConnectionsService(deps: ConnectionsDeps) {
       } catch (err) {
         if (err instanceof HubSpotAuthError) throw err;
         if (err instanceof HubSpotScopeError) {
-          objects.push({ type: spec.type, label: spec.label, tier: spec.tier, ok: false, count: null, missingScope: err.scope });
+          objects.push({
+            type: spec.type, label: spec.label, tier: spec.tier, ok: false, count: null, missingScope: err.scope,
+            message: err.scope ? undefined : "HubSpot did not allow this key to read it. Add the matching read scope in HubSpot, then check again.",
+          });
         } else {
-          objects.push({ type: spec.type, label: spec.label, tier: spec.tier, ok: false, count: null, message: "HubSpot could not be read for this object right now" });
+          // Say what HubSpot said (the client already strips the key from it), so a person can act on it.
+          const reason = err instanceof HubSpotRequestError ? err.message.replace(/^HubSpot rejected the request:\s*/, "") : "";
+          objects.push({
+            type: spec.type, label: spec.label, tier: spec.tier, ok: false, count: null,
+            message: reason ? `HubSpot said: ${reason.slice(0, 200)}` : "HubSpot could not be reached for this object right now. Check again in a moment.",
+          });
         }
       }
     }
