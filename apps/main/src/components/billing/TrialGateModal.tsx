@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useSyncExternalStore } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
 
@@ -26,6 +26,22 @@ type AugmentedSession = {
   memberships?: Array<{ id: string; role: string }> | null
 }
 
+const DISMISS_EVENT = "veqiro:trial-gate-dismissed"
+
+function subscribeToDismissal(callback: () => void) {
+  window.addEventListener(DISMISS_EVENT, callback)
+  return () => window.removeEventListener(DISMISS_EVENT, callback)
+}
+
+function wasDismissed(organizationId: string | undefined) {
+  if (!organizationId) return false
+  try {
+    return window.sessionStorage.getItem(`trial-gate-dismissed:${organizationId}`) === "1"
+  } catch {
+    return false
+  }
+}
+
 export function TrialGateModal() {
   const { data: session, isPending } = useSession()
   const { data: activeOrg } = authClient.useActiveOrganization()
@@ -40,6 +56,23 @@ export function TrialGateModal() {
   } = authClient.useActiveMemberRole()
   const queryClient = useQueryClient()
   const [isStarting, setIsStarting] = useState(false)
+  const [dismissedOrgId, setDismissedOrgId] = useState<string | null>(null)
+  const isDismissed = useSyncExternalStore(
+    subscribeToDismissal,
+    () => wasDismissed(activeOrgId),
+    () => false,
+  )
+
+  function handleDismiss() {
+    if (!activeOrgId) return
+    setDismissedOrgId(activeOrgId)
+    try {
+      window.sessionStorage.setItem(`trial-gate-dismissed:${activeOrgId}`, "1")
+    } catch {
+      // Closing the prompt should still work when browser storage is unavailable.
+    }
+    window.dispatchEvent(new Event(DISMISS_EVENT))
+  }
 
   // Wait for session to resolve before deciding whether to show the modal.
   if (isPending) return null
@@ -49,6 +82,7 @@ export function TrialGateModal() {
   if (isBillingPending) return null
   if (billing?.subscription != null) return null
   if (isRolePending) return null
+  if (isDismissed || dismissedOrgId === activeOrgId) return null
 
   const isOwner = activeMemberRole?.role === "owner"
 
@@ -69,13 +103,11 @@ export function TrialGateModal() {
   return (
     <Dialog
       open
-      // Prevent closing via outside click.
-      disablePointerDismissal
-      // Prevent closing via any programmatic open-change (e.g. Escape key
-      // closing triggered internally). We supply a no-op handler.
-      onOpenChange={() => undefined}
+      onOpenChange={(open) => {
+        if (!open) handleDismiss()
+      }}
     >
-      <DialogContent showCloseButton={false}>
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Start your 7-day free trial</DialogTitle>
           {isOwner ? (
@@ -96,6 +128,9 @@ export function TrialGateModal() {
             {isStarting ? "Starting trial…" : "Start free trial"}
           </Button>
         )}
+        <Button variant="outline" onClick={handleDismiss}>
+          Not now
+        </Button>
       </DialogContent>
     </Dialog>
   )
