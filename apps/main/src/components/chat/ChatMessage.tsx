@@ -146,6 +146,8 @@ function TypingIndicatorComponent({
     <div className="flex items-end gap-2">
       <AgentDisc initials={agentInitials} color={agentColor} photo={agentPhoto} />
       <div
+        role="status"
+        aria-label="Agent is typing"
         style={{
           background: `color-mix(in srgb, ${agentColor} 40%, var(--card))`,
           borderRadius: "18px 18px 18px 4px",
@@ -165,6 +167,7 @@ function TypingIndicatorComponent({
         {[0, 1, 2].map((i) => (
           <span
             key={i}
+            aria-hidden="true"
             style={{
               width: 5,
               height: 5,
@@ -219,13 +222,28 @@ function ChatMessageComponent({
   const run = useAgentRun(runId)
   const runSettled = Boolean(run.data && TERMINAL_RUN_STATUSES.has(run.data.status))
 
+  if (message.deliveryStatus === "streaming" && !message.content.trim() && !runId && !actionId) {
+    return (
+      <div style={{ marginTop }}>
+        <TypingIndicator agentInitials={agentInitials} agentColor={agentColor} agentPhoto={agentPhoto} />
+        {message.customInput?.toolTrace && message.customInput.toolTrace.length > 0 && (
+          <div style={{ marginLeft: 40 }}>
+            <ToolTraceStrip trace={message.customInput.toolTrace} />
+          </div>
+        )}
+      </div>
+    )
+  }
+
   const inlineTimestamp = (isUserMsg: boolean) => (
     <div
       style={{
         textAlign: "right",
         marginTop: 4,
         fontSize: 11,
-        color: isUserMsg ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)",
+        color: isUserMsg
+          ? "color-mix(in srgb, var(--primary-foreground) 65%, transparent)"
+          : "var(--muted-foreground)",
         fontFamily: FONT.mono,
         letterSpacing: "0.3px",
       }}

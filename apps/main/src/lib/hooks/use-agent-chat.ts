@@ -94,6 +94,7 @@ export function useAgentChat(
   const scrollAnchorRef = useRef<number | null>(null)
   const scrollIntentRef = useRef<"instant" | "smooth" | null>("instant")
   const thisMutationRef = useRef(false)
+  const sendingMessageIdRef = useRef<string | null>(null)
   const prevMutationStatusRef = useRef<string | undefined>(undefined)
   const didCatchUpRef = useRef(false)
   // Which thread the last history load was for (null before the first). If the
@@ -204,14 +205,19 @@ export function useAgentChat(
     onOptimistic: (optimistic, mutationChatKey) => {
       if (activeChatKeyRef.current !== mutationChatKey) return
       thisMutationRef.current = true
-      scrollIntentRef.current = "smooth"
+      sendingMessageIdRef.current = optimistic.id ?? null
+      scrollIntentRef.current = "instant"
       setMsgWindow((prev) => [...prev, optimistic].slice(-WINDOW))
       setHasPreviousPage(true)
     },
     onAssistantStreaming: (placeholder, mutationChatKey) => {
       if (activeChatKeyRef.current !== mutationChatKey) return
-      scrollIntentRef.current = "smooth"
-      setMsgWindow((prev) => [...prev, placeholder].slice(-WINDOW))
+      scrollIntentRef.current = "instant"
+      const optimisticId = sendingMessageIdRef.current
+      setMsgWindow((prev) => [
+        ...setMessageDeliveryStatus(prev, optimisticId ?? "", undefined),
+        placeholder,
+      ].slice(-WINDOW))
     },
     // `patch` always carries the full accumulated content/toolTrace (see
     // useSendMessage), so a shallow merge is correct here, not a delta apply.
@@ -222,7 +228,8 @@ export function useAgentChat(
     },
     onSuccess: (serverMsg, optimisticId, mutationChatKey, assistantId) => {
       if (activeChatKeyRef.current !== mutationChatKey) return
-      scrollIntentRef.current = "smooth"
+      sendingMessageIdRef.current = null
+      scrollIntentRef.current = "instant"
       setMsgWindow((prev) => {
         // Drop the streaming placeholder explicitly by id rather than relying on
         // mergeMessageWindow's role/timing/content heuristic — a tool-heavy turn
@@ -268,6 +275,7 @@ export function useAgentChat(
     },
     onError: (optimisticId, mutationChatKey) => {
       if (activeChatKeyRef.current !== mutationChatKey) return
+      sendingMessageIdRef.current = null
       setMsgWindow((prev) => setMessageDeliveryStatus(prev, optimisticId, "failed"))
     },
     onAssistantError: (assistantId, mutationChatKey) => {

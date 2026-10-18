@@ -414,7 +414,7 @@ export function useMessages(agentSlug: string, organizationId: string) {
 
 export type SendMessageCallbacks = {
   onOptimistic?: (msg: Message, chatKey: string) => void
-  /** Fired once, right as the stream opens, with a placeholder assistant message
+  /** Fired when the request starts, with a placeholder assistant message
    * (`deliveryStatus: "streaming"`, empty content) to insert into the window. */
   onAssistantStreaming?: (msg: Message, chatKey: string) => void
   /** Fired repeatedly as tokens/tool events arrive. `patch` always carries the
