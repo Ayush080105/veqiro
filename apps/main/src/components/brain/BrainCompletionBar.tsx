@@ -3,7 +3,7 @@
 import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
-import { BRAND_KIT_MINS } from "@/lib/schemas/brand-kit"
+import { BRAND_KIT_MINS, hasPlatformTone } from "@/lib/schemas/brand-kit"
 
 interface BrainCompletionBarProps {
   values: BrainFormValues
@@ -42,11 +42,7 @@ function computeScore(values: BrainFormValues) {
 
   if (values.websiteUrl.trim()) score += 5
 
-  if (
-    values.platformTones.twitter.trim() ||
-    values.platformTones.linkedin.trim() ||
-    values.platformTones.instagram.trim()
-  )
+  if (hasPlatformTone(values.platformTones))
     score += 5
 
   if (
@@ -82,11 +78,7 @@ function getNextSuggestion(values: BrainFormValues): string | null {
     return "Customize your brand voice to move beyond the default."
   if (!values.logoUrl)
     return "Upload a logo so Maya can use it in generated images."
-  if (
-    !values.platformTones.twitter.trim() &&
-    !values.platformTones.linkedin.trim() &&
-    !values.platformTones.instagram.trim()
-  )
+  if (!hasPlatformTone(values.platformTones))
     return "Define a per-platform tone for sharper social copy."
   if (!values.brandColors.primary || values.brandColors.primary === "#000000")
     return "Pick your brand's primary color for generated assets."

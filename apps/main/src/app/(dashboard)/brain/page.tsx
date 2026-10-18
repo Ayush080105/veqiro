@@ -58,11 +58,15 @@ function brandKitToForm(kit: BrandKit): BrainFormValues {
     location: kit.location ?? "",
     targetAudience: kit.targetAudience ?? "",
     brandVoice: kit.brandVoice ?? "Professional",
-    platformTones: kit.platformTones ?? { twitter: "", linkedin: "", instagram: "" },
-    brandColors: kit.brandColors ?? {
-      primary: "#000000",
-      secondary: "#ffffff",
-      accent: "#888888",
+    platformTones: {
+      twitter: kit.platformTones?.twitter ?? "",
+      linkedin: kit.platformTones?.linkedin ?? "",
+      instagram: kit.platformTones?.instagram ?? "",
+    },
+    brandColors: {
+      primary: kit.brandColors?.primary ?? DEFAULT_VALUES.brandColors.primary,
+      secondary: kit.brandColors?.secondary ?? DEFAULT_VALUES.brandColors.secondary,
+      accent: kit.brandColors?.accent ?? DEFAULT_VALUES.brandColors.accent,
     },
     competitors: (kit.competitors ?? []).map((c) => ({ value: c })),
     keyDifferentiators: kit.keyDifferentiators ?? "",
