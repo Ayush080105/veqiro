@@ -10,6 +10,14 @@ export const BRAND_KIT_MINS = {
   keyDifferentiators: 50,
 } as const
 
+export function hasPlatformTone(
+  tones: Partial<Record<"twitter" | "linkedin" | "instagram", string>> | null | undefined,
+): boolean {
+  return [tones?.twitter, tones?.linkedin, tones?.instagram].some(
+    (tone) => typeof tone === "string" && tone.trim().length > 0,
+  )
+}
+
 export const ALLOWED_ASSET_TYPES = [
   "image/png",
   "image/jpeg",

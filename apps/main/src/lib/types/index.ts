@@ -117,8 +117,8 @@ export interface BrandKit {
   mascotKey: string | null
   letterheadUrl: string | null
   letterheadKey: string | null
-  brandColors: BrandColors
-  platformTones: PlatformTones
+  brandColors: Partial<BrandColors>
+  platformTones: Partial<PlatformTones>
   competitors: string[]
   keyDifferentiators: string
   websiteUrl: string

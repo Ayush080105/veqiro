@@ -4,6 +4,7 @@ import { useMemo } from "react"
 
 import type { BrainFormValues } from "@/lib/types"
 import { AGENTS } from "@/lib/config/agents"
+import { hasPlatformTone } from "@/lib/schemas/brand-kit"
 
 interface AgentReadinessProps {
   values: BrainFormValues
@@ -11,10 +12,7 @@ interface AgentReadinessProps {
 
 function isAgentReady(agentId: string, values: BrainFormValues): boolean {
   const voiceSet = !!values.brandVoice && values.brandVoice !== "Professional"
-  const hasTone =
-    values.platformTones.twitter.trim() !== "" ||
-    values.platformTones.linkedin.trim() !== "" ||
-    values.platformTones.instagram.trim() !== ""
+  const hasTone = hasPlatformTone(values.platformTones)
   const hasLogo = !!values.logoUrl
 
   switch (agentId) {
