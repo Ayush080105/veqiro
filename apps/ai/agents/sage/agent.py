@@ -24,8 +24,6 @@ class SageAgent(BaseAgent):
         "and explain them briefly when relevant. You treat founders as capable learners, not beginners. "
         "You celebrate wins with genuine enthusiasm, flag risks honestly, and always leave them with one clear action to take next."
     )
-    default_provider = "openai"
-    default_model = settings.SAGE_MODEL
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)

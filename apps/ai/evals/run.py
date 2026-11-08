@@ -4,7 +4,7 @@
     python -m evals.run --agent maya          # one agent
     python -m evals.run --case rex.orders     # case ids starting with this
     python -m evals.run --tier regression     # only what must never break
-    python -m evals.run --model gpt-5.6-luna  # same cases on another OpenAI model
+    python -m evals.run --model claude-sonnet-5-5  # same cases on another Claude model
     python -m evals.run --baseline evals/runs/20260925-1400   # show what changed since then
 
 Writes evals/runs/<timestamp>/: report.md (read this), results.json, and one transcript per
@@ -30,7 +30,7 @@ def main() -> int:
     p.add_argument("--tier", choices=["regression", "capability"])
     p.add_argument("--trials", type=int, default=3)
     p.add_argument("--concurrency", type=int, default=6)
-    p.add_argument("--model", help="swap every OpenAI chat model for this one")
+    p.add_argument("--model", help="swap the main chat model: a claude-* id swaps Claude calls, a gpt-* id swaps OpenAI calls")
     p.add_argument("--baseline", help="an earlier run directory to compare against")
     p.add_argument("--list", action="store_true", help="list the cases and exit")
     args = p.parse_args()

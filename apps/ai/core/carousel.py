@@ -2,6 +2,7 @@ import re
 import logging
 from pydantic import BaseModel
 from core.image_gen import _hex_to_color_name, _font_to_style
+from core.config import settings
 
 logger = logging.getLogger("carousel")
 
@@ -288,8 +289,8 @@ async def build_carousel_content(
 
     try:
         data = await llm.complete_json(
-            provider="openai",
-            model="gpt-6-luna",
+            provider=settings.MAIN_LLM_PROVIDER,
+            model=settings.MAIN_LLM_MODEL,
             system=system,
             messages=[{"role": "user", "content": prompt}],
             temperature=0.6,

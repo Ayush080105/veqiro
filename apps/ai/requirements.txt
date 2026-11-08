@@ -7,7 +7,8 @@ python-multipart
 python-dotenv
 
 # ── LLM providers ─────────────────────────────────────────────────────────────
-openai
+anthropic==2.6.0  # main chat/JSON/tool-calling model
+openai             # embeddings only
 google-genai==2.10.0
 
 # ── Database ──────────────────────────────────────────────────────────────────

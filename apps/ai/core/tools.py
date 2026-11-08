@@ -100,6 +100,18 @@ def tool_defs_to_openai(tools: list[ToolDefinition]) -> list[dict]:
     ]
 
 
+def tool_defs_to_anthropic(tools: list[ToolDefinition]) -> list[dict]:
+    """Convert tool definitions to Anthropic Messages API tool format."""
+    return [
+        {
+            "name": t.name,
+            "description": t.description,
+            "input_schema": t.raw_schema if t.raw_schema is not None else _params_to_json_schema(t.parameters),
+        }
+        for t in tools
+    ]
+
+
 def tool_defs_to_gemini(tools: list[ToolDefinition]) -> list[dict]:
     """Convert tool definitions to Gemini function declaration format."""
     declarations = []
@@ -169,7 +181,9 @@ def format_tool_result_messages(
     results: list[ToolResult],
 ) -> list[dict]:
     """Route to the correct provider formatter."""
-    if provider == "openai":
+    if provider in ("openai", "anthropic"):
+        # History stays OpenAI-shaped for Anthropic too; core/anthropic_adapter.py
+        # converts it at the request boundary.
         return tool_results_to_openai(tool_calls, results)
     elif provider == "gemini":
         # Gemini handled differently in the LLM client (uses chat session)

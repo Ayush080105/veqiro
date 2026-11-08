@@ -26,6 +26,7 @@ import pandas as pd
 from docx import Document
 from docx.shared import Inches, Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from core.config import settings
 
 # ── Chart palette ──────────────────────────────────────────────────────────────
 
@@ -220,7 +221,7 @@ async def plan_report_sections(
 
     from core.utils import safe_json_loads
     raw = await llm.complete(
-        provider="openai", model="gpt-6-luna",
+        provider=settings.MAIN_LLM_PROVIDER, model=settings.MAIN_LLM_MODEL,
         system="You plan professional business data reports. Return only valid JSON.",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.1,
@@ -479,7 +480,7 @@ async def write_section_narrative(section: dict, agg_data: list[dict], llm) -> l
     )
     from core.utils import safe_json_loads
     raw = await llm.complete(
-        provider="openai", model="gpt-6-luna",
+        provider=settings.MAIN_LLM_PROVIDER, model=settings.MAIN_LLM_MODEL,
         system="You are a data analyst. Return only valid JSON.",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,
@@ -513,7 +514,7 @@ async def write_takeaways(
     )
     from core.utils import safe_json_loads
     raw = await llm.complete(
-        provider="openai", model="gpt-6-luna",
+        provider=settings.MAIN_LLM_PROVIDER, model=settings.MAIN_LLM_MODEL,
         system="You are a strategic analyst. Return only valid JSON.",
         messages=[{"role": "user", "content": prompt}],
         temperature=0.3,

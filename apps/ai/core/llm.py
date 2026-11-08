@@ -4,19 +4,30 @@ import json as _json
 import logging
 from typing import AsyncGenerator
 from core.config import settings
-from core.exceptions import LLMError
+from core.exceptions import LLMError, LLMRefusalError
 
 logger = logging.getLogger("llm")
 from core.tools import (
     ToolDefinition, ToolCall, LLMToolResponse,
-    tool_defs_to_openai, tool_defs_to_gemini,
+    tool_defs_to_openai, tool_defs_to_gemini, tool_defs_to_anthropic,
 )
+
+_anthropic = None
+
+
+def _anthropic_client():
+    """Process-wide AsyncAnthropic, created on first use (it keeps a connection pool)."""
+    global _anthropic
+    if _anthropic is None:
+        import anthropic
+        _anthropic = anthropic.AsyncAnthropic(api_key=settings.ANTHROPIC_API_KEY)
+    return _anthropic
 
 # Provider + model constants
 GEMINI_FLASH = ("gemini", "gemini-2.5-flash")
-# Historically the cheap model. Repointed at the main model: quality is
-# preferred over cost on every call that used it.
-GPT4O_MINI = ("openai", "gpt-6-luna")
+# The main text model (chat, JSON, tool calling) for every call site that is not
+# image/video/vision. Chosen by MAIN_LLM_PROVIDER / MAIN_LLM_MODEL in settings.
+MAIN_MODEL = (settings.MAIN_LLM_PROVIDER, settings.MAIN_LLM_MODEL)
 EMBEDDING_MODEL = ("openai", "text-embedding-3-small")
 
 # Models whose Chat Completions API only accepts the default temperature (1) —
@@ -396,7 +407,8 @@ def _select_mock_response(system: str, messages: list) -> str:
 
 
 class LLMClient:
-    """Unified LLM client supporting Gemini, OpenAI, and Anthropic."""
+    """Unified LLM client: Anthropic (main text model), Gemini (images, video, vision),
+    OpenAI (rollback for the main model; embeddings live in core/embeddings.py)."""
 
     async def complete(
         self,
@@ -543,6 +555,8 @@ class LLMClient:
                     pt, ct = self.count_tokens(input_text), self.count_tokens(result)
                 elif provider == "openai":
                     result, pt, ct = await self._openai_complete(model, system, messages, temperature, max_tokens, response_format)
+                elif provider == "anthropic":
+                    result, pt, ct = await self._anthropic_complete(model, system, messages, max_tokens, json_mode=bool(response_format))
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
                 if generation:
@@ -556,6 +570,9 @@ class LLMClient:
                     except Exception:
                         pass
                 return result
+            except LLMRefusalError as e:
+                last_exc = e
+                break  # a policy decline is permanent for this request
             except Exception as e:
                 last_exc = e
         if generation:
@@ -564,6 +581,8 @@ class LLMClient:
                 generation.end()
             except Exception:
                 pass
+        if isinstance(last_exc, LLMRefusalError):
+            raise last_exc
         raise LLMError(f"LLM call failed after retries: {last_exc}")
 
     async def _gemini_complete(self, model, system, messages, temperature, max_tokens, json_mode=False):
@@ -686,8 +705,18 @@ class LLMClient:
                         yield token
                     succeeded = True
                     break
+                elif provider == "anthropic":
+                    async for token in self._anthropic_stream(model, system, messages):
+                        accumulated.append(token)
+                        yield token
+                    succeeded = True
+                    break
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
+            except LLMRefusalError as e:
+                last_exc = e
+                accumulated = []
+                break  # a policy decline is permanent for this request
             except Exception as e:
                 last_exc = e
                 accumulated = []
@@ -709,6 +738,8 @@ class LLMClient:
                 pass
 
         if not succeeded:
+            if isinstance(last_exc, LLMRefusalError):
+                raise last_exc
             raise LLMError(f"LLM stream failed after retries: {last_exc}")
 
     async def _gemini_stream(self, model, system, messages, temperature):
@@ -755,6 +786,45 @@ class LLMClient:
             text = chunk.choices[0].delta.content
             if text:
                 yield text
+
+    # ── Anthropic (Claude) ────────────────────────────────────────────────
+    # Every Claude request streams and collects the final message: the SDK refuses a
+    # non-streaming request whose max_tokens implies it could run past 10 minutes, and
+    # complete_json's empty-response retry raises the budget well past that point.
+    # `temperature` is accepted by the public signatures for parity and deliberately not
+    # sent: current Claude models reject sampling parameters.
+
+    async def _anthropic_complete(self, model, system, messages, max_tokens, json_mode=False):
+        from core.anthropic_adapter import request_kwargs, read_response
+        kwargs = request_kwargs(model, system, messages, max_tokens, json_mode)
+        async with _anthropic_client().beta.messages.stream(**kwargs) as stream:
+            message = await stream.get_final_message()
+        text, _calls, pt, ct = read_response(message)
+        return text, pt, ct
+
+    async def _anthropic_stream(self, model, system, messages):
+        from core.anthropic_adapter import request_kwargs, raise_if_refused
+        kwargs = request_kwargs(model, system, messages, None, json_mode=False)
+        async with _anthropic_client().beta.messages.stream(**kwargs) as stream:
+            async for text in stream.text_stream:
+                if text:
+                    yield text
+            raise_if_refused(await stream.get_final_message())
+
+    async def _anthropic_complete_with_tools(
+        self, model, system, messages, tools, max_tokens, tool_choice="auto"
+    ) -> tuple:
+        from core.anthropic_adapter import request_kwargs, read_response
+        kwargs = request_kwargs(model, system, messages, max_tokens, json_mode=False, has_tools=bool(tools))
+        kwargs["tools"] = tool_defs_to_anthropic(tools)
+        # Claude Opus 5.5 / Sonnet 5.5 reject forced tool use ("any" / "tool").
+        kwargs["tool_choice"] = {"type": "none"} if tool_choice == "none" else {"type": "auto"}
+        async with _anthropic_client().beta.messages.stream(**kwargs) as stream:
+            message = await stream.get_final_message()
+        text, calls, pt, ct = read_response(message)
+        if calls:
+            return LLMToolResponse(content=text or None, tool_calls=calls, finish_reason="tool_calls"), pt, ct
+        return LLMToolResponse(content=text, tool_calls=[], finish_reason="stop"), pt, ct
 
     # ── Tool-calling completion ───────────────────────────────────────────
 
@@ -822,6 +892,10 @@ class LLMClient:
                     result, pt, ct = await self._openai_complete_with_tools(
                         model, system, messages, tools, temperature, max_tokens, tool_choice
                     )
+                elif provider == "anthropic":
+                    result, pt, ct = await self._anthropic_complete_with_tools(
+                        model, system, messages, tools, max_tokens, tool_choice
+                    )
                 else:
                     raise LLMError(f"Unknown provider: {provider}")
                 if generation:
@@ -842,6 +916,9 @@ class LLMClient:
                     except Exception:
                         pass
                 return result
+            except LLMRefusalError as e:
+                last_exc = e
+                break  # a policy decline is permanent for this request
             except Exception as e:
                 last_exc = e
         if generation:
@@ -850,6 +927,8 @@ class LLMClient:
                 generation.end()
             except Exception:
                 pass
+        if isinstance(last_exc, LLMRefusalError):
+            raise last_exc
         raise LLMError(f"LLM tool call failed after retries: {last_exc}")
 
     async def _openai_complete_with_tools(

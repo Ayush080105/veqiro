@@ -16,6 +16,7 @@ from core.models import ChatRequest, ChatSyncResponse
 from core.tools import ToolDefinition, ToolCall, ToolResult
 from core.mcp.cache import get_mcp_tools
 from core.mcp.client import call_connection_tool, McpToolCallError
+from core.config import settings
 
 # ── Terminal logger ─────────────────────────────────────────────────────────
 # Prints structured, colorized logs to stdout for every agent turn so you can
@@ -333,8 +334,9 @@ def _pick_rich_result(tool_calls: list[dict]) -> tuple[str | None, dict | None]:
 class BaseAgent(ABC):
     slug: str = "base"
     name: str = "Base Agent"
-    default_provider: str = "openai"
-    default_model: str = "gpt-6-luna"
+    # The main model for every agent, from settings (MAIN_LLM_PROVIDER / MAIN_LLM_MODEL).
+    default_provider: str = settings.MAIN_LLM_PROVIDER
+    default_model: str = settings.MAIN_LLM_MODEL
     personality: str = "Helpful AI assistant"
 
     MAX_TOOL_CALLS = 5  # Circuit breaker for tool-calling loop

@@ -138,8 +138,8 @@ async def summarize_conversation(request: SummarizeRequest) -> SummarizeResponse
 
     llm = LLMClient()
     raw = await llm.complete(
-        provider="openai",
-        model="gpt-6-luna",
+        provider=settings.MAIN_LLM_PROVIDER,
+        model=settings.MAIN_LLM_MODEL,
         system=system,
         messages=[{"role": "user", "content": user_prompt}],
         temperature=0.2,

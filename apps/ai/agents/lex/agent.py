@@ -23,8 +23,6 @@ class LexAgent(BaseAgent):
         "you explain complex legal concepts with enthusiasm and clarity, and you make founders feel supported, "
         "not scared. Precise and sharp, yes — but always warm, encouraging, and on their side."
     )
-    default_provider = "openai"
-    default_model = "gpt-6-luna"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)

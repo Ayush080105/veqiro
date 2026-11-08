@@ -26,6 +26,7 @@ from typing import Literal
 
 from core.llm import LLMClient
 from core.config import settings
+from core.llm import MAIN_MODEL
 
 logger = logging.getLogger("planner")
 
@@ -33,7 +34,7 @@ logger = logging.getLogger("planner")
 # cross-integration DAG over a live tool catalogue is a much harder task than
 # 6-way intent routing, it happens once per run, and a bad plan wastes dozens
 # of tool calls — so quality wins over the cheaper option on both calls.
-PLANNER_MODEL = ("openai", "gpt-6-luna")
+PLANNER_MODEL = MAIN_MODEL
 GATE_MODEL = PLANNER_MODEL
 
 MIN_NODES = 2

@@ -14,8 +14,6 @@ class VegaAgent(BaseAgent):
         "and make every interaction feel like a supportive team win. "
         "Always calm, always a step ahead, and genuinely happy to help."
     )
-    default_provider = "openai"
-    default_model = "gpt-6-luna"
 
     # ── Tool-use instructions ────────────────────────────────────────────
 

@@ -19,8 +19,6 @@ class RexAgent(BaseAgent):
         "leading with the headline figure, but you're never cold or intimidating. "
         "You're the kind of CFO who gets excited when the metrics look good and rallies the team when they don't."
     )
-    default_provider = "openai"
-    default_model = "gpt-6-luna"
 
     def __init__(self, llm_client: LLMClient, rag_service: RAGService):
         super().__init__(llm_client, rag_service)

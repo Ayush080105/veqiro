@@ -120,8 +120,6 @@ class MayaAgent(BaseAgent):
         "not theory, just what gets engagement. You write in the brand's voice, give real opinions on "
         "creative direction, and always have a reason for every choice. Enthusiastic but not over the top."
     )
-    default_provider = "openai"
-    default_model = "gpt-6-luna"
 
     async def build_system_prompt(
         self,

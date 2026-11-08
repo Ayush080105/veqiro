@@ -28,6 +28,9 @@ PRICES = {
     "gpt-6-luna": (0.10, 0.50),
     "gpt-5.6-luna": (0.20, 1.20),
     "gpt-6-sol": (2.0, 10.0),
+    "claude-opus-5-5": (4.0, 20.0),
+    "claude-sonnet-5-5": (2.0, 10.0),
+    "claude-haiku-5-5": (0.10, 0.50),
 }
 
 _TINY_PNG = (
@@ -115,7 +118,7 @@ def install_stubs(model_override: str | None) -> None:
     original_create = AsyncCompletions.create
 
     async def create(self, *args, **kwargs):
-        if model_override and str(kwargs.get("model", "")).startswith("gpt-"):
+        if model_override and model_override.startswith("gpt-") and str(kwargs.get("model", "")).startswith("gpt-"):
             kwargs["model"] = model_override
         resp = await original_create(self, *args, **kwargs)
         state = _current.get()
@@ -127,6 +130,33 @@ def install_stubs(model_override: str | None) -> None:
             state["tokens"][m][1] += usage.completion_tokens or 0
         return resp
     AsyncCompletions.create = create
+
+    # Claude calls go through the SDK's streaming helper, so they are hooked at
+    # core/anthropic_adapter.py instead: request_kwargs sees every request (model swap),
+    # raise_if_refused sees every final message (token accounting, by the model that served it).
+    import core.anthropic_adapter as adapter
+
+    original_request_kwargs = adapter.request_kwargs
+    original_raise_if_refused = adapter.raise_if_refused
+
+    def request_kwargs(*args, **kwargs):
+        out = original_request_kwargs(*args, **kwargs)
+        if model_override and model_override.startswith("claude-"):
+            out["model"] = model_override
+        return out
+
+    def raise_if_refused(message):
+        state = _current.get()
+        usage = getattr(message, "usage", None)
+        if state is not None and usage is not None:
+            m = getattr(message, "model", None) or "?"
+            state["tokens"].setdefault(m, [0, 0])
+            state["tokens"][m][0] += getattr(usage, "input_tokens", 0) or 0
+            state["tokens"][m][1] += getattr(usage, "output_tokens", 0) or 0
+        return original_raise_if_refused(message)
+
+    adapter.request_kwargs = request_kwargs
+    adapter.raise_if_refused = raise_if_refused
 
 
 def cost_of(tokens: dict[str, list[int]]) -> float | None:

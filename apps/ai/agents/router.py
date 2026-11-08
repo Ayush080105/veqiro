@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict
 from core.config import settings
-from core.llm import LLMClient, GPT4O_MINI
+from core.llm import LLMClient, MAIN_MODEL
 
 router = APIRouter(prefix="/ai/router", tags=["Router"])
 
@@ -54,7 +54,7 @@ class ClassifyResponse(BaseModel):
                 "confidence": 0.92,
                 "reasoning": "Message contains keywords related to content creation and LinkedIn posting.",
                 "tokens_used": 148,
-                "model_used": "gpt-6-luna",
+                "model_used": "claude-opus-5-5",
             }
         }
     )
@@ -94,7 +94,7 @@ async def classify_message(request: ClassifyRequest) -> ClassifyResponse:
         return _keyword_classify(request.message)
 
     llm = LLMClient()
-    provider, model = GPT4O_MINI
+    provider, model = MAIN_MODEL
     agent_list = "\n".join(
         f"- {agent}: {desc}" for agent, desc in _AGENT_CAPABILITIES.items()
     )

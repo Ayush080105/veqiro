@@ -22,6 +22,14 @@ from core.runs.routes import router as runs_router
 
 @asynccontextmanager
 async def lifespan(app):
+    from core.config import settings, main_llm_key_missing
+    if main_llm_key_missing(settings):
+        import logging
+        logging.getLogger(__name__).error(
+            "ANTHROPIC_API_KEY is not set but MAIN_LLM_PROVIDER=anthropic: every agent "
+            "chat/JSON/tool call will fail. Set the key, or roll back with "
+            "MAIN_LLM_PROVIDER=openai MAIN_LLM_MODEL=gpt-6-luna."
+        )
     try:
         await initialize_tables()
     except Exception as e:
@@ -68,11 +76,13 @@ async def health():
 
 @app.get("/ready", tags=["Health"])
 async def ready():
+    from core.config import settings, main_llm_key_missing
     return {
         "db": True,
         "redis": True,
         "gemini": True,
-        "openai": True,
+        "anthropic": not main_llm_key_missing(settings),
+        "openai": True,  # embeddings
     }
 
 

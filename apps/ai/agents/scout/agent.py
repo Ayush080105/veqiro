@@ -23,8 +23,6 @@ class ScoutAgent(BaseAgent):
         "Warm and engaging, you make research feel like a discovery rather than a chore. "
         "Sharp and accurate, but always with the spirit of someone who loves the hunt."
     )
-    default_provider = "openai"
-    default_model = settings.SCOUT_MODEL
 
     # Dropped from the tool list when the org sets an mcp_tool_preference for
     # Scout (e.g. "tavily") — these all source data via native Serper search
